@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
+import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 
@@ -41,6 +42,12 @@ const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
   path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppConnectionsRoute =
+  AuthenticatedAppConnectionsRouteImport.update({
+    id: '/app/connections',
+    path: '/app/connections',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
   id: '/app/video/$id',
   path: '/app/video/$id',
@@ -55,6 +62,7 @@ const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -63,6 +71,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -73,6 +82,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -83,17 +93,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/app/connections'
     | '/app/upload'
     | '/app/'
     | '/app/job/$id'
     | '/app/video/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app/upload' | '/app' | '/app/job/$id' | '/app/video/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/connections'
+    | '/app/upload'
+    | '/app'
+    | '/app/job/$id'
+    | '/app/video/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/app/connections'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
     | '/_authenticated/app/job/$id'
@@ -143,6 +162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/connections': {
+      id: '/_authenticated/app/connections'
+      path: '/app/connections'
+      fullPath: '/app/connections'
+      preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/video/$id': {
       id: '/_authenticated/app/video/$id'
       path: '/app/video/$id'
@@ -161,6 +187,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppJobIdRoute: typeof AuthenticatedAppJobIdRoute
@@ -168,6 +195,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppJobIdRoute: AuthenticatedAppJobIdRoute,
