@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
 import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
@@ -34,6 +36,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
@@ -89,6 +101,8 @@ const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
@@ -102,6 +116,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
@@ -117,6 +133,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
@@ -132,6 +150,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/api/chat'
+    | '/api/transcribe'
     | '/app/connections'
     | '/app/publishing'
     | '/app/upload'
@@ -145,6 +165,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/api/chat'
+    | '/api/transcribe'
     | '/app/connections'
     | '/app/publishing'
     | '/app/upload'
@@ -159,6 +181,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/api/chat'
+    | '/api/transcribe'
     | '/_authenticated/app/connections'
     | '/_authenticated/app/publishing'
     | '/_authenticated/app/upload'
@@ -174,6 +198,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
 }
@@ -199,6 +225,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
@@ -294,6 +334,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiChatRoute: ApiChatRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicHooksProcessPublishQueueRoute:
     ApiPublicHooksProcessPublishQueueRoute,
   ApiPublicHooksSyncAnalyticsRoute: ApiPublicHooksSyncAnalyticsRoute,
