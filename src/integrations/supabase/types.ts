@@ -14,9 +14,37 @@ export type Database = {
   }
   public: {
     Tables: {
+      brands: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       edit_jobs: {
         Row: {
           analysis: Json | null
+          brand_id: string | null
           created_at: string
           error: string | null
           id: string
@@ -30,6 +58,7 @@ export type Database = {
         }
         Insert: {
           analysis?: Json | null
+          brand_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -43,6 +72,7 @@ export type Database = {
         }
         Update: {
           analysis?: Json | null
+          brand_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -55,6 +85,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "edit_jobs_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "edit_jobs_raw_video_id_fkey"
             columns: ["raw_video_id"]
@@ -137,6 +174,7 @@ export type Database = {
       }
       raw_videos: {
         Row: {
+          brand_id: string | null
           created_at: string
           duration_s: number | null
           id: string
@@ -148,6 +186,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand_id?: string | null
           created_at?: string
           duration_s?: number | null
           id?: string
@@ -159,6 +198,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brand_id?: string | null
           created_at?: string
           duration_s?: number | null
           id?: string
@@ -169,11 +209,20 @@ export type Database = {
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "raw_videos_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       social_accounts: {
         Row: {
           access_token_encrypted: string | null
+          brand_id: string | null
           created_at: string
           expires_at: string | null
           handle: string | null
@@ -185,6 +234,7 @@ export type Database = {
         }
         Insert: {
           access_token_encrypted?: string | null
+          brand_id?: string | null
           created_at?: string
           expires_at?: string | null
           handle?: string | null
@@ -196,6 +246,7 @@ export type Database = {
         }
         Update: {
           access_token_encrypted?: string | null
+          brand_id?: string | null
           created_at?: string
           expires_at?: string | null
           handle?: string | null
@@ -205,7 +256,15 @@ export type Database = {
           refresh_token_encrypted?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
