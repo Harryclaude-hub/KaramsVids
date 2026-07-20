@@ -3,12 +3,14 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UploadCloud, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveBrandId } from "@/lib/use-active-brand";
 
 export const Route = createFileRoute("/_authenticated/app/upload")({
   component: UploadPage,
 });
 
 function UploadPage() {
+  const [activeBrandId] = useActiveBrandId();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -30,6 +32,7 @@ function UploadPage() {
       const duration = await probeDuration(file).catch(() => null);
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id,
+        brand_id: activeBrandId,
         title: title || file.name,
         storage_path: key,
         size_bytes: file.size,
@@ -52,6 +55,7 @@ function UploadPage() {
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id,
+        brand_id: activeBrandId,
         title: title || urlInput,
         source_url: urlInput,
       }).select().single();

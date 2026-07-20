@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Film, Sparkles, Clock } from "lucide-react";
+import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: Dashboard,
@@ -10,20 +11,27 @@ export const Route = createFileRoute("/_authenticated/app/")({
 function Dashboard() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const [brandId] = useActiveBrandId();
+  const brandsQ = useBrands(user.id);
+  const activeBrand = brandsQ.data?.find((b) => b.id === brandId) ?? null;
 
   const videosQ = useQuery({
-    queryKey: ["raw_videos", user.id],
+    queryKey: ["raw_videos", user.id, brandId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("raw_videos").select("*").order("created_at", { ascending: false }).limit(20);
+      let q = supabase.from("raw_videos").select("*").order("created_at", { ascending: false }).limit(20);
+      if (brandId) q = q.eq("brand_id", brandId);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const jobsQ = useQuery({
-    queryKey: ["edit_jobs", user.id],
+    queryKey: ["edit_jobs", user.id, brandId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("edit_jobs").select("*, raw_videos(title)").order("created_at", { ascending: false }).limit(10);
+      let q = supabase.from("edit_jobs").select("*, raw_videos(title)").order("created_at", { ascending: false }).limit(10);
+      if (brandId) q = q.eq("brand_id", brandId);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -34,7 +42,12 @@ function Dashboard() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-primary">Dashboard</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Deine Videowerkstatt</h1>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+            {activeBrand ? activeBrand.name : "Alle Videos"}
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {activeBrand ? "Aktiver Brand — Uploads & Jobs werden diesem Brand zugeordnet." : "Kein Brand aktiv — Uploads bleiben ohne Zuordnung."}
+          </p>
         </div>
         <button onClick={() => navigate({ to: "/app/upload" })} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           <Upload className="h-4 w-4" /> Neues Video
