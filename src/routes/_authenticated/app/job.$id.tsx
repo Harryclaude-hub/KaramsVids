@@ -432,7 +432,7 @@ function JobEditor() {
           <EditorChat
             jobId={id}
             userId={user.id}
-            initialMessages={(job?.chat_messages ?? []) as UIMessage[]}
+            initialMessages={((job?.chat_messages ?? []) as unknown) as UIMessage[]}
             styleReference={(job?.style_reference ?? null) as Record<string, unknown> | null}
             onChanged={() => jobQ.refetch()}
           />
