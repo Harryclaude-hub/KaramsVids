@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           analysis: Json | null
           brand_id: string | null
+          chat_messages: Json
           created_at: string
           error: string | null
           id: string
@@ -101,12 +102,14 @@ export type Database = {
           progress: number
           raw_video_id: string
           status: Database["public"]["Enums"]["job_status"]
+          style_reference: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           analysis?: Json | null
           brand_id?: string | null
+          chat_messages?: Json
           created_at?: string
           error?: string | null
           id?: string
@@ -115,12 +118,14 @@ export type Database = {
           progress?: number
           raw_video_id: string
           status?: Database["public"]["Enums"]["job_status"]
+          style_reference?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           analysis?: Json | null
           brand_id?: string | null
+          chat_messages?: Json
           created_at?: string
           error?: string | null
           id?: string
@@ -129,6 +134,7 @@ export type Database = {
           progress?: number
           raw_video_id?: string
           status?: Database["public"]["Enums"]["job_status"]
+          style_reference?: Json | null
           updated_at?: string
           user_id?: string
         }
