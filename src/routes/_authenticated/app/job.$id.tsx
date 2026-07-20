@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Download, Play, Scissors, Loader2, Plus, Trash2, RotateCcw, Sparkles, Languages, ListPlus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { EditorChat } from "@/components/editor-chat";
+import type { UIMessage } from "ai";
 
 type Segment = { start_s: number; end_s: number; title: string; hook?: string; captions?: string };
 type Analysis = { transcript_summary?: string; language?: string; segments: Segment[] };
@@ -425,6 +427,15 @@ function JobEditor() {
               </div>
             </div>
           </div>
+
+          {/* KI-Chat + Style-Reference */}
+          <EditorChat
+            jobId={id}
+            userId={user.id}
+            initialMessages={(job?.chat_messages ?? []) as UIMessage[]}
+            styleReference={(job?.style_reference ?? null) as Record<string, unknown> | null}
+            onChanged={() => jobQ.refetch()}
+          />
         </>
       )}
     </div>
