@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_snapshots: {
+        Row: {
+          brand_id: string
+          created_at: string
+          id: string
+          metrics: Json
+          platform: string
+          snapshot_at: string
+          social_account_id: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          platform: string
+          snapshot_at?: string
+          social_account_id: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          platform?: string
+          snapshot_at?: string
+          social_account_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_snapshots_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_snapshots_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brands: {
         Row: {
           color: string
@@ -101,6 +149,41 @@ export type Database = {
           },
         ]
       }
+      folders: {
+        Row: {
+          brand_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_clips: {
         Row: {
           aspect: string
@@ -177,7 +260,9 @@ export type Database = {
           brand_id: string | null
           created_at: string
           duration_s: number | null
+          folder_id: string | null
           id: string
+          platform: string | null
           size_bytes: number | null
           source_url: string | null
           status: string
@@ -189,7 +274,9 @@ export type Database = {
           brand_id?: string | null
           created_at?: string
           duration_s?: number | null
+          folder_id?: string | null
           id?: string
+          platform?: string | null
           size_bytes?: number | null
           source_url?: string | null
           status?: string
@@ -201,7 +288,9 @@ export type Database = {
           brand_id?: string | null
           created_at?: string
           duration_s?: number | null
+          folder_id?: string | null
           id?: string
+          platform?: string | null
           size_bytes?: number | null
           source_url?: string | null
           status?: string
@@ -217,6 +306,13 @@ export type Database = {
             referencedRelation: "brands"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "raw_videos_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
         ]
       }
       social_accounts: {
@@ -227,9 +323,12 @@ export type Database = {
           expires_at: string | null
           handle: string | null
           id: string
+          last_sync_at: string | null
           meta: Json
           platform: Database["public"]["Enums"]["social_platform"]
           refresh_token_encrypted: string | null
+          status: string
+          sync_error: string | null
           user_id: string
         }
         Insert: {
@@ -239,9 +338,12 @@ export type Database = {
           expires_at?: string | null
           handle?: string | null
           id?: string
+          last_sync_at?: string | null
           meta?: Json
           platform: Database["public"]["Enums"]["social_platform"]
           refresh_token_encrypted?: string | null
+          status?: string
+          sync_error?: string | null
           user_id: string
         }
         Update: {
@@ -251,9 +353,12 @@ export type Database = {
           expires_at?: string | null
           handle?: string | null
           id?: string
+          last_sync_at?: string | null
           meta?: Json
           platform?: Database["public"]["Enums"]["social_platform"]
           refresh_token_encrypted?: string | null
+          status?: string
+          sync_error?: string | null
           user_id?: string
         }
         Relationships: [
