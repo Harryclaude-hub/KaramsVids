@@ -127,8 +127,62 @@ function JobEditor() {
       const data = await ff.readFile("out.mp4");
       const blob = new Blob([data as BlobPart], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
+      outputBlobs.current[idx] = blob;
       setOutputs((o) => ({ ...o, [idx]: url }));
       toast.success(`Clip ${idx + 1} fertig`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Render fehlgeschlagen");
+    } finally {
+      setRendering(null);
+      setProgress(0);
+    }
+  }
+
+  async function pushToQueue(idx: number, seg: Segment) {
+    if (!brandId) { toast.error("Video hat keinen Brand — bitte im Video erneut zuordnen"); return; }
+    if (!targetPlatform) { toast.error("Bitte Ziel-Plattform wählen"); return; }
+    const blob = outputBlobs.current[idx];
+    if (!blob) { toast.error("Bitte erst rendern"); return; }
+    setQueuing(String(idx));
+    try {
+      const key = `${user.id}/${brandId}/${crypto.randomUUID()}.mp4`;
+      const up = await supabase.storage.from("rendered-clips").upload(key, blob, { contentType: "video/mp4", upsert: false });
+      if (up.error) throw up.error;
+
+      const { data: maxRow } = await supabase
+        .from("generated_clips")
+        .select("queue_position")
+        .eq("brand_id", brandId)
+        .eq("platform", targetPlatform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
+        .order("queue_position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextPos = (maxRow?.queue_position ?? 0) + 1;
+
+      const { data: row, error: insErr } = await supabase.from("generated_clips").insert({
+        user_id: user.id,
+        job_id: id,
+        brand_id: brandId,
+        platform: targetPlatform,
+        storage_path: key,
+        aspect: vertical ? "9:16" : "16:9",
+        duration_s: Math.max(0.1, seg.end_s - seg.start_s),
+        title: seg.title,
+        caption_srt: seg.captions ?? null,
+        status: "queued",
+        queue_position: nextPos,
+        meta: { hook: seg.hook ?? null },
+      }).select().single();
+      if (insErr) throw insErr;
+
+      setQueuedIds((q) => ({ ...q, [idx]: row.id }));
+      toast.success(`Clip ${idx + 1} in Warteschlange (${targetPlatform})`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Konnte nicht in Queue stellen");
+    } finally {
+      setQueuing(null);
+    }
+  }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Render fehlgeschlagen");
     } finally {
