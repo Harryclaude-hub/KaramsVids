@@ -75,7 +75,7 @@ function PublishingPage() {
 
   const queuedByPlatform: Record<string, number> = {};
   for (const c of clipsQ.data ?? []) {
-    if (c.status === "queued") queuedByPlatform[c.platform] = (queuedByPlatform[c.platform] ?? 0) + 1;
+    if (c.status === "queued" && c.platform) queuedByPlatform[c.platform] = (queuedByPlatform[c.platform] ?? 0) + 1;
   }
 
   async function triggerProcess() {
