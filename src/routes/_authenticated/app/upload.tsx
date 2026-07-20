@@ -32,6 +32,7 @@ function UploadPage() {
       const duration = await probeDuration(file).catch(() => null);
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id,
+        brand_id: activeBrandId,
         title: title || file.name,
         storage_path: key,
         size_bytes: file.size,
@@ -54,6 +55,7 @@ function UploadPage() {
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id,
+        brand_id: activeBrandId,
         title: title || urlInput,
         source_url: urlInput,
       }).select().single();
