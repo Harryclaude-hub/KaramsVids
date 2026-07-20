@@ -59,6 +59,8 @@ function UploadPage() {
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id,
         brand_id: activeBrandId,
+        folder_id: folderId || null,
+        platform: platform || null,
         title: title || file.name,
         storage_path: key,
         size_bytes: file.size,
