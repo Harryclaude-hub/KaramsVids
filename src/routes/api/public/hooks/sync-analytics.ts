@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/hooks/sync-analytics")({
         }
 
         let synced = 0;
-        for (const acc of accounts ?? []) {
+        for (const acc of (accounts ?? []).filter((a) => a.brand_id)) {
           try {
             const metrics = mockMetrics();
             await supabaseAdmin.from("analytics_snapshots").insert({
