@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -58,6 +59,11 @@ const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
   path: '/app/job/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
+  id: '/app/brand/$id',
+  path: '/app/brand/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
 }
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
 }
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/_authenticated/app/video/$id': typeof AuthenticatedAppVideoIdRoute
 }
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/app/connections'
     | '/app/upload'
     | '/app/'
+    | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/app/connections'
     | '/app/upload'
     | '/app'
+    | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
   id:
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/connections'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
+    | '/_authenticated/app/brand/$id'
     | '/_authenticated/app/job/$id'
     | '/_authenticated/app/video/$id'
   fileRoutesById: FileRoutesById
@@ -183,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/brand/$id': {
+      id: '/_authenticated/app/brand/$id'
+      path: '/app/brand/$id'
+      fullPath: '/app/brand/$id'
+      preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -190,6 +209,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppBrandIdRoute: typeof AuthenticatedAppBrandIdRoute
   AuthenticatedAppJobIdRoute: typeof AuthenticatedAppJobIdRoute
   AuthenticatedAppVideoIdRoute: typeof AuthenticatedAppVideoIdRoute
 }
@@ -198,6 +218,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppBrandIdRoute: AuthenticatedAppBrandIdRoute,
   AuthenticatedAppJobIdRoute: AuthenticatedAppJobIdRoute,
   AuthenticatedAppVideoIdRoute: AuthenticatedAppVideoIdRoute,
 }

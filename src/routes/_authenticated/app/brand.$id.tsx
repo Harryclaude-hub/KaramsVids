@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft } from "lucide-react";
@@ -31,7 +31,6 @@ function BrandDetail() {
     queryFn: async () => {
       const { data, error } = await supabase.from("brands").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      if (!data) throw notFound();
       return data;
     },
   });
