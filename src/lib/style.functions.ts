@@ -74,5 +74,5 @@ Antworte NUR mit gültigem JSON:
 
     const { error } = await supabase.from("edit_jobs").update({ style_reference: style as unknown as never }).eq("id", data.jobId);
     if (error) throw new Error(error.message);
-    return { style };
+    return { style: style as Record<string, string | number | boolean | null> };
   });

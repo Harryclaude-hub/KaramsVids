@@ -27,7 +27,7 @@ export function EditorChat({ jobId, userId, initialMessages, styleReference, onC
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        headers: () => (token ? { Authorization: `Bearer ${token}` } : {}),
+        headers: () => (token ? { Authorization: `Bearer ${token}` } : ({} as Record<string, string>)),
         body: () => ({ jobId }),
       }),
     [token, jobId],

@@ -226,7 +226,7 @@ Arbeitsweise:
         const result = streamText({
           model: gateway("openai/gpt-5.5"),
           system,
-          messages: convertToModelMessages(body.messages),
+          messages: await convertToModelMessages(body.messages),
           tools,
           stopWhen: stepCountIs(50),
         });
