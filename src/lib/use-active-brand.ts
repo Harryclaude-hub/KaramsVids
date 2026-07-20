@@ -39,8 +39,10 @@ export function useActiveBrandId(): [string | null, (id: string | null) => void]
     return () => window.removeEventListener("storage", onStorage);
   }, []);
   const set = useCallback((v: string | null) => {
-    if (v) window.localStorage.setItem(LS_KEY, v);
-    else window.localStorage.removeItem(LS_KEY);
+    if (typeof window !== "undefined") {
+      if (v) window.localStorage.setItem(LS_KEY, v);
+      else window.localStorage.removeItem(LS_KEY);
+    }
     setId(v);
   }, []);
   return [id, set];
@@ -58,4 +60,13 @@ export function useCreateBrand(userId: string) {
     qc.invalidateQueries({ queryKey: ["brands", userId] });
     return data as Brand;
   };
+}
+
+/**
+ * Modal-artiger Helfer: gibt garantiert eine Brand-ID zurück oder wirft.
+ * Wird von Upload/Editor genutzt, damit jedes Video zu einem Brand gehört.
+ */
+export function useRequireBrand() {
+  const [activeBrandId, setActiveBrandId] = useActiveBrandId();
+  return { activeBrandId, setActiveBrandId };
 }
