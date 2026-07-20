@@ -159,7 +159,8 @@ function UploadPage() {
               value={newBrandName}
               onChange={(e) => setNewBrandName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitNewBrand()}
-              placeholder="z. B. „Meine Café-Marke"" className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
+              placeholder="z. B. Meine Cafe-Marke"
+              className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <button onClick={submitNewBrand} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Anlegen</button>
           </div>
@@ -237,8 +238,9 @@ function probeDuration(file: File): Promise<number> {
   return new Promise((res, rej) => {
     const v = document.createElement("video");
     v.preload = "metadata";
-    v.onloadedmetadata = () => { res(v.duration); URL.revokeObjectURL(v.src); };
-    v.onerror = () => rej(new Error("probe failed"));
-    v.src = URL.createObjectURL(v.src && "" || URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    v.onloadedmetadata = () => { res(v.duration); URL.revokeObjectURL(url); };
+    v.onerror = () => { URL.revokeObjectURL(url); rej(new Error("probe failed")); };
+    v.src = url;
   });
 }
