@@ -183,13 +183,7 @@ function JobEditor() {
       setQueuing(null);
     }
   }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Render fehlgeschlagen");
-    } finally {
-      setRendering(null);
-      setProgress(0);
-    }
-  }
+
 
   async function renderAll() {
     if (!segments) return;
