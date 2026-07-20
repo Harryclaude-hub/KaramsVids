@@ -1,17 +1,17 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadCloud, Link2, FolderPlus } from "lucide-react";
+import { UploadCloud, Link2, FolderPlus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useActiveBrandId } from "@/lib/use-active-brand";
+import { useActiveBrandId, useBrands, useCreateBrand } from "@/lib/use-active-brand";
 
 export const Route = createFileRoute("/_authenticated/app/upload")({
   component: UploadPage,
 });
 
 function UploadPage() {
-  const [activeBrandId] = useActiveBrandId();
+  const [activeBrandId, setActiveBrandId] = useActiveBrandId();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -20,6 +20,12 @@ function UploadPage() {
   const [title, setTitle] = useState("");
   const [folderId, setFolderId] = useState<string>("");
   const [platform, setPlatform] = useState<string>("");
+  const [newBrandName, setNewBrandName] = useState("");
+
+  const brandsQ = useBrands(user.id);
+  const brands = brandsQ.data ?? [];
+  const activeBrand = brands.find((b) => b.id === activeBrandId) ?? null;
+  const createBrand = useCreateBrand(user.id);
 
   const foldersQ = useQuery({
     queryKey: ["folders", user.id, activeBrandId],
@@ -31,20 +37,33 @@ function UploadPage() {
     },
   });
 
+  async function submitNewBrand() {
+    const name = newBrandName.trim();
+    if (!name) return;
+    try {
+      const b = await createBrand(name);
+      setActiveBrandId(b.id);
+      setNewBrandName("");
+      toast.success(`Brand „${b.name}" erstellt`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Konnte Brand nicht anlegen");
+    }
+  }
+
   async function createFolder() {
-    if (!activeBrandId) return toast.error("Bitte zuerst einen Brand wählen");
+    if (!activeBrand) return;
     const name = window.prompt("Ordnername")?.trim();
     if (!name) return;
     const { data, error } = await supabase.from("folders").insert({
-      user_id: user.id, brand_id: activeBrandId, name,
+      user_id: user.id, brand_id: activeBrand.id, name,
     }).select().single();
     if (error) return toast.error(error.message);
     setFolderId(data.id);
     foldersQ.refetch();
   }
 
-
   async function handleFile(file: File) {
+    if (!activeBrand) { toast.error("Bitte zuerst einen Brand wählen"); return; }
     setBusy(true);
     setProgress(0);
     try {
@@ -58,7 +77,7 @@ function UploadPage() {
       const duration = await probeDuration(file).catch(() => null);
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id,
-        brand_id: activeBrandId,
+        brand_id: activeBrand.id,
         folder_id: folderId || null,
         platform: platform || null,
         title: title || file.name,
@@ -78,12 +97,13 @@ function UploadPage() {
   }
 
   async function handleUrl() {
+    if (!activeBrand) { toast.error("Bitte zuerst einen Brand wählen"); return; }
     if (!urlInput.trim()) return;
     setBusy(true);
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id,
-        brand_id: activeBrandId,
+        brand_id: activeBrand.id,
         folder_id: folderId || null,
         platform: platform || null,
         title: title || urlInput,
@@ -99,12 +119,66 @@ function UploadPage() {
     }
   }
 
+  // Brand-Gate: jedes Video MUSS zu einem Brand gehören
+  if (!activeBrand) {
+    return (
+      <div className="mx-auto max-w-xl space-y-6">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest text-primary">Upload</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Zuerst einen Brand wählen</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Jedes Video gehört zu einem Brand — so bleiben Videos, Social-Accounts und Upload-Zeitpläne pro Brand komplett getrennt.
+          </p>
+        </div>
+        <div className="flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>Kein Brand aktiv. Wähle einen bestehenden oder lege einen neuen an.</span>
+        </div>
+
+        {brands.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="mb-2 text-sm font-medium">Vorhandene Brands</div>
+            <div className="flex flex-wrap gap-2">
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setActiveBrandId(b.id)}
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:border-primary"
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: b.color }} /> {b.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-2 text-sm font-medium">Neuen Brand anlegen</div>
+          <div className="flex gap-2">
+            <input
+              value={newBrandName}
+              onChange={(e) => setNewBrandName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitNewBrand()}
+              placeholder="z. B. „Meine Café-Marke"" className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+            <button onClick={submitNewBrand} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Anlegen</button>
+          </div>
+        </div>
+
+        <Link to="/app" className="inline-block text-xs text-muted-foreground hover:text-foreground">← zum Dashboard</Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <p className="font-mono text-xs uppercase tracking-widest text-primary">Upload</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-primary">Upload · Brand {activeBrand.name}</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Neues Video hinzufügen</h1>
         <p className="mt-2 text-sm text-muted-foreground">Datei hochladen oder Link einfügen. Max 500 MB pro Datei.</p>
+        <button onClick={() => setActiveBrandId(null)} className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
+          Brand wechseln
+        </button>
       </div>
 
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel (optional)" className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -165,6 +239,6 @@ function probeDuration(file: File): Promise<number> {
     v.preload = "metadata";
     v.onloadedmetadata = () => { res(v.duration); URL.revokeObjectURL(v.src); };
     v.onerror = () => rej(new Error("probe failed"));
-    v.src = URL.createObjectURL(file);
+    v.src = URL.createObjectURL(v.src && "" || URL.createObjectURL(file));
   });
 }
