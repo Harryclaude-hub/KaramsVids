@@ -14,8 +14,10 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
+import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
 import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
+import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
@@ -44,6 +46,12 @@ const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
   path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppPublishingRoute =
+  AuthenticatedAppPublishingRouteImport.update({
+    id: '/app/publishing',
+    path: '/app/publishing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppConnectionsRoute =
   AuthenticatedAppConnectionsRouteImport.update({
     id: '/app/connections',
@@ -54,6 +62,12 @@ const ApiPublicHooksSyncAnalyticsRoute =
   ApiPublicHooksSyncAnalyticsRouteImport.update({
     id: '/api/public/hooks/sync-analytics',
     path: '/api/public/hooks/sync-analytics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksProcessPublishQueueRoute =
+  ApiPublicHooksProcessPublishQueueRouteImport.update({
+    id: '/api/public/hooks/process-publish-queue',
+    path: '/api/public/hooks/process-publish-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
@@ -76,22 +90,26 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
 }
 export interface FileRoutesById {
@@ -100,11 +118,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/_authenticated/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
 }
 export interface FileRouteTypes {
@@ -113,22 +133,26 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/app/connections'
+    | '/app/publishing'
     | '/app/upload'
     | '/app/'
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/app/connections'
+    | '/app/publishing'
     | '/app/upload'
     | '/app'
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
   id:
     | '__root__'
@@ -136,11 +160,13 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app/connections'
+    | '/_authenticated/app/publishing'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
     | '/_authenticated/app/brand/$id'
     | '/_authenticated/app/job/$id'
     | '/_authenticated/app/video/$id'
+    | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
   fileRoutesById: FileRoutesById
 }
@@ -148,6 +174,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
 }
 
@@ -188,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/publishing': {
+      id: '/_authenticated/app/publishing'
+      path: '/app/publishing'
+      fullPath: '/app/publishing'
+      preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/connections': {
       id: '/_authenticated/app/connections'
       path: '/app/connections'
@@ -200,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/sync-analytics'
       fullPath: '/api/public/hooks/sync-analytics'
       preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/process-publish-queue': {
+      id: '/api/public/hooks/process-publish-queue'
+      path: '/api/public/hooks/process-publish-queue'
+      fullPath: '/api/public/hooks/process-publish-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/video/$id': {
@@ -228,6 +269,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
+  AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBrandIdRoute: typeof AuthenticatedAppBrandIdRoute
@@ -237,6 +279,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
+  AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBrandIdRoute: AuthenticatedAppBrandIdRoute,
@@ -251,6 +294,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksProcessPublishQueueRoute:
+    ApiPublicHooksProcessPublishQueueRoute,
   ApiPublicHooksSyncAnalyticsRoute: ApiPublicHooksSyncAnalyticsRoute,
 }
 export const routeTree = rootRouteImport

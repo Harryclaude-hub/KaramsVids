@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Download, Play, Scissors, Loader2, Plus, Trash2, RotateCcw, Sparkles, Languages } from "lucide-react";
+import { ArrowLeft, Download, Play, Scissors, Loader2, Plus, Trash2, RotateCcw, Sparkles, Languages, ListPlus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Segment = { start_s: number; end_s: number; title: string; hook?: string; captions?: string };
@@ -20,10 +20,14 @@ function fmt(s: number) {
 
 function JobEditor() {
   const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<Record<string, string>>({});
+  const outputBlobs = useRef<Record<string, Blob>>({});
+  const [queuedIds, setQueuedIds] = useState<Record<string, string>>({});
+  const [queuing, setQueuing] = useState<string | null>(null);
   const [segments, setSegments] = useState<Segment[] | null>(null);
   const [selected, setSelected] = useState<number>(0);
   const originalRef = useRef<Segment[] | null>(null);
@@ -41,7 +45,10 @@ function JobEditor() {
   });
 
   const job = jobQ.data;
-  const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null } | undefined;
+  const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null; brand_id: string | null; platform: string | null } | undefined;
+  const brandId = raw?.brand_id ?? null;
+  const [targetPlatform, setTargetPlatform] = useState<string>("");
+  useEffect(() => { if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform); }, [raw?.platform, targetPlatform]);
   const analysis = (job?.analysis as unknown as Analysis | null) ?? null;
   const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean };
   const vertical = options.aspect === "9:16";
@@ -120,6 +127,7 @@ function JobEditor() {
       const data = await ff.readFile("out.mp4");
       const blob = new Blob([data as BlobPart], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
+      outputBlobs.current[idx] = blob;
       setOutputs((o) => ({ ...o, [idx]: url }));
       toast.success(`Clip ${idx + 1} fertig`);
     } catch (e) {
@@ -129,6 +137,53 @@ function JobEditor() {
       setProgress(0);
     }
   }
+
+  async function pushToQueue(idx: number, seg: Segment) {
+    if (!brandId) { toast.error("Video hat keinen Brand — bitte im Video erneut zuordnen"); return; }
+    if (!targetPlatform) { toast.error("Bitte Ziel-Plattform wählen"); return; }
+    const blob = outputBlobs.current[idx];
+    if (!blob) { toast.error("Bitte erst rendern"); return; }
+    setQueuing(String(idx));
+    try {
+      const key = `${user.id}/${brandId}/${crypto.randomUUID()}.mp4`;
+      const up = await supabase.storage.from("rendered-clips").upload(key, blob, { contentType: "video/mp4", upsert: false });
+      if (up.error) throw up.error;
+
+      const { data: maxRow } = await supabase
+        .from("generated_clips")
+        .select("queue_position")
+        .eq("brand_id", brandId)
+        .eq("platform", targetPlatform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
+        .order("queue_position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextPos = (maxRow?.queue_position ?? 0) + 1;
+
+      const { data: row, error: insErr } = await supabase.from("generated_clips").insert({
+        user_id: user.id,
+        job_id: id,
+        brand_id: brandId,
+        platform: targetPlatform,
+        storage_path: key,
+        aspect: vertical ? "9:16" : "16:9",
+        duration_s: Math.max(0.1, seg.end_s - seg.start_s),
+        title: seg.title,
+        caption_srt: seg.captions ?? null,
+        status: "queued",
+        queue_position: nextPos,
+        meta: { hook: seg.hook ?? null },
+      }).select().single();
+      if (insErr) throw insErr;
+
+      setQueuedIds((q) => ({ ...q, [idx]: row.id }));
+      toast.success(`Clip ${idx + 1} in Warteschlange (${targetPlatform})`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Konnte nicht in Queue stellen");
+    } finally {
+      setQueuing(null);
+    }
+  }
+
 
   async function renderAll() {
     if (!segments) return;
@@ -162,12 +217,33 @@ function JobEditor() {
             Modus: {job?.mode} · Status: {job?.status} · Format: {vertical ? "9:16 Vertical" : "16:9"} {dirty && <span className="ml-2 text-primary">· manuell bearbeitet</span>}
           </p>
         </div>
-        {analysis && segments && segments.length > 0 && (
-          <button onClick={renderAll} disabled={rendering !== null} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
-            <Sparkles className="h-4 w-4" /> Alle rendern
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <select
+            value={targetPlatform}
+            onChange={(e) => setTargetPlatform(e.target.value)}
+            className="rounded-md border border-border bg-input px-2 py-2 text-xs outline-none focus:border-primary"
+            title="Ziel-Plattform für die Warteschlange"
+          >
+            <option value="">Ziel-Plattform …</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="x">X (Twitter)</option>
+          </select>
+          {analysis && segments && segments.length > 0 && (
+            <button onClick={renderAll} disabled={rendering !== null} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+              <Sparkles className="h-4 w-4" /> Alle rendern
+            </button>
+          )}
+        </div>
       </div>
+
+      {!brandId && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+          Dieses Video ist keinem Brand zugeordnet. Ordne es zunächst einem Brand zu, um es in die Publish-Warteschlange stellen zu können.
+        </div>
+      )}
 
       {job?.status === "analyzing" && (
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
@@ -320,9 +396,24 @@ function JobEditor() {
                         {s.hook && <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">"{s.hook}"</div>}
                       </div>
                       {outputs[i] && (
-                        <a onClick={(e) => e.stopPropagation()} href={outputs[i]} download={`clip-${i + 1}.mp4`} className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] hover:bg-secondary">
-                          <Download className="h-3 w-3" /> MP4
-                        </a>
+                        <div className="flex shrink-0 flex-col gap-1">
+                          <a onClick={(e) => e.stopPropagation()} href={outputs[i]} download={`clip-${i + 1}.mp4`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] hover:bg-secondary">
+                            <Download className="h-3 w-3" /> MP4
+                          </a>
+                          {queuedIds[i] ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[10px] text-primary">
+                              <CheckCircle2 className="h-3 w-3" /> Queue
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); pushToQueue(i, s); }}
+                              disabled={queuing === String(i) || !brandId || !targetPlatform}
+                              className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10 disabled:opacity-50"
+                            >
+                              {queuing === String(i) ? <Loader2 className="h-3 w-3 animate-spin" /> : <ListPlus className="h-3 w-3" />} Queue
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                     {outputs[i] && <video src={outputs[i]} controls className="mt-2 w-full rounded-md bg-black" />}
@@ -330,7 +421,7 @@ function JobEditor() {
                 ))}
               </div>
               <div className="rounded-xl border border-dashed border-border p-3 text-[11px] text-muted-foreground">
-                Rendering läuft im Browser (ffmpeg.wasm). Fertige Clips kannst du direkt herunterladen und auf TikTok, YouTube, Reels & Co. hochladen — offizielle API-Uploads folgen, sobald deine Developer-Keys vorliegen.
+                Fertige Clips landen mit „Queue" in der Publish-Warteschlange deines Brands. Der Hintergrund-Job veröffentlicht sie zum eingestellten Zeitplan (siehe <Link to="/app/publishing" className="text-primary underline">Publishing</Link>). Offizielle API-Uploads werden aktiviert, sobald deine Developer-Keys vorliegen.
               </div>
             </div>
           </div>
