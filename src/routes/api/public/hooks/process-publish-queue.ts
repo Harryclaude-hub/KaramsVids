@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
               .from("social_accounts")
               .select("id,status,handle")
               .eq("brand_id", s.brand_id)
-              .eq("platform", s.platform)
+              .eq("platform", s.platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
               .neq("status", "disconnected")
               .maybeSingle();
 
