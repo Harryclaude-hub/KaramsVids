@@ -217,12 +217,33 @@ function JobEditor() {
             Modus: {job?.mode} · Status: {job?.status} · Format: {vertical ? "9:16 Vertical" : "16:9"} {dirty && <span className="ml-2 text-primary">· manuell bearbeitet</span>}
           </p>
         </div>
-        {analysis && segments && segments.length > 0 && (
-          <button onClick={renderAll} disabled={rendering !== null} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
-            <Sparkles className="h-4 w-4" /> Alle rendern
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <select
+            value={targetPlatform}
+            onChange={(e) => setTargetPlatform(e.target.value)}
+            className="rounded-md border border-border bg-input px-2 py-2 text-xs outline-none focus:border-primary"
+            title="Ziel-Plattform für die Warteschlange"
+          >
+            <option value="">Ziel-Plattform …</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="x">X (Twitter)</option>
+          </select>
+          {analysis && segments && segments.length > 0 && (
+            <button onClick={renderAll} disabled={rendering !== null} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+              <Sparkles className="h-4 w-4" /> Alle rendern
+            </button>
+          )}
+        </div>
       </div>
+
+      {!brandId && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+          Dieses Video ist keinem Brand zugeordnet. Ordne es zunächst einem Brand zu, um es in die Publish-Warteschlange stellen zu können.
+        </div>
+      )}
 
       {job?.status === "analyzing" && (
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
