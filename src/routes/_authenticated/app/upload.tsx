@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadCloud, Link2 } from "lucide-react";
+import { UploadCloud, Link2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveBrandId } from "@/lib/use-active-brand";
 
@@ -17,6 +18,31 @@ function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const [title, setTitle] = useState("");
+  const [folderId, setFolderId] = useState<string>("");
+  const [platform, setPlatform] = useState<string>("");
+
+  const foldersQ = useQuery({
+    queryKey: ["folders", user.id, activeBrandId],
+    enabled: !!activeBrandId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("folders").select("*").eq("brand_id", activeBrandId!).order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function createFolder() {
+    if (!activeBrandId) return toast.error("Bitte zuerst einen Brand wählen");
+    const name = window.prompt("Ordnername")?.trim();
+    if (!name) return;
+    const { data, error } = await supabase.from("folders").insert({
+      user_id: user.id, brand_id: activeBrandId, name,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setFolderId(data.id);
+    foldersQ.refetch();
+  }
+
 
   async function handleFile(file: File) {
     setBusy(true);
@@ -33,6 +59,8 @@ function UploadPage() {
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id,
         brand_id: activeBrandId,
+        folder_id: folderId || null,
+        platform: platform || null,
         title: title || file.name,
         storage_path: key,
         size_bytes: file.size,
@@ -56,6 +84,8 @@ function UploadPage() {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id,
         brand_id: activeBrandId,
+        folder_id: folderId || null,
+        platform: platform || null,
         title: title || urlInput,
         source_url: urlInput,
       }).select().single();
@@ -78,6 +108,32 @@ function UploadPage() {
       </div>
 
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel (optional)" className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary" />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ordner</label>
+          <div className="flex gap-2">
+            <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary">
+              <option value="">Kein Ordner</option>
+              {(foldersQ.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+            <button type="button" onClick={createFolder} className="inline-flex items-center gap-1 rounded-md border border-border px-3 text-xs hover:bg-card">
+              <FolderPlus className="h-3 w-3" /> Neu
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ziel-Plattform (optional)</label>
+          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary">
+            <option value="">— Keine —</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="x">X (Twitter)</option>
+          </select>
+        </div>
+      </div>
 
       <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-border bg-card/50 p-12 text-center transition hover:border-primary/60">
         <UploadCloud className="mx-auto h-10 w-10 text-primary" />

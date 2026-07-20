@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft } from "lucide-react";
+import {
+  Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
+  RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
+} from "lucide-react";
 import { useActiveBrandId } from "@/lib/use-active-brand";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/brand/$id")({
   component: BrandDetail,
@@ -15,15 +19,18 @@ const platforms = [
   { id: "instagram", name: "Instagram", icon: Instagram },
   { id: "facebook", name: "Facebook", icon: Facebook },
   { id: "x", name: "X (Twitter)", icon: Share2 },
-];
+] as const;
+
+type SortKey = "title" | "duration_s" | "clips" | "created_at" | "platform" | "status";
+type SortDir = "asc" | "desc";
 
 function BrandDetail() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [, setActiveBrandId] = useActiveBrandId();
 
-  // Activate this brand when the page opens so uploads land in it.
   useEffect(() => { setActiveBrandId(id); }, [id, setActiveBrandId]);
 
   const brandQ = useQuery({
@@ -39,7 +46,10 @@ function BrandDetail() {
     queryKey: ["raw_videos", user.id, id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("raw_videos").select("*, generated_clips(id)").eq("brand_id", id).order("created_at", { ascending: false });
+        .from("raw_videos")
+        .select("*, generated_clips(id), folders(id,name)")
+        .eq("brand_id", id)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -54,14 +64,172 @@ function BrandDetail() {
     },
   });
 
+  const foldersQ = useQuery({
+    queryKey: ["folders", user.id, id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("folders").select("*").eq("brand_id", id).order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const snapshotsQ = useQuery({
+    queryKey: ["snapshots", user.id, id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("analytics_snapshots")
+        .select("*")
+        .eq("brand_id", id)
+        .order("snapshot_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 60_000,
+  });
+
   const brand = brandQ.data;
   const videos = videosQ.data ?? [];
   const accounts = accountsQ.data ?? [];
+  const folders = foldersQ.data ?? [];
+  const snapshots = snapshotsQ.data ?? [];
+
+  // Filters + sort
+  const [search, setSearch] = useState("");
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [rangeFilter, setRangeFilter] = useState<string>("all");
+  const [folderFilter, setFolderFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const filteredVideos = useMemo(() => {
+    const now = Date.now();
+    const rangeMs: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+    return videos
+      .filter((v: any) => {
+        if (search && !v.title?.toLowerCase().includes(search.toLowerCase())) return false;
+        if (platformFilter !== "all" && v.platform !== platformFilter) return false;
+        if (statusFilter !== "all" && v.status !== statusFilter) return false;
+        if (folderFilter !== "all") {
+          if (folderFilter === "none" && v.folder_id) return false;
+          if (folderFilter !== "none" && v.folder_id !== folderFilter) return false;
+        }
+        if (rangeFilter !== "all" && rangeMs[rangeFilter]) {
+          const cutoff = now - rangeMs[rangeFilter] * 86400_000;
+          if (new Date(v.created_at).getTime() < cutoff) return false;
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        const dir = sortDir === "asc" ? 1 : -1;
+        const av = sortKey === "clips" ? (a.generated_clips?.length ?? 0) : a[sortKey];
+        const bv = sortKey === "clips" ? (b.generated_clips?.length ?? 0) : b[sortKey];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return av > bv ? dir : av < bv ? -dir : 0;
+      });
+  }, [videos, search, platformFilter, statusFilter, rangeFilter, folderFilter, sortKey, sortDir]);
+
+  const totalClips = videos.reduce((sum, v: any) => sum + (v.generated_clips?.length ?? 0), 0);
+
+  // Aggregate latest metrics per account
+  const latestByAccount = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const s of snapshots) {
+      if (!map.has(s.social_account_id)) map.set(s.social_account_id, s);
+    }
+    return map;
+  }, [snapshots]);
+
+  const totals = useMemo(() => {
+    const t = { views: 0, likes: 0, comments: 0, shares: 0 };
+    for (const s of latestByAccount.values()) {
+      const m = (s.metrics ?? {}) as any;
+      t.views += Number(m.views ?? 0);
+      t.likes += Number(m.likes ?? 0);
+      t.comments += Number(m.comments ?? 0);
+      t.shares += Number(m.shares ?? 0);
+    }
+    return t;
+  }, [latestByAccount]);
+
+  const lastSyncOverall = useMemo(() => {
+    const times = accounts.map((a) => a.last_sync_at).filter(Boolean).map((t) => new Date(t!).getTime());
+    return times.length ? new Date(Math.max(...times)) : null;
+  }, [accounts]);
+
+  async function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  }
+
+  async function connectPlatform(pid: string) {
+    const handle = window.prompt(`Handle für ${pid} (z. B. @mybrand)`)?.trim();
+    if (!handle) return;
+    const { error } = await supabase.from("social_accounts").insert({
+      user_id: user.id, brand_id: id, platform: pid as any, handle, status: "connected",
+    });
+    if (error) return toast.error(error.message);
+    toast.success(`${pid} verbunden`);
+    qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
+  }
+
+  async function disconnectAccount(accId: string) {
+    if (!confirm("Verbindung wirklich trennen?")) return;
+    const { error } = await supabase.from("social_accounts").update({ status: "disconnected" }).eq("id", accId);
+    if (error) return toast.error(error.message);
+    toast.success("Getrennt");
+    qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
+  }
+
+  async function reconnectAccount(accId: string) {
+    const { error } = await supabase.from("social_accounts")
+      .update({ status: "connected", sync_error: null }).eq("id", accId);
+    if (error) return toast.error(error.message);
+    toast.success("Wieder verbunden");
+    qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
+  }
+
+  async function checkStatus(accId: string) {
+    const { data, error } = await supabase.from("social_accounts").select("*").eq("id", accId).maybeSingle();
+    if (error || !data) return toast.error(error?.message ?? "Nicht gefunden");
+    toast.info(`Status: ${data.status}${data.last_sync_at ? ` · Sync ${new Date(data.last_sync_at).toLocaleString()}` : " · noch nie synchronisiert"}`);
+  }
+
+  async function triggerSync() {
+    toast.info("Analyse-Sync gestartet …");
+    try {
+      const res = await fetch("/api/public/hooks/sync-analytics", { method: "POST" });
+      if (!res.ok) throw new Error(await res.text());
+      const j = await res.json();
+      toast.success(`Sync fertig · ${j.synced} Account(s)`);
+      qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
+      qc.invalidateQueries({ queryKey: ["snapshots", user.id, id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync fehlgeschlagen");
+    }
+  }
+
+  async function addFolder() {
+    const name = window.prompt("Ordnername")?.trim();
+    if (!name) return;
+    const { error } = await supabase.from("folders").insert({ user_id: user.id, brand_id: id, name });
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["folders", user.id, id] });
+  }
+
+  async function deleteFolder(fid: string) {
+    if (!confirm("Ordner löschen? Videos bleiben erhalten (kein Ordner).")) return;
+    const { error } = await supabase.from("folders").delete().eq("id", fid);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["folders", user.id, id] });
+    qc.invalidateQueries({ queryKey: ["raw_videos", user.id, id] });
+  }
 
   if (brandQ.isLoading) return <div className="animate-pulse text-sm text-muted-foreground">Lade Brand …</div>;
   if (!brand) return <div className="text-sm text-muted-foreground">Brand nicht gefunden.</div>;
-
-  const totalClips = videos.reduce((sum, v: any) => sum + (v.generated_clips?.length ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -75,74 +243,202 @@ function BrandDetail() {
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-primary">Brand</p>
             <h1 className="text-3xl font-semibold tracking-tight">{brand.name}</h1>
-            <p className="mt-1 text-xs text-muted-foreground">Aktiver Brand — neue Uploads werden hier abgelegt.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {lastSyncOverall ? `Letzter Analyse-Sync: ${lastSyncOverall.toLocaleString()}` : "Noch kein Analyse-Sync"}
+            </p>
           </div>
         </div>
-        <button onClick={() => navigate({ to: "/app/upload" })} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          <Upload className="h-4 w-4" /> Video hinzufügen
-        </button>
+        <div className="flex gap-2">
+          <button onClick={triggerSync} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+            <RefreshCw className="h-4 w-4" /> Analytics jetzt syncen
+          </button>
+          <button onClick={() => navigate({ to: "/app/upload" })} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <Upload className="h-4 w-4" /> Video hinzufügen
+          </button>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Videos" value={videos.length} />
-        <Stat label="Generierte Clips" value={totalClips} />
-        <Stat label="Verbundene Accounts" value={accounts.length} />
+        <Stat label="Clips" value={totalClips} />
+        <Stat label="Accounts" value={accounts.filter((a) => a.status !== "disconnected").length} />
+        <Stat label="Views (cached)" value={totals.views} />
+        <Stat label="Likes" value={totals.likes} />
+        <Stat label="Kommentare" value={totals.comments} />
       </div>
 
+      {/* Social accounts */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"><Share2 className="h-4 w-4" /> Social-Accounts für {brand.name}</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Share2 className="h-4 w-4" /> Social-Accounts für {brand.name}
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {platforms.map((p) => {
             const acc = accounts.find((a) => a.platform === p.id);
+            const snap = acc ? latestByAccount.get(acc.id) : null;
+            const m = (snap?.metrics ?? {}) as any;
             return (
-              <div key={p.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                    <p.icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{p.name}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {acc ? `Verbunden${acc.handle ? ` · @${acc.handle}` : ""}` : "Nicht verbunden"}
+              <div key={p.id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                      <p.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{p.name}</div>
+                      <div className="font-mono text-[10px] text-muted-foreground">
+                        {acc ? (
+                          <>
+                            <span className={acc.status === "connected" ? "text-primary" : acc.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                              ● {acc.status}
+                            </span>
+                            {acc.handle ? ` · @${acc.handle}` : ""}
+                            {acc.last_sync_at ? ` · sync ${new Date(acc.last_sync_at).toLocaleTimeString()}` : " · noch kein sync"}
+                          </>
+                        ) : "Nicht verbunden"}
+                      </div>
+                      {acc && snap && (
+                        <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                          {m.views ?? 0} views · {m.likes ?? 0} likes · Retention {m.avg_watch_pct ?? 0}%
+                        </div>
+                      )}
                     </div>
                   </div>
+                  <div className="flex flex-col gap-1">
+                    {acc ? (
+                      <>
+                        <button onClick={() => checkStatus(acc.id)} className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background">
+                          Status
+                        </button>
+                        {acc.status === "disconnected" ? (
+                          <button onClick={() => reconnectAccount(acc.id)} className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[11px] text-primary hover:bg-primary/10">
+                            <Plug className="h-3 w-3" /> Reconnect
+                          </button>
+                        ) : (
+                          <button onClick={() => disconnectAccount(acc.id)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive">
+                            <Unlink className="h-3 w-3" /> Trennen
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button onClick={() => connectPlatform(p.id)} className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90">
+                        <Plug className="h-3 w-3" /> Verbinden
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <button disabled className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground opacity-70">
-                  {acc ? "Verwalten" : "Bald"}
-                </button>
+                {acc?.sync_error && (
+                  <div className="mt-2 rounded bg-destructive/10 px-2 py-1 text-[10px] text-destructive">{acc.sync_error}</div>
+                )}
               </div>
             );
           })}
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">Für jeden Brand kannst du eigene Accounts verbinden (z. B. mehrere Instagram-Profile).</p>
       </section>
 
+      {/* Folders */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"><Film className="h-4 w-4" /> Video-History</h2>
-        {videos.length === 0 ? (
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <FolderIcon className="h-4 w-4" /> Ordner
+          </h2>
+          <button onClick={addFolder} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card">
+            <FolderPlus className="h-3 w-3" /> Neuer Ordner
+          </button>
+        </div>
+        {folders.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            Noch keine Ordner. Ordner strukturieren deine Video-History (z. B. „Kampagne Herbst", „Testimonials").
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {folders.map((f) => {
+              const count = videos.filter((v: any) => v.folder_id === f.id).length;
+              return (
+                <div key={f.id} className="group flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+                  <FolderIcon className="h-3 w-3 text-primary" />
+                  <span className="font-medium">{f.name}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
+                  <button onClick={() => deleteFolder(f.id)} className="ml-1 text-[10px] text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100">
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Video history with filters */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Film className="h-4 w-4" /> Video-History ({filteredVideos.length})
+          </h2>
+        </div>
+
+        <div className="mb-3 flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Titel suchen …" className="w-full rounded-md border border-border bg-input py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+          </div>
+          <Select value={folderFilter} onChange={setFolderFilter} options={[
+            { value: "all", label: "Alle Ordner" },
+            { value: "none", label: "Ohne Ordner" },
+            ...folders.map((f) => ({ value: f.id, label: f.name })),
+          ]} />
+          <Select value={platformFilter} onChange={setPlatformFilter} options={[
+            { value: "all", label: "Alle Plattformen" },
+            { value: "tiktok", label: "TikTok" },
+            { value: "youtube", label: "YouTube" },
+            { value: "instagram", label: "Instagram" },
+            { value: "facebook", label: "Facebook" },
+            { value: "x", label: "X" },
+          ]} />
+          <Select value={statusFilter} onChange={setStatusFilter} options={[
+            { value: "all", label: "Alle Status" },
+            { value: "ready", label: "Ready" },
+            { value: "processing", label: "Processing" },
+            { value: "error", label: "Error" },
+          ]} />
+          <Select value={rangeFilter} onChange={setRangeFilter} options={[
+            { value: "all", label: "Gesamter Zeitraum" },
+            { value: "7d", label: "Letzte 7 Tage" },
+            { value: "30d", label: "Letzte 30 Tage" },
+            { value: "90d", label: "Letzte 90 Tage" },
+          ]} />
+        </div>
+
+        {filteredVideos.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Noch keine Videos in diesem Brand.
+            Keine Videos entsprechen den Filtern.
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-card/60 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2">Titel</th>
-                  <th className="px-4 py-2">Dauer</th>
-                  <th className="px-4 py-2">Clips</th>
-                  <th className="px-4 py-2">Datum</th>
+                  <Th onClick={() => toggleSort("title")} active={sortKey === "title"}>Titel</Th>
+                  <Th onClick={() => toggleSort("platform")} active={sortKey === "platform"}>Plattform</Th>
+                  <Th>Ordner</Th>
+                  <Th onClick={() => toggleSort("duration_s")} active={sortKey === "duration_s"}>Dauer</Th>
+                  <Th onClick={() => toggleSort("clips")} active={sortKey === "clips"}>Clips</Th>
+                  <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>Status</Th>
+                  <Th onClick={() => toggleSort("created_at")} active={sortKey === "created_at"}>Datum</Th>
                   <th className="px-4 py-2 text-right">Analyse</th>
                 </tr>
               </thead>
               <tbody>
-                {videos.map((v: any) => (
+                {filteredVideos.map((v: any) => (
                   <tr key={v.id} className="border-t border-border hover:bg-card/40">
                     <td className="px-4 py-3">
                       <Link to="/app/video/$id" params={{ id: v.id }} className="font-medium hover:text-primary">{v.title}</Link>
                     </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.platform ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{v.folders?.name ?? "—"}</td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}</td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.generated_clips?.length ?? 0}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.status}</td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
                       <Link to="/app/video/$id" params={{ id: v.id }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
@@ -158,10 +454,39 @@ function BrandDetail() {
       </section>
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"><BarChart3 className="h-4 w-4" /> Performance</h2>
-        <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-          Views, Retention & Likes werden angezeigt, sobald Social-Accounts verbunden und Videos veröffentlicht sind. (Benötigt Plattform-API-Freigaben.)
-        </div>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"><BarChart3 className="h-4 w-4" /> Performance-Snapshots</h2>
+        {snapshots.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+            Noch keine Snapshots. Der Sync läuft alle 30 Min. automatisch oder manuell oben.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-card/60 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2">Zeit</th>
+                  <th className="px-4 py-2">Plattform</th>
+                  <th className="px-4 py-2">Views</th>
+                  <th className="px-4 py-2">Likes</th>
+                  <th className="px-4 py-2">Retention</th>
+                  <th className="px-4 py-2">Drop-off</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshots.slice(0, 20).map((s: any) => (
+                  <tr key={s.id} className="border-t border-border">
+                    <td className="px-4 py-2 font-mono text-[11px] text-muted-foreground">{new Date(s.snapshot_at).toLocaleString()}</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">{s.platform}</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.views ?? 0}</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.likes ?? 0}</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.avg_watch_pct ?? 0}%</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.drop_off_pct ?? 0}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -171,7 +496,23 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-semibold">{value}</div>
+      <div className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</div>
     </div>
+  );
+}
+
+function Th({ children, onClick, active }: { children: React.ReactNode; onClick?: () => void; active?: boolean }) {
+  return (
+    <th className={`px-4 py-2 ${onClick ? "cursor-pointer select-none hover:text-foreground" : ""} ${active ? "text-primary" : ""}`} onClick={onClick}>
+      <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}</span>
+    </th>
+  );
+}
+
+function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary">
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   );
 }
