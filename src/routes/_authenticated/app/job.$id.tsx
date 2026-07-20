@@ -20,10 +20,14 @@ function fmt(s: number) {
 
 function JobEditor() {
   const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<Record<string, string>>({});
+  const outputBlobs = useRef<Record<string, Blob>>({});
+  const [queuedIds, setQueuedIds] = useState<Record<string, string>>({});
+  const [queuing, setQueuing] = useState<string | null>(null);
   const [segments, setSegments] = useState<Segment[] | null>(null);
   const [selected, setSelected] = useState<number>(0);
   const originalRef = useRef<Segment[] | null>(null);
@@ -41,7 +45,10 @@ function JobEditor() {
   });
 
   const job = jobQ.data;
-  const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null } | undefined;
+  const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null; brand_id: string | null; platform: string | null } | undefined;
+  const brandId = raw?.brand_id ?? null;
+  const [targetPlatform, setTargetPlatform] = useState<string>("");
+  useEffect(() => { if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform); }, [raw?.platform, targetPlatform]);
   const analysis = (job?.analysis as unknown as Analysis | null) ?? null;
   const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean };
   const vertical = options.aspect === "9:16";
