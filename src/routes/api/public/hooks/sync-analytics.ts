@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/hooks/sync-analytics")({
             const metrics = mockMetrics();
             await supabaseAdmin.from("analytics_snapshots").insert({
               user_id: acc.user_id,
-              brand_id: acc.brand_id,
+              brand_id: acc.brand_id!,
               social_account_id: acc.id,
               platform: String(acc.platform ?? "unknown"),
               metrics,
