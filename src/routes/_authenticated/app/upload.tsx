@@ -84,6 +84,8 @@ function UploadPage() {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id,
         brand_id: activeBrandId,
+        folder_id: folderId || null,
+        platform: platform || null,
         title: title || urlInput,
         source_url: urlInput,
       }).select().single();
