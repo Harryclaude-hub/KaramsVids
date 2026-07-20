@@ -118,7 +118,7 @@ function JobEditor() {
       args.push("-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", "-c:a", "aac", "out.mp4");
       await ff.exec(args);
       const data = await ff.readFile("out.mp4");
-      const blob = new Blob([data as Uint8Array], { type: "video/mp4" });
+      const blob = new Blob([data as BlobPart], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
       setOutputs((o) => ({ ...o, [idx]: url }));
       toast.success(`Clip ${idx + 1} fertig`);
