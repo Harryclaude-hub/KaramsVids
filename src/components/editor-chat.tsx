@@ -240,7 +240,7 @@ function StyleReferencePanel({ jobId, userId, styleReference, onChanged }: { job
     setBusy(true);
     try {
       await analyze({ data: { jobId, ...payload } });
-      toast.success("Referenz-Stil analysiert — jetzt: „wende Referenz-Stil an" in den Chat");
+      toast.success('Referenz-Stil analysiert — jetzt: "wende Referenz-Stil an" in den Chat');
       onChanged();
       setUrl(""); setNotes("");
     } catch (e) {
