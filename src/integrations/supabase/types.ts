@@ -187,41 +187,75 @@ export type Database = {
       generated_clips: {
         Row: {
           aspect: string
+          brand_id: string | null
           caption_srt: string | null
           created_at: string
           duration_s: number | null
           id: string
           job_id: string
           meta: Json
+          platform: string | null
+          publish_error: string | null
+          published_at: string | null
+          published_url: string | null
+          queue_position: number
+          scheduled_for: string | null
+          status: string
           storage_path: string
           title: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           aspect?: string
+          brand_id?: string | null
           caption_srt?: string | null
           created_at?: string
           duration_s?: number | null
           id?: string
           job_id: string
           meta?: Json
+          platform?: string | null
+          publish_error?: string | null
+          published_at?: string | null
+          published_url?: string | null
+          queue_position?: number
+          scheduled_for?: string | null
+          status?: string
           storage_path: string
           title?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           aspect?: string
+          brand_id?: string | null
           caption_srt?: string | null
           created_at?: string
           duration_s?: number | null
           id?: string
           job_id?: string
           meta?: Json
+          platform?: string | null
+          publish_error?: string | null
+          published_at?: string | null
+          published_url?: string | null
+          queue_position?: number
+          scheduled_for?: string | null
+          status?: string
           storage_path?: string
           title?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "generated_clips_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "generated_clips_job_id_fkey"
             columns: ["job_id"]
@@ -254,6 +288,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      publish_schedules: {
+        Row: {
+          active: boolean
+          brand_id: string
+          cadence: string
+          created_at: string
+          id: string
+          last_run_at: string | null
+          next_run_at: string
+          platform: string
+          time_of_day: string
+          updated_at: string
+          user_id: string
+          videos_per_slot: number
+          weekdays: number[]
+        }
+        Insert: {
+          active?: boolean
+          brand_id: string
+          cadence?: string
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string
+          platform: string
+          time_of_day?: string
+          updated_at?: string
+          user_id: string
+          videos_per_slot?: number
+          weekdays?: number[]
+        }
+        Update: {
+          active?: boolean
+          brand_id?: string
+          cadence?: string
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string
+          platform?: string
+          time_of_day?: string
+          updated_at?: string
+          user_id?: string
+          videos_per_slot?: number
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publish_schedules_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       raw_videos: {
         Row: {
