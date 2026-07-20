@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/hooks/sync-analytics")({
               user_id: acc.user_id,
               brand_id: acc.brand_id,
               social_account_id: acc.id,
-              platform: acc.platform,
+              platform: acc.platform ?? "unknown",
               metrics,
             });
             await supabaseAdmin
