@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Download, Play, Scissors, Loader2, Plus, Trash2, RotateCcw, Sparkles, Languages } from "lucide-react";
+import { ArrowLeft, Download, Play, Scissors, Loader2, Plus, Trash2, RotateCcw, Sparkles, Languages, ListPlus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Segment = { start_s: number; end_s: number; title: string; hook?: string; captions?: string };
