@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadCloud, Link2 } from "lucide-react";
+import { UploadCloud, Link2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveBrandId } from "@/lib/use-active-brand";
 
@@ -17,6 +18,31 @@ function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [urlInput, setUrlInput] = useState("");
   const [title, setTitle] = useState("");
+  const [folderId, setFolderId] = useState<string>("");
+  const [platform, setPlatform] = useState<string>("");
+
+  const foldersQ = useQuery({
+    queryKey: ["folders", user.id, activeBrandId],
+    enabled: !!activeBrandId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("folders").select("*").eq("brand_id", activeBrandId!).order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function createFolder() {
+    if (!activeBrandId) return toast.error("Bitte zuerst einen Brand wählen");
+    const name = window.prompt("Ordnername")?.trim();
+    if (!name) return;
+    const { data, error } = await supabase.from("folders").insert({
+      user_id: user.id, brand_id: activeBrandId, name,
+    }).select().single();
+    if (error) return toast.error(error.message);
+    setFolderId(data.id);
+    foldersQ.refetch();
+  }
+
 
   async function handleFile(file: File) {
     setBusy(true);
