@@ -396,9 +396,24 @@ function JobEditor() {
                         {s.hook && <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">"{s.hook}"</div>}
                       </div>
                       {outputs[i] && (
-                        <a onClick={(e) => e.stopPropagation()} href={outputs[i]} download={`clip-${i + 1}.mp4`} className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] hover:bg-secondary">
-                          <Download className="h-3 w-3" /> MP4
-                        </a>
+                        <div className="flex shrink-0 flex-col gap-1">
+                          <a onClick={(e) => e.stopPropagation()} href={outputs[i]} download={`clip-${i + 1}.mp4`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] hover:bg-secondary">
+                            <Download className="h-3 w-3" /> MP4
+                          </a>
+                          {queuedIds[i] ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[10px] text-primary">
+                              <CheckCircle2 className="h-3 w-3" /> Queue
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); pushToQueue(i, s); }}
+                              disabled={queuing === String(i) || !brandId || !targetPlatform}
+                              className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10 disabled:opacity-50"
+                            >
+                              {queuing === String(i) ? <Loader2 className="h-3 w-3 animate-spin" /> : <ListPlus className="h-3 w-3" />} Queue
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                     {outputs[i] && <video src={outputs[i]} controls className="mt-2 w-full rounded-md bg-black" />}
@@ -406,7 +421,7 @@ function JobEditor() {
                 ))}
               </div>
               <div className="rounded-xl border border-dashed border-border p-3 text-[11px] text-muted-foreground">
-                Rendering läuft im Browser (ffmpeg.wasm). Fertige Clips kannst du direkt herunterladen und auf TikTok, YouTube, Reels & Co. hochladen — offizielle API-Uploads folgen, sobald deine Developer-Keys vorliegen.
+                Fertige Clips landen mit „Queue" in der Publish-Warteschlange deines Brands. Der Hintergrund-Job veröffentlicht sie zum eingestellten Zeitplan (siehe <Link to="/app/publishing" className="text-primary underline">Publishing</Link>). Offizielle API-Uploads werden aktiviert, sobald deine Developer-Keys vorliegen.
               </div>
             </div>
           </div>
