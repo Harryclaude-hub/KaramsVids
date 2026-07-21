@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const InputSchema = z.object({
   jobId: z.string().uuid(),
+  desiredClipCount: z.number().int().min(1).max(20).nullable().optional(),
 });
 
 type Segment = {
@@ -49,17 +50,25 @@ export const analyzeVideo = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY fehlt");
 
+    if (data.desiredClipCount) {
+      await supabase.from("edit_jobs").update({ desired_clip_count: data.desiredClipCount }).eq("id", job.id);
+    }
+    const countHint = data.desiredClipCount
+      ? `WICHTIG: Der Nutzer möchte GENAU ${data.desiredClipCount} Clips — halte dich exakt an diese Anzahl.`
+      : "Wähle die Anzahl passend zur Länge (kurz → wenige, lang → viele).";
+
     const prompt = `Du bist ein Profi-Video-Editor. Ein Nutzer hat ein Video hochgeladen:
 Titel: "${raw.title}"
 Dauer: ${Math.round(dur)}s
 Quelle: ${raw.source_url ?? "Upload"}
 Schnitt-Modus: ${mode}
+${countHint}
 
 Erzeuge einen Schnittplan als JSON. Modus-Regeln:
 - auto_cut: 1 durchgehender Clip, straffe Cuts, Länge ≈ 70% Original.
-- ugc_shorts: 3-6 vertikale Shorts (je 15-45s) mit starken Hooks.
-- long_to_many: 8-12 Shorts, jeder ein eigenes Thema.
-- manual: Vorschlag mit 3 vernünftigen Cuts.
+- ugc_shorts: vertikale Shorts (je 15-45s) mit starken Hooks.
+- long_to_many: Shorts, jeder ein eigenes Thema.
+- manual: 3 vernünftige Vorschläge.
 
 Antworte NUR mit JSON, das dieser Struktur folgt:
 {

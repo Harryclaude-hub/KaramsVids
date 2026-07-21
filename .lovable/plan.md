@@ -1,78 +1,88 @@
-# VideoCraft AI — Plan (v1, alles in einem Zug)
+# Adobe-artiger Editor: Plan
 
-Ich baue in diesem Zug ein strukturiertes, funktionsfähiges Fundament. Wichtig vorab — ehrlich zur Realität:
+## Zielbild
+Ein einziger, dichter **Editor-Screen** (`/app/editor/$jobId?` und `/app/editor` für neu) mit:
+- Links: Media-Bin (Rohvideos, Referenzen, Musik) + Effekt-Panel
+- Mitte oben: Preview-Canvas (Player mit Play/Pause/Scrub, Aspect-Toggle)
+- Mitte unten: **Multi-Track Timeline** (Video / Overlay / Audio) mit Drag, Trim, Split, Transitions
+- Rechts: KI-Chat + Inspector (ausgewählter Clip: Position, Dauer, Untertitel, Transition, Volume, Text-Overlay)
+- Oben: Brand-Selector, Projekt-Titel, Undo/Redo, Export-Button (dropdown: alle Clips / einzeln)
 
-## Was in einem Zug realistisch geht
-- **Login + Cloud** (Lovable Cloud): Auth, Datenbank, Video-Storage.
-- **Upload + Link-Import** von Rohmaterial in die Cloud.
-- **KI-Analyse** (Lovable AI, kostenlos für dich): Video wird transkribiert (audio verstehen), Szenen/Highlights erkannt, Cut-Vorschläge, automatisch generierte Untertitel (SRT/VTT), Modi „Normal Cut" / „High-Level UGC" / „Long → viele Shorts".
-- **Rendering im Browser** via `ffmpeg.wasm`: Cuts, Untertitel einbrennen, einfache Übergänge, Format-Export (16:9 / 9:16 / 1:1), MP4-Download.
-- **Social-Publishing-Struktur**: OAuth-Buttons + Verbindungs-UI für TikTok, YouTube, Instagram (Graph), Facebook, X — mit Upload-Server-Function pro Plattform.
-- **Projekt-Dashboard**: Rohvideos, Jobs, generierte Clips, Verlauf.
+## Kern-Features (V1)
+1. **Import**
+   - Datei-Upload (Storage) oder direkte Video-URL (.mp4/.mov/.webm)
+   - Bei YouTube/TikTok/Instagram-Domain: Modal mit 2 Optionen
+     - "Als normales Video importieren + manuell schneiden" → verlangt direkte MP4-URL, zeigt Hinweis + Copy-Snippet für `yt-dlp`/`cobalt.tools`
+     - "Ich habe die Datei" → Upload
+2. **Auto-Clips-Anfrage**
+   - Nach Import Dialog: Preset (Auto / 3 / 5 / 10 / Max) oder Custom-Zahl (1–20)
+   - "Auto" = KI entscheidet nach Länge (bereits vorhanden)
+   - KI erzeugt Segmente mit Reasoning (bestehend), Nutzer landet direkt im Editor
+3. **Timeline**
+   - 3 Tracks: `video` (Hauptclips, sequenziell), `overlay` (Text/Bild, absolut), `audio` (Musik/VO)
+   - Drag zum Verschieben, Rand-Drag zum Trimmen, Doppelklick = Split am Playhead
+   - Snapping an Nachbarn + Sekunden-Raster
+   - Zoom-Slider
+4. **Transitions**
+   - Zwischen zwei benachbarten Videoclips: Rechtsklick → Fade / Cut / Crossfade (Dauer 0.3–1.5s)
+   - Visualisiert als Rautel zwischen den Clips
+5. **Text-/Untertitel-Overlays**
+   - Overlay-Track: Text hinzufügen (Position: top/center/bottom, Font-Size, Farbe, Hintergrund)
+   - Auto-Captions aus Whisper-Transkript (bestehendes Feld `caption_text`), per Klick in Overlay-Track übernehmen
+6. **Audio-Spur mit Ducking**
+   - Musik-Upload in Media-Bin, Drag auf Audio-Track
+   - Toggle "Duck on speech" → nutzt Whisper-Timing des Hauptvideos für Volume-Envelope (0.25 wenn Sprache, 1.0 sonst)
+7. **Echter MP4-Export via ffmpeg.wasm** (bestehendes Pattern erweitert)
+   - Filter-Graph baut sich aus Timeline-State (Concat + Overlay + drawtext + amix)
+   - Aspect-Crop (9:16 / 16:9 / 1:1)
+   - Fortschrittsanzeige pro Clip, Ergebnis in `rendered-clips` Bucket
+   - "Alle exportieren" oder pro Clip
+8. **KI-Chat** bleibt rechts, bekommt zusätzliche Tools:
+   - `add_text_overlay`, `add_transition`, `add_music_track`, `set_clip_transition`
 
-## Was ehrlich gesagt NICHT in einem Zug seriös geht
-- **Server-seitiges High-End-Rendering** (komplexe Effekte, Motion Graphics, 100 Clips in einem Klick auf Server-Niveau wie CapCut/Descript). Grund: die App läuft auf Cloudflare Workers — kein ffmpeg-Binary, keine GPU. Optionen später: externen Render-Dienst (Shotstack/Creatomate/Cloudinary/Replicate) anbinden — kosten dann Geld.
-- **Fertige App-Freigaben bei TikTok/Instagram/YouTube**: die OAuth-Apps musst du bei den Plattformen selbst registrieren und freischalten lassen (kann Tage/Wochen dauern). Ich baue die Integration technisch fertig — du trägst dann API-Keys ein.
+## Datenmodell-Ergänzungen
+Neue Migration:
+```sql
+ALTER TABLE generated_clips
+  ADD COLUMN transitions jsonb DEFAULT '[]'::jsonb,   -- [{after_clip_id, type, duration_s}]
+  ADD COLUMN overlays jsonb DEFAULT '[]'::jsonb,      -- [{type:'text', start_s, end_s, text, style}]
+  ADD COLUMN audio_tracks jsonb DEFAULT '[]'::jsonb;  -- [{storage_path, volume, duck}]
 
-## Architektur
-
+ALTER TABLE edit_jobs
+  ADD COLUMN timeline_state jsonb DEFAULT '{}'::jsonb; -- zoom, playhead, track_order
 ```
-[Browser]
-  Upload / Link-Import ──► Lovable Cloud Storage (raw-videos bucket)
-  ffmpeg.wasm  ◄─ generierte Clips ─► Storage (rendered-clips bucket)
-        │
-        ▼
-[Server Functions (TanStack)]
-  - createRawVideo / listVideos
-  - analyzeVideo → Lovable AI (google/gemini-2.5-flash, gratis-Tier, multimodal)
-      → Transkript + Segmente + Cut-Plan + Untertitel
-  - createRenderJob / listJobs / getJob
-  - publishTo{TikTok|YouTube|Instagram|Facebook|X}  (Skelett + OAuth)
-```
+Grants + RLS bleiben wie bei bestehenden Spalten.
 
-## Datenmodell (Lovable Cloud / Supabase)
-- `profiles(id, display_name, avatar_url)`
-- `raw_videos(id, user_id, title, source_url, storage_path, duration_s, status, created_at)`
-- `edit_jobs(id, user_id, raw_video_id, mode, options jsonb, status, progress, created_at)`
-  - `mode`: `auto_cut` | `ugc_shorts` | `long_to_many` | `manual`
-  - `options`: aspect ratio, Untertitel-Stil, Cut-Aggressivität, Ziel-Clipanzahl, Sprache
-- `generated_clips(id, job_id, user_id, storage_path, aspect, duration_s, caption_srt, thumbnail_url, meta jsonb)`
-- `social_accounts(id, user_id, platform, handle, access_token_encrypted, refresh_token_encrypted, expires_at)`
-- `publish_jobs(id, clip_id, platform, status, external_url, error, created_at)`
+## Technische Details
+- **Datei-Layout**
+  - `src/routes/_authenticated/app/editor.tsx` (neu, „leerer" Editor mit Import)
+  - `src/routes/_authenticated/app/editor.$id.tsx` (Job-basiert; ersetzt die Rolle von `job.$id.tsx` als Bearbeitungs-UI — alte Route bleibt als Legacy-Redirect)
+  - `src/components/editor/*` — Preview, Timeline, TrackClip, Inspector, MediaBin, ExportDialog, ImportDialog, ClipsCountDialog
+  - `src/lib/editor-state.ts` — Zustand-Store (Zustand-lib schon in Projekt? sonst reducer/context) für Timeline-Zustand + Undo/Redo
+  - `src/lib/ffmpeg-render.ts` — Filter-Graph-Builder + Batch-Runner (erweitert)
+- **YouTube-Detection**: Regex auf Host, Modal mit `<pre>`-Snippet
+- **Autoclips-Anzahl**: neuer optionaler Param `desired_clip_count` an `analyzeVideo` (bestehende server fn), Prompt-Bedingung ergänzen
+- **ffmpeg-Filter-Graph** (Beispiel-Skizze):
+  ```text
+  [0:v]trim=... ,scale=1080:1920,setsar=1[v0];
+  [1:v]trim=... [v1];
+  [v0][v1]xfade=transition=fade:duration=0.5:offset=... [vmix];
+  [vmix][3:v]overlay=... [vout];
+  [0:a][2:a]amix=weights=1 0.3[aout]
+  ```
+- **AI-Chat-Tools**: neue Tool-Defs in `src/routes/api/chat.ts`, alle schreiben in die neuen jsonb-Spalten
 
-RLS auf alle Tabellen: `user_id = auth.uid()`. Storage-Buckets `raw-videos` (privat) und `rendered-clips` (privat, signed URLs).
+## Ausgeklammert (V2)
+- 4K-Export, GPU-Effekte, Keyframe-Animationen, LUT-Farbkorrektur, echte YouTube-Download-Integration (rechtlich + Worker-Limit).
 
-## UI (Routen)
-- `/` — Landing (öffentlich, Login-CTA)
-- `/auth` — Login/Register (Email + Google)
-- `/app` — Dashboard (Rohvideos + Jobs)
-- `/app/upload` — Upload / URL-Import
-- `/app/video/$id` — Video-Detail: Editor-Modus wählen (Normal Cut / UGC / Long→Shorts), Optionen (Untertitel an/aus, Sprache, Aggressivität, Zielanzahl), „Analysieren & Schneiden" starten
-- `/app/job/$id` — Job-Status + generierte Clips-Vorschau + Download + „Publish to…"-Buttons
-- `/app/connections` — Social-Media-Konten verbinden
+## Umsetzungs-Schritte
+1. Migration (jsonb-Spalten) + Types-Regen
+2. `editor-state.ts` + Basiskomponenten (Preview + Timeline read-only)
+3. Interaktion: Drag/Trim/Split/Transition/Overlay
+4. Import-Flow + ClipsCountDialog + YouTube-Modal
+5. ffmpeg Filter-Graph & Export-UI
+6. KI-Chat-Tools erweitern
+7. Alte `job.$id.tsx` redirected auf `editor/$id`, Sidebar-Link „Editor" bleibt (`/app/editor`)
 
-## Design-System
-- Dunkle, editorielle Ästhetik (kein Neon-Purple), Akzent warm-orange für „Cut/Action", monospaced Details für Timecodes. Semantische Tokens in `src/styles.css`.
-
-## Rendering-Details (ffmpeg.wasm im Browser)
-- Video wird per signed URL geladen, `ffmpeg` schneidet nach dem KI-Cut-Plan (`-ss`/`-to` Segmente + `concat`), rendert 9:16-Version mit Crop, brennt SRT als Untertitel ein (`subtitles=…:force_style=…`), Fade-Übergänge (`xfade`). Ergebnis-MP4 wird zurück in Storage geladen.
-- Läuft auf dem Client → keine Server-Kosten, aber Videos >~500 MB werden zäh. Für v1 Limit 500 MB pro Rohvideo.
-
-## Publishing (v1-Umfang)
-- **YouTube Data API v3** (resumable upload) — funktioniert mit OAuth.
-- **TikTok Content Posting API** — OAuth + Upload-Endpoint.
-- **Instagram Graph / Facebook Graph** — Reels/Video-Container-Flow.
-- **X API v2** — Media Upload + Tweet.
-- Jeder Provider braucht Client-ID/Secret als Secret (frage ich dich beim ersten Verbinden ab, wenn du willst).
-
-## Was ich in diesem Zug baue (Reihenfolge)
-1. Lovable Cloud aktivieren (Auth + DB + Storage).
-2. Design-System + Landing + Auth-Flow.
-3. Migration: alle Tabellen + RLS + Storage-Buckets.
-4. Dashboard + Upload/Import + Video-Detail.
-5. Server-Function `analyzeVideo` (Lovable AI, google/gemini-2.5-flash, multimodal auf Audio).
-6. Editor-Seite mit ffmpeg.wasm-Rendering + Clip-Vorschau + Download.
-7. Connections-Seite + Publish-Server-Functions (Skelett + YouTube komplett).
-8. Doku-Karte in der App, was noch API-Keys braucht.
-
-Sag „los" und ich starte. Möchtest du eine der Punkte anders (z. B. YouTube weglassen, andere Modelle, andere Bucket-Größe)? Sonst baue ich genau das.
+## Umfang-Hinweis
+Das ist ein großer Umbau (~15 neue/veränderte Dateien). Nach Freigabe implementiere ich in dieser Reihenfolge und melde mich pro Meilenstein, damit du zwischendurch prüfen kannst.

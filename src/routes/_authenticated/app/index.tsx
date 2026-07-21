@@ -18,16 +18,14 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useActiveBrandId, useBrands, useCreateBrand } from "@/lib/use-active-brand";
+import { YouTubeImportDialog } from "@/components/editor/YouTubeImportDialog";
+import { ClipsCountDialog } from "@/components/editor/ClipsCountDialog";
+import { detectRestrictedHost, isDirectVideoUrl } from "@/lib/editor-types";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: EditorLanding,
 });
 
-/**
- * Editor-First Landing (Adobe-Style):
- * Brand & Ordner inline in der Kopfzeile (Pflicht). Direkt daneben Upload / URL.
- * Rechts: Bibliothek des aktiven Brands (Videos + laufende Jobs), sofort öffenbar.
- */
 function EditorLanding() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
@@ -47,8 +45,11 @@ function EditorLanding() {
   const [progress, setProgress] = useState(0);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [ytDialog, setYtDialog] = useState<{ host: string; original: string } | null>(null);
+  const [clipsDialog, setClipsDialog] = useState<{ rawVideoId: string; duration: number | null } | null>(null);
 
   useEffect(() => { setFolderId(""); }, [activeBrandId]);
+
 
   const foldersQ = useQuery({
     queryKey: ["folders", user.id, activeBrandId],
@@ -102,30 +103,38 @@ function EditorLanding() {
     foldersQ.refetch();
   }
 
-  async function afterInsertNavigate(rawVideoId: string) {
+  async function afterInsertNavigate(rawVideoId: string, duration: number | null) {
     if (!autoAnalyze) {
       navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
       return;
     }
-    // Direkt neuen Job mit Default (UGC Shorts) starten + analysieren
+    setClipsDialog({ rawVideoId, duration });
+  }
+
+  async function startAnalysisWithConfig(cfg: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1" }) {
+    if (!clipsDialog || !activeBrand) return;
+    const { rawVideoId } = clipsDialog;
+    setClipsDialog(null);
     try {
       const { data: job, error } = await supabase.from("edit_jobs").insert({
         user_id: user.id,
         raw_video_id: rawVideoId,
-        brand_id: activeBrand!.id,
-        mode: "ugc_shorts",
-        options: { captions: true, aspect: "9:16" },
+        brand_id: activeBrand.id,
+        mode: cfg.mode,
+        options: { captions: cfg.captions, aspect: cfg.aspect },
+        desired_clip_count: cfg.desiredCount,
       }).select().single();
       if (error) throw error;
-      // Fire & navigate; Analyse läuft, JobEditor pollt
       const { analyzeVideo } = await import("@/lib/ai.functions");
-      analyzeVideo({ data: { jobId: job.id } }).catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
+      analyzeVideo({ data: { jobId: job.id, desiredClipCount: cfg.desiredCount ?? undefined } })
+        .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
       navigate({ to: "/app/job/$id", params: { id: job.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Konnte Editor nicht öffnen");
       navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
     }
   }
+
 
   async function handleFile(file: File) {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
@@ -153,7 +162,7 @@ function EditorLanding() {
       toast.success("Upload fertig — Editor öffnet");
       setTitle("");
       libraryQ.refetch();
-      await afterInsertNavigate(row.id);
+      await afterInsertNavigate(row.id, duration);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
     } finally {
@@ -163,7 +172,18 @@ function EditorLanding() {
 
   async function handleUrl() {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
-    if (!urlInput.trim()) return;
+    const url = urlInput.trim();
+    if (!url) return;
+    const host = detectRestrictedHost(url);
+    if (host && !isDirectVideoUrl(url)) {
+      setYtDialog({ host, original: url });
+      return;
+    }
+    await commitUrl(url);
+  }
+
+  async function commitUrl(url: string) {
+    if (!activeBrand) return;
     setBusy(true);
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
@@ -171,20 +191,21 @@ function EditorLanding() {
         brand_id: activeBrand.id,
         folder_id: folderId || null,
         platform: platform || null,
-        title: title || urlInput,
-        source_url: urlInput,
+        title: title || url,
+        source_url: url,
       }).select().single();
       if (error) throw error;
       toast.success("Video-Link gespeichert — Editor öffnet");
       setUrlInput(""); setTitle("");
       libraryQ.refetch();
-      await afterInsertNavigate(row.id);
+      await afterInsertNavigate(row.id, null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
     } finally {
       setBusy(false);
     }
   }
+
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -346,6 +367,22 @@ function EditorLanding() {
           )}
         </aside>
       </div>
+
+      {ytDialog && (
+        <YouTubeImportDialog
+          open
+          host={ytDialog.host}
+          onClose={() => setYtDialog(null)}
+          onUseDirectUrl={(u) => { setYtDialog(null); setUrlInput(u); commitUrl(u); }}
+          onUploadFile={() => { setYtDialog(null); fileRef.current?.click(); }}
+        />
+      )}
+      <ClipsCountDialog
+        open={!!clipsDialog}
+        duration={clipsDialog?.duration ?? null}
+        onClose={() => { setClipsDialog(null); if (clipsDialog) navigate({ to: "/app/video/$id", params: { id: clipsDialog.rawVideoId } }); }}
+        onConfirm={startAnalysisWithConfig}
+      />
     </div>
   );
 }

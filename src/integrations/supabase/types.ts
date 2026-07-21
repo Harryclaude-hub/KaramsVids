@@ -95,6 +95,7 @@ export type Database = {
           brand_id: string | null
           chat_messages: Json
           created_at: string
+          desired_clip_count: number | null
           error: string | null
           id: string
           mode: Database["public"]["Enums"]["edit_mode"]
@@ -103,6 +104,7 @@ export type Database = {
           raw_video_id: string
           status: Database["public"]["Enums"]["job_status"]
           style_reference: Json | null
+          timeline_state: Json
           updated_at: string
           user_id: string
         }
@@ -111,6 +113,7 @@ export type Database = {
           brand_id?: string | null
           chat_messages?: Json
           created_at?: string
+          desired_clip_count?: number | null
           error?: string | null
           id?: string
           mode: Database["public"]["Enums"]["edit_mode"]
@@ -119,6 +122,7 @@ export type Database = {
           raw_video_id: string
           status?: Database["public"]["Enums"]["job_status"]
           style_reference?: Json | null
+          timeline_state?: Json
           updated_at?: string
           user_id: string
         }
@@ -127,6 +131,7 @@ export type Database = {
           brand_id?: string | null
           chat_messages?: Json
           created_at?: string
+          desired_clip_count?: number | null
           error?: string | null
           id?: string
           mode?: Database["public"]["Enums"]["edit_mode"]
@@ -135,6 +140,7 @@ export type Database = {
           raw_video_id?: string
           status?: Database["public"]["Enums"]["job_status"]
           style_reference?: Json | null
+          timeline_state?: Json
           updated_at?: string
           user_id?: string
         }
@@ -193,6 +199,7 @@ export type Database = {
       generated_clips: {
         Row: {
           aspect: string
+          audio_tracks: Json
           brand_id: string | null
           caption_srt: string | null
           created_at: string
@@ -200,6 +207,7 @@ export type Database = {
           id: string
           job_id: string
           meta: Json
+          overlays: Json
           platform: string | null
           publish_error: string | null
           published_at: string | null
@@ -209,11 +217,13 @@ export type Database = {
           status: string
           storage_path: string
           title: string | null
+          transitions: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           aspect?: string
+          audio_tracks?: Json
           brand_id?: string | null
           caption_srt?: string | null
           created_at?: string
@@ -221,6 +231,7 @@ export type Database = {
           id?: string
           job_id: string
           meta?: Json
+          overlays?: Json
           platform?: string | null
           publish_error?: string | null
           published_at?: string | null
@@ -230,11 +241,13 @@ export type Database = {
           status?: string
           storage_path: string
           title?: string | null
+          transitions?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
           aspect?: string
+          audio_tracks?: Json
           brand_id?: string | null
           caption_srt?: string | null
           created_at?: string
@@ -242,6 +255,7 @@ export type Database = {
           id?: string
           job_id?: string
           meta?: Json
+          overlays?: Json
           platform?: string | null
           publish_error?: string | null
           published_at?: string | null
@@ -251,6 +265,7 @@ export type Database = {
           status?: string
           storage_path?: string
           title?: string | null
+          transitions?: Json
           updated_at?: string
           user_id?: string
         }
