@@ -367,6 +367,22 @@ function EditorLanding() {
           )}
         </aside>
       </div>
+
+      {ytDialog && (
+        <YouTubeImportDialog
+          open
+          host={ytDialog.host}
+          onClose={() => setYtDialog(null)}
+          onUseDirectUrl={(u) => { setYtDialog(null); setUrlInput(u); commitUrl(u); }}
+          onUploadFile={() => { setYtDialog(null); fileRef.current?.click(); }}
+        />
+      )}
+      <ClipsCountDialog
+        open={!!clipsDialog}
+        duration={clipsDialog?.duration ?? null}
+        onClose={() => { setClipsDialog(null); if (clipsDialog) navigate({ to: "/app/video/$id", params: { id: clipsDialog.rawVideoId } }); }}
+        onConfirm={startAnalysisWithConfig}
+      />
     </div>
   );
 }
