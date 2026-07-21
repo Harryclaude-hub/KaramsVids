@@ -85,13 +85,29 @@ function VideoDetail() {
       <Link to="/app" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="h-3 w-3" /> Zurück</Link>
       {!v ? <div className="h-40 animate-pulse rounded-xl bg-card" /> : (
         <>
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-primary">Video</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight">{v.title}</h1>
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
-              {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "unbekannte Länge"} · Status: {v.status}
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-primary">Video</p>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight">{v.title}</h1>
+              <p className="mt-1 font-mono text-xs text-muted-foreground">
+                {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "unbekannte Länge"} · Status: {v.status}
+              </p>
+            </div>
+            <label className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Brand</span>
+              <select
+                value={v.brand_id ?? ""}
+                onChange={(e) => e.target.value && changeBrand(e.target.value)}
+                className="rounded-md border border-border bg-input px-2 py-1 text-sm outline-none focus:border-primary"
+              >
+                <option value="" disabled>— wählen —</option>
+                {(brandsQ.data ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </label>
           </div>
+
 
           <div className="overflow-hidden rounded-2xl border border-border bg-black">
             {signedUrl ? (
