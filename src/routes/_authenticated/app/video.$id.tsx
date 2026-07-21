@@ -37,11 +37,22 @@ function VideoDetail() {
     });
   }, [videoQ.data?.storage_path]);
 
+  const brandsQ = useQuery({
+    queryKey: ["brands", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("brands").select("*").order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const createJob = useMutation({
     mutationFn: async () => {
+      if (!videoQ.data?.brand_id) throw new Error("Video hat keinen Brand");
       const { data: job, error } = await supabase.from("edit_jobs").insert({
         user_id: user.id,
         raw_video_id: id,
+        brand_id: videoQ.data.brand_id,
         mode,
         options: { captions, aspect: mode === "ugc_shorts" || mode === "long_to_many" ? "9:16" : "16:9" },
       }).select().single();
@@ -58,6 +69,14 @@ function VideoDetail() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Analyse fehlgeschlagen"),
   });
+
+  async function changeBrand(newBrandId: string) {
+    const { error } = await supabase.from("raw_videos").update({ brand_id: newBrandId }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Brand geändert");
+    qc.invalidateQueries({ queryKey: ["raw_video", id] });
+    videoQ.refetch();
+  }
 
   const v = videoQ.data;
 
