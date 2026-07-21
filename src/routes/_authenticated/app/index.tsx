@@ -18,16 +18,14 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useActiveBrandId, useBrands, useCreateBrand } from "@/lib/use-active-brand";
+import { YouTubeImportDialog } from "@/components/editor/YouTubeImportDialog";
+import { ClipsCountDialog } from "@/components/editor/ClipsCountDialog";
+import { detectRestrictedHost, isDirectVideoUrl } from "@/lib/editor-types";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: EditorLanding,
 });
 
-/**
- * Editor-First Landing (Adobe-Style):
- * Brand & Ordner inline in der Kopfzeile (Pflicht). Direkt daneben Upload / URL.
- * Rechts: Bibliothek des aktiven Brands (Videos + laufende Jobs), sofort öffenbar.
- */
 function EditorLanding() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
@@ -47,8 +45,11 @@ function EditorLanding() {
   const [progress, setProgress] = useState(0);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [ytDialog, setYtDialog] = useState<{ host: string; original: string } | null>(null);
+  const [clipsDialog, setClipsDialog] = useState<{ rawVideoId: string; duration: number | null } | null>(null);
 
   useEffect(() => { setFolderId(""); }, [activeBrandId]);
+
 
   const foldersQ = useQuery({
     queryKey: ["folders", user.id, activeBrandId],
