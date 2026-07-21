@@ -162,7 +162,7 @@ function EditorLanding() {
       toast.success("Upload fertig — Editor öffnet");
       setTitle("");
       libraryQ.refetch();
-      await afterInsertNavigate(row.id);
+      await afterInsertNavigate(row.id, duration);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
     } finally {
@@ -172,7 +172,18 @@ function EditorLanding() {
 
   async function handleUrl() {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
-    if (!urlInput.trim()) return;
+    const url = urlInput.trim();
+    if (!url) return;
+    const host = detectRestrictedHost(url);
+    if (host && !isDirectVideoUrl(url)) {
+      setYtDialog({ host, original: url });
+      return;
+    }
+    await commitUrl(url);
+  }
+
+  async function commitUrl(url: string) {
+    if (!activeBrand) return;
     setBusy(true);
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
@@ -180,20 +191,21 @@ function EditorLanding() {
         brand_id: activeBrand.id,
         folder_id: folderId || null,
         platform: platform || null,
-        title: title || urlInput,
-        source_url: urlInput,
+        title: title || url,
+        source_url: url,
       }).select().single();
       if (error) throw error;
       toast.success("Video-Link gespeichert — Editor öffnet");
       setUrlInput(""); setTitle("");
       libraryQ.refetch();
-      await afterInsertNavigate(row.id);
+      await afterInsertNavigate(row.id, null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
     } finally {
       setBusy(false);
     }
   }
+
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
