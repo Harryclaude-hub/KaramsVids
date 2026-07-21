@@ -103,30 +103,38 @@ function EditorLanding() {
     foldersQ.refetch();
   }
 
-  async function afterInsertNavigate(rawVideoId: string) {
+  async function afterInsertNavigate(rawVideoId: string, duration: number | null) {
     if (!autoAnalyze) {
       navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
       return;
     }
-    // Direkt neuen Job mit Default (UGC Shorts) starten + analysieren
+    setClipsDialog({ rawVideoId, duration });
+  }
+
+  async function startAnalysisWithConfig(cfg: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1" }) {
+    if (!clipsDialog || !activeBrand) return;
+    const { rawVideoId } = clipsDialog;
+    setClipsDialog(null);
     try {
       const { data: job, error } = await supabase.from("edit_jobs").insert({
         user_id: user.id,
         raw_video_id: rawVideoId,
-        brand_id: activeBrand!.id,
-        mode: "ugc_shorts",
-        options: { captions: true, aspect: "9:16" },
+        brand_id: activeBrand.id,
+        mode: cfg.mode,
+        options: { captions: cfg.captions, aspect: cfg.aspect },
+        desired_clip_count: cfg.desiredCount,
       }).select().single();
       if (error) throw error;
-      // Fire & navigate; Analyse läuft, JobEditor pollt
       const { analyzeVideo } = await import("@/lib/ai.functions");
-      analyzeVideo({ data: { jobId: job.id } }).catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
+      analyzeVideo({ data: { jobId: job.id, desiredClipCount: cfg.desiredCount ?? undefined } })
+        .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
       navigate({ to: "/app/job/$id", params: { id: job.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Konnte Editor nicht öffnen");
       navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
     }
   }
+
 
   async function handleFile(file: File) {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
