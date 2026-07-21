@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useActiveBrandId, useBrands, useCreateBrand } from "@/lib/use-active-brand";
 
@@ -470,5 +470,3 @@ function probeDuration(file: File): Promise<number> {
   });
 }
 
-// Silence unused-var warnings in unused imports if tree-shaken later
-void useMemo;
