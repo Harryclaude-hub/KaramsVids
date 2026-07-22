@@ -1,46 +1,94 @@
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
+import { CLIP_TEMPLATES, type ClipTemplateId, templateById } from "@/lib/clip-templates";
+
+type Mode = "auto_cut" | "ugc_shorts" | "long_to_many" | "manual";
+type Aspect = "9:16" | "16:9" | "1:1";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onConfirm: (opts: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1" }) => void;
+  onConfirm: (opts: {
+    mode: Mode;
+    desiredCount: number | null;
+    captions: boolean;
+    aspect: Aspect;
+    templateId: ClipTemplateId | null;
+  }) => void;
   duration?: number | null;
 };
 
 const presets: { label: string; value: number | null; note: string }[] = [
-  { label: "Auto", value: null, note: "KI entscheidet nach Länge" },
-  { label: "3", value: 3, note: "Nur die stärksten Hooks" },
-  { label: "5", value: 5, note: "Klassisch für UGC" },
-  { label: "10", value: 10, note: "Long → Many" },
-  { label: "Max", value: 20, note: "So viele wie möglich" },
+  { label: "Auto", value: null, note: "KI entscheidet" },
+  { label: "5", value: 5, note: "Best-of" },
+  { label: "10", value: 10, note: "UGC" },
+  { label: "20", value: 20, note: "Long → Many" },
+  { label: "Max", value: 30, note: "Alles" },
 ];
 
 export function ClipsCountDialog({ open, onClose, onConfirm, duration }: Props) {
-  const [preset, setPreset] = useState<number | null>(null);
+  const [templateId, setTemplateId] = useState<ClipTemplateId | null>("ugc_hook");
+  const tpl = templateById(templateId);
+
+  const [preset, setPreset] = useState<number | null>(tpl?.defaultCount ?? 10);
   const [custom, setCustom] = useState<string>("");
-  const [aspect, setAspect] = useState<"9:16" | "16:9" | "1:1">("9:16");
-  const [captions, setCaptions] = useState(true);
-  const [mode, setMode] = useState<"auto_cut" | "ugc_shorts" | "long_to_many" | "manual">("ugc_shorts");
+  const [aspect, setAspect] = useState<Aspect>(tpl?.aspect ?? "9:16");
+  const [captions, setCaptions] = useState<boolean>(tpl?.captions ?? true);
+  const [mode, setMode] = useState<Mode>(tpl?.mode ?? "ugc_shorts");
 
   if (!open) return null;
 
+  function pickTemplate(id: ClipTemplateId) {
+    setTemplateId(id);
+    const t = templateById(id);
+    if (!t) return;
+    setPreset(t.defaultCount);
+    setCustom("");
+    setAspect(t.aspect);
+    setCaptions(t.captions);
+    setMode(t.mode);
+  }
+
   function confirm() {
-    const n = custom ? Math.min(20, Math.max(1, parseInt(custom, 10) || 0)) : preset;
-    onConfirm({ mode, desiredCount: n ?? null, captions, aspect });
+    const n = custom ? Math.min(30, Math.max(1, parseInt(custom, 10) || 0)) : preset;
+    onConfirm({ mode, desiredCount: n ?? null, captions, aspect, templateId });
   }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <div className="flex items-center gap-2 border-b border-border px-5 py-3">
           <Sparkles className="h-4 w-4 text-primary" />
-          <div className="text-sm font-medium">Wie viele Clips soll die KI machen?</div>
+          <div className="text-sm font-medium">Wie soll die KI clippen?</div>
           <button onClick={onClose} className="ml-auto rounded p-1 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
         </div>
-        <div className="space-y-4 p-5 text-sm">
+
+        <div className="max-h-[75vh] space-y-5 overflow-y-auto p-5 text-sm">
           {duration && <div className="font-mono text-[10px] text-muted-foreground">Länge: {Math.round(duration)}s</div>}
 
+          {/* Templates */}
+          <div>
+            <div className="mb-2 text-xs font-medium">Clip-Vorlage</div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {CLIP_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => pickTemplate(t.id)}
+                  className={`rounded-lg border p-3 text-left transition ${templateId === t.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}
+                >
+                  <div className="text-sm">{t.emoji} <span className="font-semibold">{t.label}</span></div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">{t.short}</div>
+                </button>
+              ))}
+            </div>
+            {tpl && (
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Passt Modus, Format, Captions & Sound-Mood automatisch an — du kannst unten alles überschreiben.
+              </p>
+            )}
+          </div>
+
+          {/* Anzahl */}
           <div>
             <div className="mb-2 text-xs font-medium">Anzahl Clips</div>
             <div className="grid grid-cols-5 gap-2">
@@ -58,14 +106,15 @@ export function ClipsCountDialog({ open, onClose, onConfirm, duration }: Props) 
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="text-muted-foreground">oder custom:</span>
               <input
-                type="number" min={1} max={20} value={custom}
+                type="number" min={1} max={30} value={custom}
                 onChange={(e) => { setCustom(e.target.value); setPreset(null); }}
-                placeholder="1–20"
+                placeholder="1–30"
                 className="w-20 rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
               />
             </div>
           </div>
 
+          {/* Modus */}
           <div>
             <div className="mb-2 text-xs font-medium">Modus</div>
             <div className="grid grid-cols-2 gap-2">

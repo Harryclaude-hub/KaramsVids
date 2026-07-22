@@ -111,7 +111,7 @@ function EditorLanding() {
     setClipsDialog({ rawVideoId, duration });
   }
 
-  async function startAnalysisWithConfig(cfg: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1" }) {
+  async function startAnalysisWithConfig(cfg: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1"; templateId: string | null }) {
     if (!clipsDialog || !activeBrand) return;
     const { rawVideoId } = clipsDialog;
     setClipsDialog(null);
@@ -121,7 +121,7 @@ function EditorLanding() {
         raw_video_id: rawVideoId,
         brand_id: activeBrand.id,
         mode: cfg.mode,
-        options: { captions: cfg.captions, aspect: cfg.aspect },
+        options: { captions: cfg.captions, aspect: cfg.aspect, template_id: cfg.templateId },
         desired_clip_count: cfg.desiredCount,
       }).select().single();
       if (error) throw error;
