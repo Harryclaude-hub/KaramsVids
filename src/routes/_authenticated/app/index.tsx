@@ -23,7 +23,7 @@ import { ClipsCountDialog } from "@/components/editor/ClipsCountDialog";
 import { detectRestrictedHost, isDirectVideoUrl } from "@/lib/editor-types";
 import { CLIP_TEMPLATES } from "@/lib/clip-templates";
 import { MUSIC_LIBRARY } from "@/lib/music-library";
-import { Music2, Wand2 as WandIcon, Play as PlayIcon } from "lucide-react";
+import { Music2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   component: EditorLanding,
