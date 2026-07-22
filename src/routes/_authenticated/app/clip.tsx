@@ -36,6 +36,7 @@ function ClipPage() {
   const [urlInput, setUrlInput] = useState("");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyLabel, setBusyLabel] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [ytDialog, setYtDialog] = useState<{ host: string; original: string } | null>(null);
@@ -72,23 +73,24 @@ function ClipPage() {
 
   async function handleFile(file: File) {
     if (!activeBrand) return toast.error("Bitte oben links einen Brand wählen");
-    setBusy(true); setProgress(5);
+    setBusy(true); setProgress(5); setBusyLabel("Upload läuft …");
     try {
       const key = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: upErr } = await supabase.storage.from("raw-videos").upload(key, file, { contentType: file.type || "video/mp4", upsert: false });
-      if (upErr) throw upErr;
-      setProgress(70);
+      if (upErr) throw new Error("Upload fehlgeschlagen: " + upErr.message);
+      setProgress(70); setBusyLabel("Metadaten werden gelesen …");
       const dur = await probeDuration(file).catch(() => null);
+      setBusyLabel("Job wird erstellt …");
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id, brand_id: activeBrand.id,
         title: title || file.name, storage_path: key, size_bytes: file.size, duration_s: dur,
       }).select().single();
-      if (dbErr) throw dbErr;
+      if (dbErr) throw new Error("Datenbank-Fehler: " + dbErr.message);
       setProgress(100);
       await startClipping(row.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
-    } finally { setBusy(false); setProgress(0); }
+      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen", { duration: 8000 });
+    } finally { setBusy(false); setProgress(0); setBusyLabel(""); }
   }
 
   async function handleUrl() {
@@ -102,31 +104,32 @@ function ClipPage() {
 
   async function commitUrl(url: string) {
     if (!activeBrand) return;
-    setBusy(true);
+    setBusy(true); setBusyLabel("Link wird gespeichert …");
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id, brand_id: activeBrand.id,
         title: title || url, source_url: url,
       }).select().single();
-      if (error) throw error;
+      if (error) throw new Error("Speichern fehlgeschlagen: " + error.message);
       await startClipping(row.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
-    } finally { setBusy(false); }
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen", { duration: 8000 });
+    } finally { setBusy(false); setBusyLabel(""); }
   }
 
   async function startClipping(rawVideoId: string) {
     if (!activeBrand) return;
+    setBusyLabel("KI-Schnittplan wird erstellt … (10-60 Sek)");
     const { data: job, error } = await supabase.from("edit_jobs").insert({
       user_id: user.id, raw_video_id: rawVideoId, brand_id: activeBrand.id,
       mode: tpl.mode, options: { captions, aspect, template_id: templateId, min_len_s: minLen, max_len_s: maxLen, music_mood: tpl.musicMood },
       desired_clip_count: count,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
-    toast.success(`KI erstellt ${count} Clips …`);
+    if (error) { toast.error("Job-Erstellung fehlgeschlagen: " + error.message, { duration: 8000 }); return; }
+    toast.success(`KI plant ${count} Clips — du wirst weitergeleitet …`);
     const { analyzeVideo } = await import("@/lib/ai.functions");
     analyzeVideo({ data: { jobId: job.id, desiredClipCount: count } })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
+      .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Analyse fehlgeschlagen", { duration: 10000 }));
     navigate({ to: "/app/job/$id", params: { id: job.id } });
   }
 
@@ -255,6 +258,17 @@ function ClipPage() {
             </div>
           </div>
 
+          {busy && (
+            <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="flex-1">
+                <div className="font-semibold">{busyLabel || "Wird verarbeitet …"}</div>
+                <div className="text-[11px] text-muted-foreground">Die KI liest den Inhalt und wählt die besten Momente. Bei langen Videos bitte etwas Geduld — du wirst automatisch zum Editor weitergeleitet.</div>
+              </div>
+              {progress > 0 && <div className="font-mono text-[10px]">{progress}%</div>}
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-[11px] text-muted-foreground">
               Ergebnis landet im Editor · Brand <span className="font-medium text-foreground">{activeBrand?.name ?? "—"}</span>
@@ -263,7 +277,7 @@ function ClipPage() {
               onClick={handleUrl}
               disabled={busy || !urlInput || !activeBrand}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-              <Sparkles className="h-4 w-4" /> {count} Clips generieren <ChevronRight className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" /> {busy ? "Läuft …" : `${count} Clips generieren`} <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
