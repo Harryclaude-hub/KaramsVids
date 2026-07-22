@@ -429,6 +429,23 @@ function EditorLanding() {
   );
 }
 
+function SoundPreview({ url }: { url: string }) {
+  const [playing, setPlaying] = useState(false);
+  const ref = useRef<HTMLAudioElement | null>(null);
+  return (
+    <>
+      <button onClick={() => {
+        if (!ref.current) return;
+        if (playing) { ref.current.pause(); setPlaying(false); }
+        else { ref.current.play().catch(() => {}); setPlaying(true); }
+      }} className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20">
+        <Play className="h-3 w-3" />
+      </button>
+      <audio ref={ref} src={url} onEnded={() => setPlaying(false)} preload="none" />
+    </>
+  );
+}
+
 function BrandHeader({
   brands, activeBrand, onPick, creating, onToggleCreate, newBrandName, setNewBrandName, onSubmitNew,
 }: {
