@@ -109,9 +109,11 @@ function JobEditor() {
 
   useEffect(() => {
     (async () => {
-      const next: Record<string, string> = {};
+      const next: Record<string, string> = { ...audioSignedUrls };
       for (const a of audioTracks) {
-        if (audioSignedUrls[a.id]) { next[a.id] = audioSignedUrls[a.id]; continue; }
+        if (next[a.id]) continue;
+        if (a.source_url) { next[a.id] = a.source_url; continue; }
+        if (!a.storage_path) continue;
         const { data } = await supabase.storage.from("raw-videos").createSignedUrl(a.storage_path, 3600);
         if (data?.signedUrl) next[a.id] = data.signedUrl;
       }
