@@ -441,7 +441,37 @@ function JobEditor() {
   const selectedSeg = segments[selectedClip];
   const selectedOverlays = overlays.filter((o) => o.clip_index === selectedClip);
 
-  if (!job) return <div className="p-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
+  if (jobQ.isLoading || !job) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background p-8">
+        <div className="flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-card p-8 text-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="text-sm font-medium">Editor wird geladen …</div>
+          <div className="text-xs text-muted-foreground">
+            Job-Daten, Video-URL und Timeline werden vorbereitet. Bei langen Videos oder frisch importierten YouTube-Links kann das einen Moment dauern.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (jobQ.isError) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background p-8">
+        <div className="max-w-md space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm">
+          <div className="font-semibold text-destructive">Job konnte nicht geladen werden</div>
+          <div className="text-xs text-muted-foreground">{jobQ.error instanceof Error ? jobQ.error.message : "Unbekannter Fehler"}</div>
+          <div className="flex gap-2">
+            <button onClick={() => jobQ.refetch()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90">Erneut versuchen</button>
+            <Link to="/app" className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">Zurück</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const jobError = (job as { error?: string | null }).error ?? null;
+  const isYouTubeSource = !raw?.storage_path && !!(raw as { source_url?: string | null } | undefined)?.source_url;
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background text-foreground">
@@ -470,14 +500,48 @@ function JobEditor() {
           <option value="facebook">Facebook</option>
           <option value="x">X</option>
         </select>
-        <button onClick={renderMaster} disabled={rendering !== null || segments.length === 0} className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+        <button onClick={renderMaster} disabled={rendering !== null || segments.length === 0 || isYouTubeSource} className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
           <Sparkles className="h-3 w-3" /> {rendering === "master" ? `Master ${progress}%` : "Master exportieren"}
         </button>
       </div>
 
       {job.status === "analyzing" && (
         <div className="flex items-center gap-2 border-b border-border bg-accent/10 px-4 py-2 text-xs text-accent">
-          <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert…
+          <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert Inhalt & schlägt Clips vor … (bei langen Videos 1–3 Min)
+        </div>
+      )}
+
+      {job.status === "failed" && (
+        <div className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+          <div className="font-semibold">KI-Analyse fehlgeschlagen</div>
+          <div className="mt-0.5 text-[11px] opacity-90">{jobError ?? "Unbekannter Fehler — bitte erneut versuchen oder Video neu hochladen."}</div>
+        </div>
+      )}
+
+      {isYouTubeSource && (
+        <div className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-600 dark:text-amber-400">
+          <div className="font-semibold">YouTube-Quelle erkannt — direktes Rendering im Browser nicht möglich</div>
+          <div className="mt-0.5 text-[11px] opacity-90">
+            YouTube blockiert das Herunterladen aus dem Browser. Für echtes Clipping brauchen wir eine Backend-Download-API (yt-dlp / Cobalt / RapidAPI). Bis dahin bitte die Original-MP4-Datei hochladen — die KI-Analyse & der Schnittplan funktionieren bereits, nur der Export braucht die Datei.
+          </div>
+        </div>
+      )}
+
+      {rendering && !isYouTubeSource && (
+        <div className="border-b border-border bg-primary/5 px-4 py-2 text-xs text-primary">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span className="font-semibold">
+              {rendering === "master" ? "Master-Export läuft …" : `Clip ${Number(rendering) + 1} wird gerendert …`}
+            </span>
+            <span className="ml-auto font-mono text-[10px]">{progress}%</span>
+          </div>
+          <div className="mt-1 h-1 w-full overflow-hidden rounded bg-background">
+            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            Rendering läuft im Browser (ffmpeg.wasm) — Tab bitte offen lassen. Erstes Laden der Engine dauert 5–15 Sek.
+          </div>
         </div>
       )}
 
