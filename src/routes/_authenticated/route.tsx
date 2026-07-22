@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Scissors, Share2, LogOut, Plus, Folder, Check, CalendarClock } from "lucide-react";
+import { Scissors, Share2, LogOut, Plus, Folder, Check, CalendarClock, Wand2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBrands, useActiveBrandId, useCreateBrand } from "@/lib/use-active-brand";
@@ -28,8 +28,9 @@ function AppShell() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
 
-  const nav: { to: "/app" | "/app/publishing" | "/app/connections"; label: string; icon: typeof Scissors }[] = [
+  const nav: { to: "/app" | "/app/clip" | "/app/publishing" | "/app/connections"; label: string; icon: typeof Scissors }[] = [
     { to: "/app", label: "Editor", icon: Scissors },
+    { to: "/app/clip", label: "Clipping", icon: Wand2 },
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
   ];
