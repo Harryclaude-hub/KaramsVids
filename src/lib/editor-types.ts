@@ -23,7 +23,8 @@ export type TextOverlay = {
 
 export type AudioTrack = {
   id: string;
-  storage_path: string;
+  storage_path: string; // leer, wenn source_url gesetzt (Bibliothek/URL)
+  source_url?: string;  // externer Direkt-URL (z.B. Pixabay/CDN)
   name: string;
   volume: number; // 0..1
   duck: boolean;
