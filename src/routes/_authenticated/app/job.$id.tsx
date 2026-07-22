@@ -77,7 +77,7 @@ function JobEditor() {
   const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null; brand_id: string | null; platform: string | null } | undefined;
   const brandId = raw?.brand_id ?? null;
   const analysis = (job?.analysis as unknown as Analysis | null) ?? null;
-  const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean };
+  const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean; template_id?: string };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
 
   useEffect(() => { if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform); }, [raw?.platform, targetPlatform]);
@@ -830,6 +830,63 @@ function TransitionPicker({ value, onChange }: { value: Transition | null; onCha
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ViralMusicPicker({
+  template,
+  onPick,
+}: {
+  template: ReturnType<typeof templateById>;
+  onPick: (t: ViralTrack) => void;
+}) {
+  const mood = template?.musicMood ?? null;
+  const suggested = mood && mood !== "none" ? MUSIC_LIBRARY.filter((t) => t.mood === mood) : [];
+  const rest = MUSIC_LIBRARY.filter((t) => !suggested.includes(t));
+  const [preview, setPreview] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  function toggle(url: string) {
+    if (!audioRef.current) return;
+    if (preview === url) { audioRef.current.pause(); setPreview(null); return; }
+    audioRef.current.src = url;
+    audioRef.current.play().then(() => setPreview(url)).catch(() => setPreview(null));
+  }
+
+  const Row = ({ t }: { t: ViralTrack }) => (
+    <div className="flex items-center gap-1 rounded-md border border-border bg-background p-1.5 text-[11px]">
+      <button
+        onClick={() => toggle(t.url)}
+        className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-primary hover:bg-primary/10"
+        title={preview === t.url ? "Stop" : "Preview"}
+      >
+        {preview === t.url ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{t.title}</div>
+        <div className="truncate text-[9px] text-muted-foreground">{t.mood} · {t.bpm}BPM · {t.duration_s}s</div>
+      </div>
+      <button onClick={() => onPick(t)} className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10">Add</button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      <audio ref={audioRef} onEnded={() => setPreview(null)} className="hidden" />
+      {suggested.length > 0 && (
+        <div className="space-y-1">
+          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">Passend zu „{template?.label}"</div>
+          {suggested.map((t) => <Row key={t.id} t={t} />)}
+        </div>
+      )}
+      <details className="rounded-md border border-border bg-background/60">
+        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">Alle {rest.length} weiteren Sounds</summary>
+        <div className="space-y-1 border-t border-border p-1.5">
+          {rest.map((t) => <Row key={t.id} t={t} />)}
+        </div>
+      </details>
+      <div className="text-[9px] leading-tight text-muted-foreground">Pixabay Content License · CC0 · sofort kommerziell nutzbar.</div>
     </div>
   );
 }
