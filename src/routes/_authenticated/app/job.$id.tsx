@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
 import type { UIMessage } from "ai";
 import type { Segment, Transition, TextOverlay, AudioTrack, TransitionType } from "@/lib/editor-types";
+import { MUSIC_LIBRARY, type ViralTrack } from "@/lib/music-library";
+import { templateById } from "@/lib/clip-templates";
 
 type Analysis = { transcript_summary?: string; language?: string; segments: Segment[] };
 
