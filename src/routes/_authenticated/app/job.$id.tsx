@@ -635,8 +635,20 @@ function JobEditor() {
                   }}
                   className={`max-h-full max-w-full ${aspect === "9:16" ? "aspect-[9/16]" : aspect === "1:1" ? "aspect-square" : "aspect-video"}`}
                 />
+              ) : isYouTubeSource ? (
+                <div className="grid h-64 w-96 max-w-full place-items-center rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-6 text-center text-xs text-amber-600 dark:text-amber-400">
+                  <div>
+                    <div className="font-semibold">Kein Preview verfügbar</div>
+                    <div className="mt-1 text-[11px] opacity-80">YouTube-Video ist verlinkt, aber nicht als Datei vorhanden. Bitte MP4 hochladen, um Preview & Export zu aktivieren.</div>
+                  </div>
+                </div>
               ) : (
-                <div className="grid h-64 w-96 place-items-center text-muted-foreground"><Play className="h-10 w-10" /></div>
+                <div className="grid h-64 w-96 place-items-center rounded-xl bg-black/40 text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <div className="text-xs">Video wird geladen …</div>
+                  </div>
+                </div>
               )}
               {/* Live text overlay preview */}
               {selectedSeg && videoRef.current && selectedOverlays.map((o) => {
