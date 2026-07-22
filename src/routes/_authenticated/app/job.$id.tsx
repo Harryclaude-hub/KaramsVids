@@ -24,6 +24,7 @@ import {
   Volume2,
   VolumeX,
   ChevronRight,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
@@ -78,6 +79,10 @@ function JobEditor() {
   const [rendering, setRendering] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<Record<string, string>>({});
+  // KI-Autopilot: KI übernimmt den ganzen Prozess (analysieren → alle Clips rendern),
+  // der Mensch kann davor/danach jederzeit manuell eingreifen.
+  const [autopilot, setAutopilot] = useState<"idle" | "analyzing" | "rendering" | "done">("idle");
+  const [apProgress, setApProgress] = useState({ current: 0, total: 0 });
   const outputBlobs = useRef<Record<string, Blob>>({});
   const [masterUrl, setMasterUrl] = useState<string | null>(null);
   const [queuedIds, setQueuedIds] = useState<Record<string, string>>({});
@@ -114,7 +119,11 @@ function JobEditor() {
     | undefined;
   const brandId = raw?.brand_id ?? null;
   const analysis = (job?.analysis as unknown as Analysis | null) ?? null;
-  const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean; template_id?: string };
+  const options = (job?.options ?? {}) as {
+    aspect?: string;
+    captions?: boolean;
+    template_id?: string;
+  };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
 
   useEffect(() => {
@@ -466,6 +475,50 @@ function JobEditor() {
     }
   }
 
+  /**
+   * KI-Autopilot: kompletter Prozess ohne Eingreifen.
+   * 1) Falls noch keine Clips: KI-Analyse anstoßen und auf Ergebnis warten
+   * 2) Alle Clips nacheinander rendern
+   * Danach kann der Mensch jeden Clip manuell nachbearbeiten und neu rendern.
+   */
+  async function runAutopilot() {
+    if (autopilot === "analyzing" || autopilot === "rendering") return;
+    try {
+      let segs = segments;
+      if (!segs.length) {
+        setAutopilot("analyzing");
+        if (job?.status === "pending" || job?.status === "failed") {
+          const { analyzeVideo } = await import("@/lib/ai.functions");
+          analyzeVideo({ data: { jobId: id } }).catch(() => {});
+        }
+        for (let i = 0; i < 60 && !segs.length; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const { data } = await supabase
+            .from("edit_jobs")
+            .select("analysis,status")
+            .eq("id", id)
+            .single();
+          const a = data?.analysis as unknown as Analysis | null;
+          if (a?.segments?.length) segs = a.segments;
+          if (data?.status === "failed") throw new Error("KI-Analyse fehlgeschlagen");
+        }
+        if (!segs.length) throw new Error("KI-Analyse dauert zu lange — bitte gleich nochmal");
+        jobQ.refetch();
+      }
+      setAutopilot("rendering");
+      setApProgress({ current: 0, total: segs.length });
+      for (let i = 0; i < segs.length; i++) {
+        setApProgress({ current: i + 1, total: segs.length });
+        await renderSegment(segs[i], i);
+      }
+      setAutopilot("done");
+      toast.success(`Autopilot fertig — ${segs.length} Clips gerendert. Galerie rechts →`);
+    } catch (e) {
+      setAutopilot("idle");
+      toast.error(e instanceof Error ? e.message : "Autopilot-Fehler");
+    }
+  }
+
   async function renderMaster() {
     if (!signedUrl || segments.length === 0) return;
     setRendering("master");
@@ -677,6 +730,27 @@ function JobEditor() {
           <option value="x">X</option>
         </select>
         <button
+          onClick={runAutopilot}
+          disabled={autopilot === "analyzing" || autopilot === "rendering" || rendering !== null}
+          className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
+          title="KI übernimmt: analysieren + alle Clips rendern — danach kannst du manuell nacharbeiten"
+        >
+          {autopilot === "analyzing" ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert…
+            </>
+          ) : autopilot === "rendering" ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Clip {apProgress.current}/
+              {apProgress.total} · {progress}%
+            </>
+          ) : (
+            <>
+              <Wand2 className="h-3 w-3" /> KI-Autopilot
+            </>
+          )}
+        </button>
+        <button
           onClick={renderMaster}
           disabled={rendering !== null || segments.length === 0}
           className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
@@ -743,14 +817,19 @@ function JobEditor() {
               onPick={(t) => {
                 setAudioTracks((prev) => [
                   ...prev,
-                  { id: uid(), storage_path: "", source_url: t.url, name: `${t.title} · ${t.bpm}BPM`, volume: 0.35, duck: true },
+                  {
+                    id: uid(),
+                    storage_path: "",
+                    source_url: t.url,
+                    name: `${t.title} · ${t.bpm}BPM`,
+                    volume: 0.35,
+                    duck: true,
+                  },
                 ]);
                 toast.success(`„${t.title}" hinzugefügt`);
               }}
             />
           </div>
-
-
 
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -1225,6 +1304,48 @@ function JobEditor() {
             )}
           </div>
 
+          {/* Clip-Galerie: alle gerenderten Clips ansehen & herunterladen */}
+          {Object.keys(outputs).length > 0 && (
+            <div className="border-b border-border p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium">
+                  Clip-Galerie ({Object.keys(outputs).length}/{segments.length})
+                </span>
+                {Object.keys(outputs).length < segments.length && (
+                  <button
+                    onClick={runAutopilot}
+                    disabled={autopilot === "rendering" || rendering !== null}
+                    className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                  >
+                    Restliche rendern
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {segments.map((s, i) =>
+                  outputs[i] ? (
+                    <div key={i} className="space-y-1">
+                      <video
+                        src={outputs[i]}
+                        controls
+                        preload="metadata"
+                        className="w-full rounded-md bg-black"
+                      />
+                      <a
+                        href={outputs[i]}
+                        download={`clip-${i + 1}.mp4`}
+                        className="block truncate rounded border border-border px-1.5 py-1 text-center text-[10px] hover:bg-secondary"
+                        title={s.title}
+                      >
+                        ⬇ {i + 1}. {s.title}
+                      </a>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          )}
+
           {masterUrl && (
             <div className="border-b border-border p-3">
               <div className="mb-2 text-xs font-medium">Master-Export</div>
@@ -1330,9 +1451,16 @@ function ViralMusicPicker({
 
   function toggle(url: string) {
     if (!audioRef.current) return;
-    if (preview === url) { audioRef.current.pause(); setPreview(null); return; }
+    if (preview === url) {
+      audioRef.current.pause();
+      setPreview(null);
+      return;
+    }
     audioRef.current.src = url;
-    audioRef.current.play().then(() => setPreview(url)).catch(() => setPreview(null));
+    audioRef.current
+      .play()
+      .then(() => setPreview(url))
+      .catch(() => setPreview(null));
   }
 
   const Row = ({ t }: { t: ViralTrack }) => (
@@ -1346,9 +1474,16 @@ function ViralMusicPicker({
       </button>
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{t.title}</div>
-        <div className="truncate text-[9px] text-muted-foreground">{t.mood} · {t.bpm}BPM · {t.duration_s}s</div>
+        <div className="truncate text-[9px] text-muted-foreground">
+          {t.mood} · {t.bpm}BPM · {t.duration_s}s
+        </div>
       </div>
-      <button onClick={() => onPick(t)} className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10">Add</button>
+      <button
+        onClick={() => onPick(t)}
+        className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+      >
+        Add
+      </button>
     </div>
   );
 
@@ -1357,17 +1492,27 @@ function ViralMusicPicker({
       <audio ref={audioRef} onEnded={() => setPreview(null)} className="hidden" />
       {suggested.length > 0 && (
         <div className="space-y-1">
-          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">Passend zu „{template?.label}"</div>
-          {suggested.map((t) => <Row key={t.id} t={t} />)}
+          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">
+            Passend zu „{template?.label}"
+          </div>
+          {suggested.map((t) => (
+            <Row key={t.id} t={t} />
+          ))}
         </div>
       )}
       <details className="rounded-md border border-border bg-background/60">
-        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">Alle {rest.length} weiteren Sounds</summary>
+        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">
+          Alle {rest.length} weiteren Sounds
+        </summary>
         <div className="space-y-1 border-t border-border p-1.5">
-          {rest.map((t) => <Row key={t.id} t={t} />)}
+          {rest.map((t) => (
+            <Row key={t.id} t={t} />
+          ))}
         </div>
       </details>
-      <div className="text-[9px] leading-tight text-muted-foreground">Pixabay Content License · CC0 · sofort kommerziell nutzbar.</div>
+      <div className="text-[9px] leading-tight text-muted-foreground">
+        Pixabay Content License · CC0 · sofort kommerziell nutzbar.
+      </div>
     </div>
   );
 }

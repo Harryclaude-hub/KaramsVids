@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
+import { getProviderStatus, runGenerationQueue } from "@/lib/generation.functions";
 
 export const Route = createFileRoute("/_authenticated/app/generate")({
   component: GenerateStudio,
@@ -108,6 +109,29 @@ function GenerateStudio() {
   const storylines = (storylinesQ.data ?? []) as Storyline[];
   const active = storylines.find((s) => s.id === selectedStoryline) ?? null;
 
+  const providerQ = useQuery({
+    queryKey: ["provider_status"],
+    queryFn: () => getProviderStatus(),
+    staleTime: 60_000,
+  });
+  const providers = providerQ.data as
+    { fal: boolean; groq: boolean; lovable_ai: boolean } | undefined;
+
+  const [processing, setProcessing] = useState(false);
+  async function processQueue() {
+    setProcessing(true);
+    try {
+      const res = await runGenerationQueue();
+      if (res.processed > 0) toast.success(`${res.processed} Job(s) verarbeitet`);
+      jobsQ.refetch();
+      qc.invalidateQueries({ queryKey: ["storylines", user.id, activeBrandId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Verarbeitung fehlgeschlagen");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   async function createStoryline() {
     if (!activeBrand) return;
     const title = newTitle.trim();
@@ -170,9 +194,15 @@ function GenerateStudio() {
       status: "waiting_provider",
     } as any);
     if (error) return toast.error(error.message);
-    toast.success("Generierung eingereiht — startet, sobald ein Video-Provider verbunden ist");
+    toast.success(
+      providers?.fal
+        ? "Generierung gestartet"
+        : "Eingereiht — KI schreibt jetzt das Skript; Video startet, sobald der Provider-Key da ist",
+    );
     setPrompt("");
     jobsQ.refetch();
+    // Sofort verarbeiten: Skript + Gedächtnis laufen ohne Provider-Key
+    processQueue();
   }
 
   return (
@@ -428,8 +458,15 @@ function GenerateStudio() {
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Hinweis: Die Generierung startet, sobald ein Video-Provider (z.B. Kling, Veo, Runway)
-              verbunden ist — Jobs warten solange in der Queue.
+              {providers?.fal ? (
+                <>✓ Video-Provider verbunden — Generierung läuft vollautomatisch.</>
+              ) : (
+                <>
+                  ✓ Skript & Story-Gedächtnis laufen sofort (KI schreibt die Episode). Das
+                  Video-Rendering startet automatisch, sobald der <code>FAL_KEY</code> als Secret
+                  hinterlegt ist.
+                </>
+              )}
             </p>
           </div>
 
@@ -437,6 +474,14 @@ function GenerateStudio() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Clock className="h-4 w-4 text-muted-foreground" /> Generierungen
+              <button
+                onClick={processQueue}
+                disabled={processing}
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground hover:bg-secondary disabled:opacity-50"
+                title="Queue jetzt verarbeiten (Skripte schreiben, Provider-Jobs prüfen)"
+              >
+                {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : "↻"} Verarbeiten
+              </button>
             </div>
             {(jobsQ.data ?? []).length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
@@ -445,34 +490,88 @@ function GenerateStudio() {
             ) : (
               <div className="space-y-1.5">
                 {(jobsQ.data ?? []).map((j: any) => (
-                  <div
-                    key={j.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-xs"
-                  >
-                    {j.status === "running" ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
-                    ) : (
-                      <Film className="h-4 w-4 shrink-0 text-primary" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate">{j.prompt}</div>
-                      <div className="font-mono text-[10px] text-muted-foreground">
-                        {new Date(j.created_at).toLocaleString()} · {j.options?.duration_s ?? "?"}s
-                        · {j.options?.aspect ?? ""}
-                      </div>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${jobStatusColor(j.status)}`}
-                    >
-                      {j.status === "waiting_provider" ? "wartet auf Provider" : j.status}
-                    </span>
-                  </div>
+                  <GenerationJobCard key={j.id} job={j} />
                 ))}
               </div>
             )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function GenerationJobCard({ job: j }: { job: any }) {
+  const [open, setOpen] = useState(false);
+  const script = j.options?.script as
+    | {
+        title?: string;
+        summary?: string;
+        scenes?: Array<{ shot: string; description: string; dialog?: string; sound?: string }>;
+      }
+    | undefined;
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 text-xs">
+      <div className="flex items-center gap-3">
+        {j.status === "running" ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
+        ) : (
+          <Film className="h-4 w-4 shrink-0 text-primary" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium">{script?.title ?? j.prompt}</div>
+          <div className="font-mono text-[10px] text-muted-foreground">
+            {new Date(j.created_at).toLocaleString()} · {j.options?.duration_s ?? "?"}s ·{" "}
+            {j.options?.aspect ?? ""}
+          </div>
+        </div>
+        {script && (
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+          >
+            {open ? "Skript ▲" : "Skript ▼"}
+          </button>
+        )}
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${jobStatusColor(j.status)}`}
+        >
+          {j.status === "waiting_provider"
+            ? script
+              ? "Skript fertig · wartet auf Video-Provider"
+              : "wartet auf Provider"
+            : j.status}
+        </span>
+      </div>
+      {open && script && (
+        <div className="mt-2 space-y-1.5 rounded-md border border-border bg-background p-2">
+          {script.summary && <p className="text-muted-foreground">{script.summary}</p>}
+          {(script.scenes ?? []).map((s, i) => (
+            <div key={i} className="rounded border border-border/60 p-1.5">
+              <div className="font-medium">{s.shot}</div>
+              <div className="text-muted-foreground">{s.description}</div>
+              {s.dialog && <div className="mt-0.5 italic">„{s.dialog}"</div>}
+              {s.sound && <div className="text-[10px] text-accent">♪ {s.sound}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      {j.output_url && (
+        <div className="mt-2">
+          <video src={j.output_url} controls className="w-full max-w-sm rounded-md bg-black" />
+          <a
+            href={j.output_url}
+            target="_blank"
+            rel="noreferrer"
+            download
+            className="mt-1 inline-block rounded border border-border px-2 py-1 text-[10px] hover:bg-secondary"
+          >
+            ⬇ Video herunterladen
+          </a>
+        </div>
+      )}
+      {j.error && <p className="mt-1 text-[10px] text-destructive">{j.error}</p>}
     </div>
   );
 }

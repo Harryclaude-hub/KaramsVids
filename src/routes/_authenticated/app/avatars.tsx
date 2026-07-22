@@ -18,6 +18,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
+import { getProviderStatus, runGenerationQueue } from "@/lib/generation.functions";
 
 export const Route = createFileRoute("/_authenticated/app/avatars")({
   component: AvatarStudio,
@@ -93,6 +94,28 @@ function AvatarStudio() {
     },
   });
 
+  const providerQ = useQuery({
+    queryKey: ["provider_status"],
+    queryFn: () => getProviderStatus(),
+    staleTime: 60_000,
+  });
+  const providers = providerQ.data as { fal: boolean } | undefined;
+
+  const [processing, setProcessing] = useState(false);
+  async function processQueue() {
+    setProcessing(true);
+    try {
+      const res = await runGenerationQueue();
+      if (res.processed > 0) toast.success(`${res.processed} Job(s) verarbeitet`);
+      jobsQ.refetch();
+      modelsQ.refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Verarbeitung fehlgeschlagen");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   async function queueModelGeneration() {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
     const p = genPrompt.trim();
@@ -106,10 +129,15 @@ function AvatarStudio() {
       status: "waiting_provider",
     } as any);
     if (error) return toast.error(error.message);
-    toast.success("Model-Generierung eingereiht — startet mit verbundenem Bild-Provider");
+    toast.success(
+      providers?.fal
+        ? "Model wird generiert"
+        : "Eingereiht — startet automatisch, sobald der FAL_KEY hinterlegt ist",
+    );
     setGenPrompt("");
     setGenName("");
     jobsQ.refetch();
+    processQueue();
   }
 
   async function uploadReference(file: File) {
@@ -155,8 +183,13 @@ function AvatarStudio() {
       status: "waiting_provider",
     } as any);
     if (error) return toast.error(error.message);
-    toast.success("Overlap eingereiht — startet mit verbundenem Provider");
+    toast.success(
+      providers?.fal
+        ? "Overlap wird verarbeitet"
+        : "Eingereiht — startet automatisch, sobald der FAL_KEY hinterlegt ist",
+    );
     jobsQ.refetch();
+    processQueue();
   }
 
   const models = (modelsQ.data ?? []) as any[];
@@ -344,6 +377,14 @@ function AvatarStudio() {
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Clock className="h-4 w-4 text-muted-foreground" /> Avatar-Jobs
+          <button
+            onClick={processQueue}
+            disabled={processing}
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground hover:bg-secondary disabled:opacity-50"
+            title="Queue jetzt verarbeiten"
+          >
+            {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : "↻"} Verarbeiten
+          </button>
         </div>
         {(jobsQ.data ?? []).length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
@@ -374,6 +415,16 @@ function AvatarStudio() {
                 >
                   {j.status === "waiting_provider" ? "wartet auf Provider" : j.status}
                 </span>
+                {j.output_url && j.kind === "overlap" && (
+                  <a
+                    href={j.output_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 rounded border border-primary px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+                  >
+                    ▶ Ansehen
+                  </a>
+                )}
               </div>
             ))}
           </div>

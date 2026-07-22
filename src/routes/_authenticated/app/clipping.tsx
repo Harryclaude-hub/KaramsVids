@@ -207,7 +207,8 @@ function MassClipping() {
           </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Für YouTube/TikTok-Links läuft der Download beim ersten Öffnen im Editor. Direkte
-            MP4-Links und Uploads funktionieren sofort.
+            MP4-Links und Uploads funktionieren sofort. Im Editor: <b>KI-Autopilot</b> rendert alle
+            Clips automatisch — die Galerie rechts zeigt sie zum Ansehen & Herunterladen.
           </p>
         </div>
 
