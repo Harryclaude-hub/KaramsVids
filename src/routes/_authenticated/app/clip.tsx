@@ -36,6 +36,7 @@ function ClipPage() {
   const [urlInput, setUrlInput] = useState("");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyLabel, setBusyLabel] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [ytDialog, setYtDialog] = useState<{ host: string; original: string } | null>(null);
