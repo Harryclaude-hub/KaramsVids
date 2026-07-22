@@ -258,6 +258,17 @@ function ClipPage() {
             </div>
           </div>
 
+          {busy && (
+            <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="flex-1">
+                <div className="font-semibold">{busyLabel || "Wird verarbeitet …"}</div>
+                <div className="text-[11px] text-muted-foreground">Die KI liest den Inhalt und wählt die besten Momente. Bei langen Videos bitte etwas Geduld — du wirst automatisch zum Editor weitergeleitet.</div>
+              </div>
+              {progress > 0 && <div className="font-mono text-[10px]">{progress}%</div>}
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-[11px] text-muted-foreground">
               Ergebnis landet im Editor · Brand <span className="font-medium text-foreground">{activeBrand?.name ?? "—"}</span>
@@ -266,7 +277,7 @@ function ClipPage() {
               onClick={handleUrl}
               disabled={busy || !urlInput || !activeBrand}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-              <Sparkles className="h-4 w-4" /> {count} Clips generieren <ChevronRight className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" /> {busy ? "Läuft …" : `${count} Clips generieren`} <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
