@@ -119,16 +119,17 @@ function ClipPage() {
 
   async function startClipping(rawVideoId: string) {
     if (!activeBrand) return;
+    setBusyLabel("KI-Schnittplan wird erstellt … (10-60 Sek)");
     const { data: job, error } = await supabase.from("edit_jobs").insert({
       user_id: user.id, raw_video_id: rawVideoId, brand_id: activeBrand.id,
       mode: tpl.mode, options: { captions, aspect, template_id: templateId, min_len_s: minLen, max_len_s: maxLen, music_mood: tpl.musicMood },
       desired_clip_count: count,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
-    toast.success(`KI erstellt ${count} Clips …`);
+    if (error) { toast.error("Job-Erstellung fehlgeschlagen: " + error.message, { duration: 8000 }); return; }
+    toast.success(`KI plant ${count} Clips — du wirst weitergeleitet …`);
     const { analyzeVideo } = await import("@/lib/ai.functions");
     analyzeVideo({ data: { jobId: job.id, desiredClipCount: count } })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
+      .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Analyse fehlgeschlagen", { duration: 10000 }));
     navigate({ to: "/app/job/$id", params: { id: job.id } });
   }
 
