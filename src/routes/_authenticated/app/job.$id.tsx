@@ -258,17 +258,21 @@ function JobEditor() {
 
   async function getFFmpeg() {
     if (ffmpegRef.current) return ffmpegRef.current;
-    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
-    const { toBlobURL } = await import("@ffmpeg/util");
-    const ff = new FFmpeg();
-    const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
-    ff.on("progress", ({ progress }: { progress: number }) => setProgress(Math.round(progress * 100)));
-    await ff.load({
-      coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
-    });
-    ffmpegRef.current = ff;
-    return ff;
+    try {
+      const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+      const { toBlobURL } = await import("@ffmpeg/util");
+      const ff = new FFmpeg();
+      const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+      ff.on("progress", ({ progress }: { progress: number }) => setProgress(Math.round(progress * 100)));
+      await ff.load({
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+      });
+      ffmpegRef.current = ff;
+      return ff;
+    } catch (e) {
+      throw new Error("Rendering-Engine konnte nicht geladen werden — bitte Seite neu laden oder anderen Browser probieren. Detail: " + (e instanceof Error ? e.message : String(e)));
+    }
   }
 
   function aspectFilter() {
