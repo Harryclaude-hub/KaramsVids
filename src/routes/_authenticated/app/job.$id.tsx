@@ -507,6 +507,22 @@ function JobEditor() {
             </div>
           </div>
 
+          {/* Viral Sound Library */}
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Music className="h-3 w-3 text-accent" /> Viral Sounds
+            </div>
+            <ViralMusicPicker
+              template={templateById(options.template_id as string | undefined)}
+              onPick={(t) => {
+                setAudioTracks((prev) => [
+                  ...prev,
+                  { id: uid(), storage_path: "", source_url: t.url, name: `${t.title} · ${t.bpm}BPM`, volume: 0.35, duck: true },
+                ]);
+                toast.success(`„${t.title}" hinzugefügt`);
+              }}
+            />
+
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3 w-3" /> Effekte
