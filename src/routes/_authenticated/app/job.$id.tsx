@@ -522,6 +522,9 @@ function JobEditor() {
                 toast.success(`„${t.title}" hinzugefügt`);
               }}
             />
+          </div>
+
+
 
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
