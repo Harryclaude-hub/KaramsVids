@@ -73,23 +73,24 @@ function ClipPage() {
 
   async function handleFile(file: File) {
     if (!activeBrand) return toast.error("Bitte oben links einen Brand wählen");
-    setBusy(true); setProgress(5);
+    setBusy(true); setProgress(5); setBusyLabel("Upload läuft …");
     try {
       const key = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: upErr } = await supabase.storage.from("raw-videos").upload(key, file, { contentType: file.type || "video/mp4", upsert: false });
-      if (upErr) throw upErr;
-      setProgress(70);
+      if (upErr) throw new Error("Upload fehlgeschlagen: " + upErr.message);
+      setProgress(70); setBusyLabel("Metadaten werden gelesen …");
       const dur = await probeDuration(file).catch(() => null);
+      setBusyLabel("Job wird erstellt …");
       const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
         user_id: user.id, brand_id: activeBrand.id,
         title: title || file.name, storage_path: key, size_bytes: file.size, duration_s: dur,
       }).select().single();
-      if (dbErr) throw dbErr;
+      if (dbErr) throw new Error("Datenbank-Fehler: " + dbErr.message);
       setProgress(100);
       await startClipping(row.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
-    } finally { setBusy(false); setProgress(0); }
+      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen", { duration: 8000 });
+    } finally { setBusy(false); setProgress(0); setBusyLabel(""); }
   }
 
   async function handleUrl() {
@@ -103,17 +104,17 @@ function ClipPage() {
 
   async function commitUrl(url: string) {
     if (!activeBrand) return;
-    setBusy(true);
+    setBusy(true); setBusyLabel("Link wird gespeichert …");
     try {
       const { data: row, error } = await supabase.from("raw_videos").insert({
         user_id: user.id, brand_id: activeBrand.id,
         title: title || url, source_url: url,
       }).select().single();
-      if (error) throw error;
+      if (error) throw new Error("Speichern fehlgeschlagen: " + error.message);
       await startClipping(row.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
-    } finally { setBusy(false); }
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen", { duration: 8000 });
+    } finally { setBusy(false); setBusyLabel(""); }
   }
 
   async function startClipping(rawVideoId: string) {
