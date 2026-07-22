@@ -9,38 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
-import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
-import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
+import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
+import { Route as AuthenticatedAppClippingRouteImport } from './routes/_authenticated/app/clipping'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
-import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
-import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
-import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
-import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
+import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
+import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
+import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
+import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
+import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
-  id: '/api/transcribe',
-  path: '/api/transcribe',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -48,20 +46,25 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
-  id: '/app/upload',
-  path: '/app/upload',
+const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
+  id: '/app/avatars',
+  path: '/app/avatars',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppPublishingRoute =
-  AuthenticatedAppPublishingRouteImport.update({
-    id: '/app/publishing',
-    path: '/app/publishing',
+const AuthenticatedAppClippingRoute =
+  AuthenticatedAppClippingRouteImport.update({
+    id: '/app/clipping',
+    path: '/app/clipping',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppConnectionsRoute =
@@ -70,26 +73,21 @@ const AuthenticatedAppConnectionsRoute =
     path: '/app/connections',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicHooksSyncAnalyticsRoute =
-  ApiPublicHooksSyncAnalyticsRouteImport.update({
-    id: '/api/public/hooks/sync-analytics',
-    path: '/api/public/hooks/sync-analytics',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedAppGenerateRoute =
+  AuthenticatedAppGenerateRouteImport.update({
+    id: '/app/generate',
+    path: '/app/generate',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicHooksProcessPublishQueueRoute =
-  ApiPublicHooksProcessPublishQueueRouteImport.update({
-    id: '/api/public/hooks/process-publish-queue',
-    path: '/api/public/hooks/process-publish-queue',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedAppPublishingRoute =
+  AuthenticatedAppPublishingRouteImport.update({
+    id: '/app/publishing',
+    path: '/app/publishing',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
-  id: '/app/video/$id',
-  path: '/app/video/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
-  id: '/app/job/$id',
-  path: '/app/job/$id',
+const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
+  id: '/app/upload',
+  path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
@@ -97,13 +95,38 @@ const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
   path: '/app/brand/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
+  id: '/app/job/$id',
+  path: '/app/job/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
+  id: '/app/video/$id',
+  path: '/app/video/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicHooksProcessPublishQueueRoute =
+  ApiPublicHooksProcessPublishQueueRouteImport.update({
+    id: '/api/public/hooks/process-publish-queue',
+    path: '/api/public/hooks/process-publish-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksSyncAnalyticsRoute =
+  ApiPublicHooksSyncAnalyticsRouteImport.update({
+    id: '/api/public/hooks/sync-analytics',
+    path: '/api/public/hooks/sync-analytics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/app/avatars': typeof AuthenticatedAppAvatarsRoute
+  '/app/clipping': typeof AuthenticatedAppClippingRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -118,7 +141,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/app/avatars': typeof AuthenticatedAppAvatarsRoute
+  '/app/clipping': typeof AuthenticatedAppClippingRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -135,7 +161,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/_authenticated/app/avatars': typeof AuthenticatedAppAvatarsRoute
+  '/_authenticated/app/clipping': typeof AuthenticatedAppClippingRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
+  '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -152,7 +181,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/api/chat'
     | '/api/transcribe'
+    | '/app/avatars'
+    | '/app/clipping'
     | '/app/connections'
+    | '/app/generate'
     | '/app/publishing'
     | '/app/upload'
     | '/app/'
@@ -167,7 +199,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/api/chat'
     | '/api/transcribe'
+    | '/app/avatars'
+    | '/app/clipping'
     | '/app/connections'
+    | '/app/generate'
     | '/app/publishing'
     | '/app/upload'
     | '/app'
@@ -183,7 +218,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/api/chat'
     | '/api/transcribe'
+    | '/_authenticated/app/avatars'
+    | '/_authenticated/app/clipping'
     | '/_authenticated/app/connections'
+    | '/_authenticated/app/generate'
     | '/_authenticated/app/publishing'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
@@ -206,11 +244,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -220,18 +258,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/transcribe': {
-      id: '/api/transcribe'
-      path: '/api/transcribe'
-      fullPath: '/api/transcribe'
-      preLoaderRoute: typeof ApiTranscribeRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -241,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
       path: '/app'
@@ -248,18 +286,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/upload': {
-      id: '/_authenticated/app/upload'
-      path: '/app/upload'
-      fullPath: '/app/upload'
-      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
+    '/_authenticated/app/avatars': {
+      id: '/_authenticated/app/avatars'
+      path: '/app/avatars'
+      fullPath: '/app/avatars'
+      preLoaderRoute: typeof AuthenticatedAppAvatarsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/publishing': {
-      id: '/_authenticated/app/publishing'
-      path: '/app/publishing'
-      fullPath: '/app/publishing'
-      preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
+    '/_authenticated/app/clipping': {
+      id: '/_authenticated/app/clipping'
+      path: '/app/clipping'
+      fullPath: '/app/clipping'
+      preLoaderRoute: typeof AuthenticatedAppClippingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/connections': {
@@ -269,32 +307,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/sync-analytics': {
-      id: '/api/public/hooks/sync-analytics'
-      path: '/api/public/hooks/sync-analytics'
-      fullPath: '/api/public/hooks/sync-analytics'
-      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/process-publish-queue': {
-      id: '/api/public/hooks/process-publish-queue'
-      path: '/api/public/hooks/process-publish-queue'
-      fullPath: '/api/public/hooks/process-publish-queue'
-      preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/app/video/$id': {
-      id: '/_authenticated/app/video/$id'
-      path: '/app/video/$id'
-      fullPath: '/app/video/$id'
-      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
+    '/_authenticated/app/generate': {
+      id: '/_authenticated/app/generate'
+      path: '/app/generate'
+      fullPath: '/app/generate'
+      preLoaderRoute: typeof AuthenticatedAppGenerateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/job/$id': {
-      id: '/_authenticated/app/job/$id'
-      path: '/app/job/$id'
-      fullPath: '/app/job/$id'
-      preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
+    '/_authenticated/app/publishing': {
+      id: '/_authenticated/app/publishing'
+      path: '/app/publishing'
+      fullPath: '/app/publishing'
+      preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/upload': {
+      id: '/_authenticated/app/upload'
+      path: '/app/upload'
+      fullPath: '/app/upload'
+      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/brand/$id': {
@@ -304,11 +335,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/job/$id': {
+      id: '/_authenticated/app/job/$id'
+      path: '/app/job/$id'
+      fullPath: '/app/job/$id'
+      preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/video/$id': {
+      id: '/_authenticated/app/video/$id'
+      path: '/app/video/$id'
+      fullPath: '/app/video/$id'
+      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/hooks/process-publish-queue': {
+      id: '/api/public/hooks/process-publish-queue'
+      path: '/api/public/hooks/process-publish-queue'
+      fullPath: '/api/public/hooks/process-publish-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/sync-analytics': {
+      id: '/api/public/hooks/sync-analytics'
+      path: '/api/public/hooks/sync-analytics'
+      fullPath: '/api/public/hooks/sync-analytics'
+      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppAvatarsRoute: typeof AuthenticatedAppAvatarsRoute
+  AuthenticatedAppClippingRoute: typeof AuthenticatedAppClippingRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
+  AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
   AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
@@ -318,7 +380,10 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppAvatarsRoute: AuthenticatedAppAvatarsRoute,
+  AuthenticatedAppClippingRoute: AuthenticatedAppClippingRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
+  AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
   AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
@@ -343,3 +408,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
