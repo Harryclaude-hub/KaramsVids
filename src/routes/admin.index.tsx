@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Shield,
@@ -37,7 +37,7 @@ function AdminPortal() {
 
   const usersQ = useQuery({
     queryKey: ["admin_users"],
-    refetchInterval: 20_000,
+    refetchInterval: 10_000, // Fallback, falls Realtime nicht durchkommt
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -49,6 +49,44 @@ function AdminPortal() {
   });
 
   const users = usersQ.data ?? [];
+
+  // Live: neue Registrierungen sofort anzeigen + melden
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-profiles")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "profiles" },
+        (payload) => {
+          const p = payload.new as { email?: string; status?: string };
+          qc.invalidateQueries({ queryKey: ["admin_users"] });
+          if (p.status !== "approved") {
+            toast.info(`Neue Registrierung: ${p.email ?? "unbekannt"}`, { duration: 10000 });
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        () => qc.invalidateQueries({ queryKey: ["admin_users"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+  // Auch ohne Realtime: wächst die Wartenden-Zahl, kurz melden
+  const prevPendingRef = useRef<number | null>(null);
+  useEffect(() => {
+    const n = users.filter((u) => u.status === "pending").length;
+    if (prevPendingRef.current !== null && n > prevPendingRef.current) {
+      toast.info(`${n - prevPendingRef.current} neue Registrierung(en) warten auf Freigabe`, {
+        duration: 8000,
+      });
+    }
+    prevPendingRef.current = n;
+  }, [users]);
   const pending = users.filter((u) => u.status === "pending");
   const approved = users.filter((u) => u.status === "approved");
   const rejected = users.filter((u) => u.status === "rejected");

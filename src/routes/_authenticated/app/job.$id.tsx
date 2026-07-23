@@ -25,6 +25,10 @@ import {
   VolumeX,
   ChevronRight,
   Wand2,
+  PanelLeft,
+  PanelRight,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
@@ -90,6 +94,40 @@ function JobEditor() {
   const [targetPlatform, setTargetPlatform] = useState<string>("");
   const [ytImporting, setYtImporting] = useState(false);
   const [ytImportError, setYtImportError] = useState<string | null>(null);
+
+  // Layout: Panels ein-/ausblenden + echter Vollbildmodus
+  const [showLeft, setShowLeft] = useState(true);
+  const [showRight, setShowRight] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+
+  async function toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await shellRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      /* Browser verweigert Vollbild — Panels-Toggle bleibt als Fallback */
+    }
+  }
+  useEffect(() => {
+    const onFs = () => {
+      const on = !!document.fullscreenElement;
+      setFullscreen(on);
+      // Vollbild = maximale Arbeitsfläche: Seitenpanels automatisch weg
+      if (on) {
+        setShowLeft(false);
+        setShowRight(false);
+      } else {
+        setShowLeft(true);
+        setShowRight(true);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
 
   const ffmpegRef = useRef<any>(null);
   const inputLoadedRef = useRef<string | null>(null); // signedUrl, deren Datei bereits in ffmpeg liegt
@@ -815,7 +853,7 @@ function JobEditor() {
     !raw?.storage_path && !!(raw as { source_url?: string | null } | undefined)?.source_url;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background text-foreground">
+    <div ref={shellRef} className="fixed inset-0 flex flex-col bg-background text-foreground">
       {/* Top bar */}
       <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
         <Link
@@ -859,7 +897,7 @@ function JobEditor() {
         </select>
         {brandWm?.watermark_path && (
           <label
-            className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs"
+            className="hidden cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs sm:flex"
             title="Brand-Wasserzeichen (Logo) in den Export einblenden"
           >
             <input
@@ -871,6 +909,31 @@ function JobEditor() {
             Logo
           </label>
         )}
+
+        {/* Layout-Steuerung: Panels ein-/ausblenden + Vollbild */}
+        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          <button
+            onClick={() => setShowLeft((v) => !v)}
+            title={showLeft ? "Linkes Panel ausblenden" : "Linkes Panel einblenden"}
+            className={`rounded p-1.5 ${showLeft ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+          >
+            <PanelLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setShowRight((v) => !v)}
+            title={showRight ? "Rechtes Panel ausblenden" : "Rechtes Panel einblenden"}
+            className={`rounded p-1.5 ${showRight ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+          >
+            <PanelRight className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus"}
+            className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            {fullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
+          </button>
+        </div>
         <button
           onClick={runAutopilot}
           disabled={
@@ -967,7 +1030,9 @@ function JobEditor() {
 
       <div className="flex min-h-0 flex-1">
         {/* LEFT: Media Bin */}
-        <aside className="w-64 shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-3">
+        <aside
+          className={`${showLeft ? "w-64" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-3`}
+        >
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Film className="h-3 w-3" /> Media Bin
@@ -1140,6 +1205,54 @@ function JobEditor() {
             </div>
           </div>
 
+          {/* Clip-Übersicht — alle Clips als Streifen unter dem Player (CapCut/Adobe-Stil) */}
+          {segments.length > 0 && (
+            <div className="shrink-0 border-t border-border bg-card/60 px-3 py-2">
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Clips ({segments.length})
+                </span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {Object.keys(outputs).length} gerendert
+                </span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {segments.map((s, i) => {
+                  const dur = Math.max(0, s.end_s - s.start_s);
+                  const isSel = selectedClip === i;
+                  const done = !!outputs[i];
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => jumpToClip(i)}
+                      className={`group relative w-32 shrink-0 rounded-lg border p-2 text-left transition ${
+                        isSel
+                          ? "border-primary bg-primary/10 ring-1 ring-primary"
+                          : "border-border bg-background hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`grid h-4 w-4 shrink-0 place-items-center rounded font-mono text-[9px] ${isSel ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          {i + 1}
+                        </span>
+                        {done && <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />}
+                        {queuedIds[i] && <ListPlus className="h-3 w-3 shrink-0 text-accent" />}
+                      </div>
+                      <div className="mt-1 truncate text-[11px] font-medium leading-tight">
+                        {s.title}
+                      </div>
+                      <div className="font-mono text-[9px] text-muted-foreground">
+                        {dur.toFixed(1)}s · ab {fmt(s.start_s)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Transport */}
           <div className="flex items-center gap-3 border-y border-border bg-card px-3 py-2 text-xs">
             <button
@@ -1271,7 +1384,9 @@ function JobEditor() {
         </section>
 
         {/* RIGHT: Inspector + Chat */}
-        <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-border bg-card/40">
+        <aside
+          className={`${showRight ? "w-[380px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
+        >
           {/* Inspector */}
           <div className="border-b border-border p-3">
             <div className="mb-2 text-xs font-medium text-muted-foreground">

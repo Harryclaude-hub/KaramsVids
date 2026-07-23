@@ -19,6 +19,8 @@ import {
   Clapperboard,
   Users,
   Shield,
+  Menu,
+  X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -69,6 +71,7 @@ function AppShell() {
   const createBrand = useCreateBrand(user.id);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [mobileNav, setMobileNav] = useState(false);
 
   const nav: {
     to:
@@ -250,14 +253,53 @@ function AppShell() {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
+        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
           <Link to="/app" className="flex items-center gap-2 text-sm font-semibold">
             <Scissors className="h-4 w-4 text-primary" /> VideoCraft
           </Link>
-          <button onClick={signOut} className="text-xs text-muted-foreground">
-            Abmelden
+          <button
+            onClick={() => setMobileNav((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs"
+            aria-label="Menü"
+          >
+            {mobileNav ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />} Menü
           </button>
         </header>
+
+        {/* Mobile-Navigation — inkl. Admin-Portal */}
+        {mobileNav && (
+          <nav className="space-y-1 border-b border-border bg-card px-3 py-3 md:hidden">
+            {nav.map((n) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                onClick={() => setMobileNav(false)}
+                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${pathname === n.to ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
+              >
+                <n.icon className="h-4 w-4" />
+                {n.label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileNav(false)}
+                className="flex items-center gap-3 rounded-md border border-primary/40 bg-primary/5 px-3 py-2.5 text-sm text-primary"
+              >
+                <Shield className="h-4 w-4" /> Admin-Portal
+              </Link>
+            )}
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
+              <span className="truncate px-3 text-xs text-muted-foreground">{user.email}</span>
+              <button
+                onClick={signOut}
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-muted-foreground"
+              >
+                <LogOut className="h-4 w-4" /> Abmelden
+              </button>
+            </div>
+          </nav>
+        )}
         {/* Aktiver Brand — immer sichtbar */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/95 px-4 py-2 backdrop-blur md:px-6">
           {activeBrand ? (
