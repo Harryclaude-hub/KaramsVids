@@ -129,10 +129,41 @@ function JobEditor() {
       return next;
     });
   }
-  const showLeft = panels.library || panels.media || panels.effects;
-  const showRight = panels.inspector || panels.chat;
+  const showLeft = panels.media || panels.effects;
+  const showRight = panels.inspector || panels.chat || panels.library;
   const [fullscreen, setFullscreen] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
+
+  // Timeline-Höhe per Ziehgriff einstellbar (wird gemerkt)
+  const [timelineH, setTimelineH] = useState<number>(() => {
+    if (typeof window === "undefined") return 240;
+    const v = Number(window.localStorage.getItem("vc:timelineH"));
+    return v >= 120 && v <= 900 ? v : 240;
+  });
+  function startTimelineResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = timelineH;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(900, Math.max(120, startH + (startY - ev.clientY)));
+      setTimelineH(next);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      try {
+        window.localStorage.setItem("vc:timelineH", String(timelineHRef.current));
+      } catch {
+        /* localStorage nicht verfügbar */
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+  const timelineHRef = useRef(timelineH);
+  useEffect(() => {
+    timelineHRef.current = timelineH;
+  }, [timelineH]);
 
   async function toggleFullscreen() {
     try {
@@ -1138,71 +1169,8 @@ function JobEditor() {
       <div className="flex min-h-0 flex-1">
         {/* LEFT: Media Bin */}
         <aside
-          className={`${showLeft ? "w-64" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-3`}
+          className={`${showLeft ? "w-52" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-2.5`}
         >
-          {/* Bibliothek — andere Videos & Schnitte dieses Brands */}
-          {panels.library && (
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Library className="h-3 w-3" /> Bibliothek
-              </div>
-              {libraryQ.isLoading ? (
-                <div className="space-y-1">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-9 animate-pulse rounded-md bg-background" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div>
-                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Schnitte ({libraryQ.data?.jobs.length ?? 0})
-                    </div>
-                    <div className="space-y-1">
-                      {(libraryQ.data?.jobs ?? []).map((j: any) => (
-                        <Link
-                          key={j.id}
-                          to="/app/job/$id"
-                          params={{ id: j.id }}
-                          className={`flex items-center gap-1.5 rounded-md border p-1.5 text-[11px] ${j.id === id ? "border-primary bg-primary/10" : "border-transparent hover:border-primary/40 hover:bg-background"}`}
-                        >
-                          <Wand2 className="h-3 w-3 shrink-0 text-primary" />
-                          <span className="min-w-0 flex-1 truncate">
-                            {j.raw_videos?.title ?? "Video"}
-                          </span>
-                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
-                            {j.status}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Videos ({libraryQ.data?.videos.length ?? 0})
-                    </div>
-                    <div className="space-y-1">
-                      {(libraryQ.data?.videos ?? []).map((v: any) => (
-                        <Link
-                          key={v.id}
-                          to="/app/video/$id"
-                          params={{ id: v.id }}
-                          className="flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-[11px] hover:border-primary/40 hover:bg-background"
-                        >
-                          <Film className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <span className="min-w-0 flex-1 truncate">{v.title}</span>
-                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
-                            {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {panels.media && (
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -1317,7 +1285,7 @@ function JobEditor() {
 
         {/* CENTER: Preview + Timeline */}
         <section className="flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black p-4">
+          <div className="flex min-h-[42%] flex-1 items-center justify-center overflow-hidden bg-black p-3">
             <div className="relative">
               {signedUrl ? (
                 <video
@@ -1454,9 +1422,21 @@ function JobEditor() {
             </div>
           </div>
 
+          {/* Ziehgriff: Timeline-Höhe frei einstellen */}
+          {panels.timeline && (
+            <div
+              onMouseDown={startTimelineResize}
+              className="group flex h-2 shrink-0 cursor-ns-resize items-center justify-center border-t border-border bg-card hover:bg-secondary"
+              title="Ziehen, um die Timeline-Höhe zu ändern"
+            >
+              <div className="h-0.5 w-10 rounded-full bg-border group-hover:bg-primary" />
+            </div>
+          )}
+
           {/* Timeline */}
           <div
-            className={`${panels.timeline ? "max-h-[45%]" : "hidden"} overflow-auto border-t border-border bg-background p-3`}
+            style={panels.timeline ? { height: timelineH } : undefined}
+            className={`${panels.timeline ? "shrink-0" : "hidden"} overflow-auto border-t border-border bg-background p-3`}
           >
             {segments.length === 0 ? (
               <div className="grid h-32 place-items-center text-xs text-muted-foreground">
@@ -1563,7 +1543,7 @@ function JobEditor() {
 
         {/* RIGHT: Inspector + Chat */}
         <aside
-          className={`${showRight ? "w-[380px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
+          className={`${showRight ? "w-[330px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
         >
           {/* Inspector */}
           <div className={`${panels.inspector ? "" : "hidden"} border-b border-border p-3`}>
@@ -1875,6 +1855,69 @@ function JobEditor() {
               onChanged={() => jobQ.refetch()}
             />
           </div>
+
+          {/* Bibliothek — ganz unten, nimmt dem Editor keinen Platz weg */}
+          {panels.library && (
+            <div className="border-t border-border p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Library className="h-3 w-3" /> Bibliothek
+              </div>
+              {libraryQ.isLoading ? (
+                <div className="space-y-1">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-9 animate-pulse rounded-md bg-background" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      Schnitte ({libraryQ.data?.jobs.length ?? 0})
+                    </div>
+                    <div className="max-h-44 space-y-1 overflow-y-auto">
+                      {(libraryQ.data?.jobs ?? []).map((j: any) => (
+                        <Link
+                          key={j.id}
+                          to="/app/job/$id"
+                          params={{ id: j.id }}
+                          className={`flex items-center gap-1.5 rounded-md border p-1.5 text-[11px] ${j.id === id ? "border-primary bg-primary/10" : "border-transparent hover:border-primary/40 hover:bg-background"}`}
+                        >
+                          <Wand2 className="h-3 w-3 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1 truncate">
+                            {j.raw_videos?.title ?? "Video"}
+                          </span>
+                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+                            {j.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      Videos ({libraryQ.data?.videos.length ?? 0})
+                    </div>
+                    <div className="max-h-44 space-y-1 overflow-y-auto">
+                      {(libraryQ.data?.videos ?? []).map((v: any) => (
+                        <Link
+                          key={v.id}
+                          to="/app/video/$id"
+                          params={{ id: v.id }}
+                          className="flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-[11px] hover:border-primary/40 hover:bg-background"
+                        >
+                          <Film className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="min-w-0 flex-1 truncate">{v.title}</span>
+                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+                            {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>
