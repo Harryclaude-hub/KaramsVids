@@ -35,6 +35,10 @@
 }
 
 :root {
+  /* Verhindert, dass Browser (v.a. Chrome/Android „Auto Dark Theme")
+     die Seite eigenmächtig dunkel einfärben */
+  color-scheme: light;
+
   --radius: 0.75rem;
   /* Helles, freundliches Theme — warmes Weiß, klare Kontraste,
      Cut-Orange & Teal als Akzente */
@@ -61,6 +65,7 @@
 
 /* Dunkles Theme bleibt verfügbar (Klasse .dark), falls später ein Toggle kommt */
 .dark {
+  color-scheme: dark;
   --background: oklch(0.16 0.012 60);
   --foreground: oklch(0.96 0.008 80);
   --card: oklch(0.20 0.014 60);
