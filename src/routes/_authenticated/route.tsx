@@ -23,6 +23,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBrands, useActiveBrandId, useCreateBrand } from "@/lib/use-active-brand";
+import { BrandAvatar } from "@/components/brand-avatar";
 import { toast } from "sonner";
 
 const ADMIN_EMAIL = "saifokaram1@gmail.com";
@@ -111,6 +112,7 @@ function AppShell() {
   }
 
   const brands = brandsQ.data ?? [];
+  const activeBrand = brands.find((b) => b.id === activeBrandId) ?? null;
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -172,10 +174,7 @@ function AppShell() {
                     onClick={() => setActiveBrandId(b.id)}
                     className={`flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs ${isActive ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
                   >
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ background: b.color }}
-                    />
+                    <BrandAvatar brand={b} className="h-4 w-4 shrink-0 rounded-full text-[8px]" />
                     <span className="flex-1 truncate">{b.name}</span>
                     {isActive && <Check className="h-3 w-3" />}
                   </button>
@@ -259,6 +258,39 @@ function AppShell() {
             Abmelden
           </button>
         </header>
+        {/* Aktiver Brand — immer sichtbar */}
+        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/95 px-4 py-2 backdrop-blur md:px-6">
+          {activeBrand ? (
+            <>
+              <BrandAvatar brand={activeBrand} className="h-7 w-7 rounded-lg text-xs" />
+              <div className="min-w-0">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                  Aktiver Brand
+                </div>
+                <div className="truncate text-sm font-semibold leading-tight">
+                  {activeBrand.name}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Kein Brand gewählt — links auswählen oder anlegen
+            </div>
+          )}
+          <select
+            value={activeBrandId ?? ""}
+            onChange={(e) => setActiveBrandId(e.target.value || null)}
+            className="ml-auto max-w-[180px] rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+            title="Brand wechseln"
+          >
+            <option value="">— Brand wechseln —</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <main className="flex-1 overflow-y-auto p-6 md:p-10">
           <Outlet />
         </main>

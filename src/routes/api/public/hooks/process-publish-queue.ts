@@ -110,9 +110,15 @@ type Schedule = {
   cadence: string;
   weekdays: number[] | null;
   time_of_day: string; // 'HH:MM:SS' or 'HH:MM'
+  interval_minutes?: number | null;
 };
 
 function computeNextRun(s: Schedule, from: Date): Date {
+  // Intervall-Kadenz: einfach "jetzt + X Minuten"
+  if (s.cadence === "interval" && s.interval_minutes && s.interval_minutes > 0) {
+    return new Date(from.getTime() + s.interval_minutes * 60_000);
+  }
+
   const [hh, mm] = (s.time_of_day ?? "18:00").split(":").map((x) => parseInt(x, 10));
   const base = new Date(from);
   base.setSeconds(0, 0);

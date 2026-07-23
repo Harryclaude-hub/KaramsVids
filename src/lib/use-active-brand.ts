@@ -9,6 +9,7 @@ export type Brand = {
   user_id: string;
   name: string;
   color: string;
+  avatar_path?: string | null;
   created_at: string;
 };
 

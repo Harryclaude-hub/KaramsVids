@@ -151,11 +151,18 @@ type Schedule = {
   cadence: string;
   weekdays: number[] | null;
   time_of_day: string;
+  interval_minutes?: number | null;
   videos_per_slot: number;
   active: boolean;
   next_run_at: string;
   last_run_at: string | null;
 };
+
+function fmtInterval(min: number): string {
+  if (min % 1440 === 0) return `${min / 1440} Tag${min / 1440 > 1 ? "e" : ""}`;
+  if (min % 60 === 0) return `${min / 60} Std`;
+  return `${min} Min`;
+}
 
 function ScheduleSection({
   brandId, userId, schedules, onChange, queuedByPlatform,
@@ -165,23 +172,32 @@ function ScheduleSection({
 }) {
   const [creating, setCreating] = useState(false);
   const [platform, setPlatform] = useState("tiktok");
-  const [cadence, setCadence] = useState<"daily" | "weekly">("daily");
+  const [cadence, setCadence] = useState<"daily" | "weekly" | "interval">("daily");
   const [time, setTime] = useState("18:00");
   const [days, setDays] = useState<number[]>([1, 3, 5]);
   const [count, setCount] = useState(1);
+  const [intervalN, setIntervalN] = useState(6);
+  const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
 
   async function add() {
+    const unitFactor = intervalUnit === "minutes" ? 1 : intervalUnit === "hours" ? 60 : 1440;
+    const intervalMinutes = Math.max(5, Math.round(intervalN * unitFactor)); // min. 5 Min (Cron-Takt)
     const { error } = await supabase.from("publish_schedules").insert({
       user_id: userId, brand_id: brandId,
       platform, cadence,
       weekdays: cadence === "weekly" ? days : [],
       time_of_day: time,
+      interval_minutes: cadence === "interval" ? intervalMinutes : null,
       videos_per_slot: count,
       active: true,
-    });
+    } as never);
     if (error) return toast.error(error.message);
     setCreating(false);
-    toast.success("Zeitplan erstellt");
+    toast.success(
+      cadence === "interval"
+        ? `Zeitplan erstellt — postet alle ${fmtInterval(intervalMinutes)}`
+        : "Zeitplan erstellt",
+    );
     onChange();
   }
 
@@ -228,12 +244,37 @@ function ScheduleSection({
               <select value={cadence} onChange={(e) => setCadence(e.target.value as any)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary">
                 <option value="daily">Täglich</option>
                 <option value="weekly">Wöchentlich</option>
+                <option value="interval">Intervall (alle X …)</option>
               </select>
             </label>
-            <label className="text-xs">
-              <span className="text-muted-foreground">Uhrzeit</span>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
-            </label>
+            {cadence === "interval" ? (
+              <label className="text-xs">
+                <span className="text-muted-foreground">Alle …</span>
+                <div className="mt-1 flex gap-1">
+                  <input
+                    type="number"
+                    min={1}
+                    value={intervalN}
+                    onChange={(e) => setIntervalN(Math.max(1, Number(e.target.value)))}
+                    className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                  />
+                  <select
+                    value={intervalUnit}
+                    onChange={(e) => setIntervalUnit(e.target.value as any)}
+                    className="flex-1 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                  >
+                    <option value="minutes">Minuten</option>
+                    <option value="hours">Stunden</option>
+                    <option value="days">Tage</option>
+                  </select>
+                </div>
+              </label>
+            ) : (
+              <label className="text-xs">
+                <span className="text-muted-foreground">Uhrzeit</span>
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
+              </label>
+            )}
             <label className="text-xs">
               <span className="text-muted-foreground">Videos pro Slot</span>
               <input type="number" min={1} max={10} value={count} onChange={(e) => setCount(Math.max(1, Number(e.target.value)))} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
@@ -271,7 +312,14 @@ function ScheduleSection({
               <div key={s.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-sm font-medium capitalize">{s.platform} · {s.cadence === "daily" ? "täglich" : "wöchentlich"} · {s.time_of_day.slice(0, 5)}</div>
+                    <div className="text-sm font-medium capitalize">
+                      {s.platform} ·{" "}
+                      {s.cadence === "interval" && s.interval_minutes
+                        ? `alle ${fmtInterval(s.interval_minutes)}`
+                        : s.cadence === "daily"
+                          ? `täglich · ${s.time_of_day.slice(0, 5)}`
+                          : `wöchentlich · ${s.time_of_day.slice(0, 5)}`}
+                    </div>
                     <div className="mt-1 font-mono text-[10px] text-muted-foreground">
                       Nächster Slot: {new Date(s.next_run_at).toLocaleString()}
                     </div>

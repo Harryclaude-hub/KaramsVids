@@ -5,8 +5,9 @@ import {
   Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
   RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
 } from "lucide-react";
-import { useActiveBrandId } from "@/lib/use-active-brand";
-import { useEffect, useMemo, useState } from "react";
+import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
+import { BrandAvatar } from "@/components/brand-avatar";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/brand/$id")({
@@ -32,6 +33,11 @@ function BrandDetail() {
   const [, setActiveBrandId] = useActiveBrandId();
 
   useEffect(() => { setActiveBrandId(id); }, [id, setActiveBrandId]);
+
+  const allBrandsQ = useBrands(user.id);
+  const allBrands = allBrandsQ.data ?? [];
+  const avatarFileRef = useRef<HTMLInputElement | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const brandQ = useQuery({
     queryKey: ["brand", id],
@@ -165,6 +171,48 @@ function BrandDetail() {
     else { setSortKey(key); setSortDir("desc"); }
   }
 
+  async function uploadBrandAvatar(file: File) {
+    setAvatarUploading(true);
+    try {
+      const key = `${user.id}/brand-avatars/${id}-${crypto.randomUUID()}.${(file.name.split(".").pop() ?? "jpg").toLowerCase()}`;
+      const { error: upErr } = await supabase.storage.from("raw-videos").upload(key, file, {
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+      if (upErr) throw upErr;
+      const { error } = await supabase
+        .from("brands")
+        .update({ avatar_path: key } as never)
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Brand-Profilbild gespeichert");
+      qc.invalidateQueries({ queryKey: ["brand", id] });
+      qc.invalidateQueries({ queryKey: ["brands", user.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function duplicateVideo(v: any, targetBrandId: string) {
+    if (!targetBrandId || targetBrandId === id) return;
+    const target = allBrands.find((b) => b.id === targetBrandId);
+    const { error } = await supabase.from("raw_videos").insert({
+      user_id: user.id,
+      brand_id: targetBrandId,
+      title: v.title,
+      source_url: v.source_url,
+      storage_path: v.storage_path,
+      duration_s: v.duration_s,
+      size_bytes: v.size_bytes,
+      platform: v.platform,
+    });
+    if (error) return toast.error(error.message);
+    toast.success(`„${v.title}" nach „${target?.name ?? "Brand"}" dupliziert`);
+    qc.invalidateQueries({ queryKey: ["raw_videos", user.id, targetBrandId] });
+  }
+
   async function connectPlatform(pid: string) {
     const handle = window.prompt(`Handle für ${pid} (z. B. @mybrand)`)?.trim();
     if (!handle) return;
@@ -239,7 +287,28 @@ function BrandDetail() {
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl" style={{ background: brand.color }} />
+          <div className="group relative">
+            <BrandAvatar brand={brand} className="h-12 w-12 rounded-xl text-lg" />
+            <button
+              onClick={() => avatarFileRef.current?.click()}
+              disabled={avatarUploading}
+              title="Profilbild ändern"
+              className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow group-hover:opacity-100 hover:text-foreground"
+            >
+              {avatarUploading ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Upload className="h-3 w-3" />
+              )}
+            </button>
+            <input
+              ref={avatarFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && uploadBrandAvatar(e.target.files[0])}
+            />
+          </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-primary">Brand</p>
             <h1 className="text-3xl font-semibold tracking-tight">{brand.name}</h1>
@@ -441,9 +510,22 @@ function BrandDetail() {
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.status}</td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
-                      <Link to="/app/video/$id" params={{ id: v.id }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                        <BarChart3 className="h-3 w-3" /> Details
-                      </Link>
+                      <div className="inline-flex items-center gap-2">
+                        <select
+                          value=""
+                          onChange={(e) => e.target.value && duplicateVideo(v, e.target.value)}
+                          title="Video in anderen Brand duplizieren"
+                          className="max-w-[130px] rounded-md border border-border bg-input px-1.5 py-1 text-[11px] text-muted-foreground outline-none focus:border-primary"
+                        >
+                          <option value="">Duplizieren …</option>
+                          {allBrands.filter((b) => b.id !== id).map((b) => (
+                            <option key={b.id} value={b.id}>→ {b.name}</option>
+                          ))}
+                        </select>
+                        <Link to="/app/video/$id" params={{ id: v.id }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                          <BarChart3 className="h-3 w-3" /> Details
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
