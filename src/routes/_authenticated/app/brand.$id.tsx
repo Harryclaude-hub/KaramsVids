@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
   RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
+  Pencil, Trash2, Loader2,
 } from "lucide-react";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { BrandAvatar } from "@/components/brand-avatar";
@@ -38,6 +39,10 @@ function BrandDetail() {
   const allBrands = allBrandsQ.data ?? [];
   const avatarFileRef = useRef<HTMLInputElement | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [editingBrand, setEditingBrand] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("#F26A1F");
+  const [savingBrand, setSavingBrand] = useState(false);
 
   const brandQ = useQuery({
     queryKey: ["brand", id],
@@ -169,6 +174,51 @@ function BrandDetail() {
   async function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("desc"); }
+  }
+
+  function openBrandEditor() {
+    if (!brand) return;
+    setEditName(brand.name);
+    setEditColor(brand.color ?? "#F26A1F");
+    setEditingBrand(true);
+  }
+
+  async function saveBrand() {
+    const name = editName.trim();
+    if (!name) return toast.error("Name darf nicht leer sein");
+    setSavingBrand(true);
+    try {
+      const { error } = await supabase
+        .from("brands")
+        .update({ name, color: editColor })
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Brand gespeichert");
+      setEditingBrand(false);
+      qc.invalidateQueries({ queryKey: ["brand", id] });
+      qc.invalidateQueries({ queryKey: ["brands", user.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
+    } finally {
+      setSavingBrand(false);
+    }
+  }
+
+  async function deleteBrand() {
+    if (!brand) return;
+    const sure = window.confirm(
+      `Brand „${brand.name}" wirklich löschen?\n\n` +
+        "• Videos bleiben erhalten, verlieren aber die Brand-Zuordnung\n" +
+        "• Ordner, Storylines, Avatare und Generierungs-Jobs dieses Brands werden gelöscht\n\n" +
+        "Das kann nicht rückgängig gemacht werden.",
+    );
+    if (!sure) return;
+    const { error } = await supabase.from("brands").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(`Brand „${brand.name}" gelöscht`);
+    setActiveBrandId(null);
+    qc.invalidateQueries({ queryKey: ["brands", user.id] });
+    navigate({ to: "/app" });
   }
 
   async function uploadBrandAvatar(file: File) {
@@ -318,6 +368,9 @@ function BrandDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button onClick={openBrandEditor} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+            <Pencil className="h-4 w-4" /> Bearbeiten
+          </button>
           <button onClick={triggerSync} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
             <RefreshCw className="h-4 w-4" /> Analytics jetzt syncen
           </button>
@@ -326,6 +379,72 @@ function BrandDetail() {
           </button>
         </div>
       </div>
+
+      {editingBrand && (
+        <div className="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Pencil className="h-4 w-4 text-primary" /> Brand bearbeiten
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <label className="text-xs">
+              <span className="text-muted-foreground">Name</span>
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveBrand()}
+                className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-2 text-sm outline-none focus:border-primary"
+              />
+            </label>
+            <label className="text-xs">
+              <span className="text-muted-foreground">Farbe</span>
+              <input
+                type="color"
+                value={editColor}
+                onChange={(e) => setEditColor(e.target.value)}
+                className="mt-1 h-9 w-14 cursor-pointer rounded-md border border-border bg-input"
+              />
+            </label>
+            <label className="text-xs">
+              <span className="text-muted-foreground">Profilbild</span>
+              <button
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={avatarUploading}
+                className="mt-1 inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm hover:bg-card disabled:opacity-60"
+              >
+                {avatarUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Bild wählen
+              </button>
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+            <button
+              onClick={deleteBrand}
+              className="inline-flex items-center gap-2 rounded-md border border-destructive/50 px-3 py-2 text-xs text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Brand löschen
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditingBrand(false)}
+                className="rounded-md border border-border px-3 py-2 text-xs hover:bg-card"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={saveBrand}
+                disabled={savingBrand}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              >
+                {savingBrand && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Videos" value={videos.length} />
