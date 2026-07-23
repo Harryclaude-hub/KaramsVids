@@ -25,10 +25,12 @@ import {
   VolumeX,
   ChevronRight,
   Wand2,
-  PanelLeft,
-  PanelRight,
   Maximize,
   Minimize,
+  Library,
+  Sliders,
+  MessageSquare,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
@@ -95,9 +97,40 @@ function JobEditor() {
   const [ytImporting, setYtImporting] = useState(false);
   const [ytImportError, setYtImportError] = useState<string | null>(null);
 
-  // Layout: Panels ein-/ausblenden + echter Vollbildmodus
-  const [showLeft, setShowLeft] = useState(true);
-  const [showRight, setShowRight] = useState(true);
+  // Layout: jedes Feature einzeln ein-/ausklappbar (in localStorage gemerkt)
+  type PanelKey = "library" | "media" | "effects" | "inspector" | "chat" | "clipStrip" | "timeline";
+  const PANEL_LS_KEY = "vc:editorPanels";
+  const [panels, setPanels] = useState<Record<PanelKey, boolean>>(() => {
+    const defaults: Record<PanelKey, boolean> = {
+      library: false,
+      media: true,
+      effects: true,
+      inspector: true,
+      chat: true,
+      clipStrip: true,
+      timeline: true,
+    };
+    if (typeof window === "undefined") return defaults;
+    try {
+      const saved = window.localStorage.getItem(PANEL_LS_KEY);
+      return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+    } catch {
+      return defaults;
+    }
+  });
+  function togglePanel(key: PanelKey) {
+    setPanels((p) => {
+      const next = { ...p, [key]: !p[key] };
+      try {
+        window.localStorage.setItem(PANEL_LS_KEY, JSON.stringify(next));
+      } catch {
+        /* localStorage nicht verfügbar — Einstellung gilt nur für diese Sitzung */
+      }
+      return next;
+    });
+  }
+  const showLeft = panels.library || panels.media || panels.effects;
+  const showRight = panels.inspector || panels.chat;
   const [fullscreen, setFullscreen] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
 
@@ -113,18 +146,7 @@ function JobEditor() {
     }
   }
   useEffect(() => {
-    const onFs = () => {
-      const on = !!document.fullscreenElement;
-      setFullscreen(on);
-      // Vollbild = maximale Arbeitsfläche: Seitenpanels automatisch weg
-      if (on) {
-        setShowLeft(false);
-        setShowRight(false);
-      } else {
-        setShowLeft(true);
-        setShowRight(true);
-      }
-    };
+    const onFs = () => setFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
@@ -202,6 +224,29 @@ function JobEditor() {
     wmLoadedRef.current = path;
     return true;
   }
+
+  // Bibliothek: alle Videos & Schnitte dieses Brands — direkt im Editor
+  const libraryQ = useQuery({
+    queryKey: ["editor_library", brandId],
+    enabled: !!brandId && panels.library,
+    queryFn: async () => {
+      const [videos, jobs] = await Promise.all([
+        supabase
+          .from("raw_videos")
+          .select("id,title,duration_s,created_at")
+          .eq("brand_id", brandId!)
+          .order("created_at", { ascending: false })
+          .limit(30),
+        supabase
+          .from("edit_jobs")
+          .select("id,mode,status,created_at,raw_videos(title)")
+          .eq("brand_id", brandId!)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+      return { videos: videos.data ?? [], jobs: jobs.data ?? [] };
+    },
+  });
 
   function wmOverlayPos(): string {
     const pos = brandWm?.watermark_position ?? "br";
@@ -855,7 +900,7 @@ function JobEditor() {
   return (
     <div ref={shellRef} className="fixed inset-0 flex flex-col bg-background text-foreground">
       {/* Top bar */}
-      <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
+      <div className="flex min-h-14 flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2">
         <Link
           to="/app"
           className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary"
@@ -910,30 +955,6 @@ function JobEditor() {
           </label>
         )}
 
-        {/* Layout-Steuerung: Panels ein-/ausblenden + Vollbild */}
-        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-          <button
-            onClick={() => setShowLeft((v) => !v)}
-            title={showLeft ? "Linkes Panel ausblenden" : "Linkes Panel einblenden"}
-            className={`rounded p-1.5 ${showLeft ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary"}`}
-          >
-            <PanelLeft className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setShowRight((v) => !v)}
-            title={showRight ? "Rechtes Panel ausblenden" : "Rechtes Panel einblenden"}
-            className={`rounded p-1.5 ${showRight ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary"}`}
-          >
-            <PanelRight className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={toggleFullscreen}
-            title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus"}
-            className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            {fullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
-          </button>
-        </div>
         <button
           onClick={runAutopilot}
           disabled={
@@ -968,6 +989,92 @@ function JobEditor() {
           <Sparkles className="h-3 w-3" />{" "}
           {rendering === "master" ? `Master ${progress}%` : "Master exportieren"}
         </button>
+      </div>
+
+      {/* Werkzeugleiste — jedes Feature einzeln ein-/ausklappbar */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card/60 px-3 py-1.5">
+        <span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+          Ansicht
+        </span>
+        <PanelChip
+          active={panels.library}
+          onClick={() => togglePanel("library")}
+          icon={<Library className="h-3.5 w-3.5" />}
+          label="Bibliothek"
+        />
+        <PanelChip
+          active={panels.media}
+          onClick={() => togglePanel("media")}
+          icon={<Film className="h-3.5 w-3.5" />}
+          label="Medien"
+        />
+        <PanelChip
+          active={panels.effects}
+          onClick={() => togglePanel("effects")}
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+          label="Werkzeuge"
+        />
+        <span className="mx-1 h-4 w-px bg-border" />
+        <PanelChip
+          active={panels.inspector}
+          onClick={() => togglePanel("inspector")}
+          icon={<Sliders className="h-3.5 w-3.5" />}
+          label="Inspector"
+        />
+        <PanelChip
+          active={panels.chat}
+          onClick={() => togglePanel("chat")}
+          icon={<MessageSquare className="h-3.5 w-3.5" />}
+          label="KI-Chat"
+        />
+        <span className="mx-1 h-4 w-px bg-border" />
+        <PanelChip
+          active={panels.clipStrip}
+          onClick={() => togglePanel("clipStrip")}
+          icon={<LayoutGrid className="h-3.5 w-3.5" />}
+          label="Clip-Übersicht"
+        />
+        <PanelChip
+          active={panels.timeline}
+          onClick={() => togglePanel("timeline")}
+          icon={<ScissorsIcon className="h-3.5 w-3.5" />}
+          label="Timeline"
+        />
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={() =>
+              setPanels({
+                library: false,
+                media: false,
+                effects: false,
+                inspector: false,
+                chat: false,
+                clipStrip: true,
+                timeline: true,
+              })
+            }
+            className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-secondary"
+            title="Nur Player, Clips und Timeline — maximaler Platz"
+          >
+            Fokus-Modus
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus"}
+          >
+            {fullscreen ? (
+              <>
+                <Minimize className="h-3.5 w-3.5" /> Vollbild aus
+              </>
+            ) : (
+              <>
+                <Maximize className="h-3.5 w-3.5" /> Vollbild
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {job.status === "analyzing" && (
@@ -1033,6 +1140,70 @@ function JobEditor() {
         <aside
           className={`${showLeft ? "w-64" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-3`}
         >
+          {/* Bibliothek — andere Videos & Schnitte dieses Brands */}
+          {panels.library && (
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Library className="h-3 w-3" /> Bibliothek
+              </div>
+              {libraryQ.isLoading ? (
+                <div className="space-y-1">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-9 animate-pulse rounded-md bg-background" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div>
+                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      Schnitte ({libraryQ.data?.jobs.length ?? 0})
+                    </div>
+                    <div className="space-y-1">
+                      {(libraryQ.data?.jobs ?? []).map((j: any) => (
+                        <Link
+                          key={j.id}
+                          to="/app/job/$id"
+                          params={{ id: j.id }}
+                          className={`flex items-center gap-1.5 rounded-md border p-1.5 text-[11px] ${j.id === id ? "border-primary bg-primary/10" : "border-transparent hover:border-primary/40 hover:bg-background"}`}
+                        >
+                          <Wand2 className="h-3 w-3 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1 truncate">
+                            {j.raw_videos?.title ?? "Video"}
+                          </span>
+                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+                            {j.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      Videos ({libraryQ.data?.videos.length ?? 0})
+                    </div>
+                    <div className="space-y-1">
+                      {(libraryQ.data?.videos ?? []).map((v: any) => (
+                        <Link
+                          key={v.id}
+                          to="/app/video/$id"
+                          params={{ id: v.id }}
+                          className="flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-[11px] hover:border-primary/40 hover:bg-background"
+                        >
+                          <Film className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="min-w-0 flex-1 truncate">{v.title}</span>
+                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+                            {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {panels.media && (
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Film className="h-3 w-3" /> Media Bin
@@ -1070,8 +1241,10 @@ function JobEditor() {
               </label>
             </div>
           </div>
+          )}
 
           {/* Viral Sound Library */}
+          {panels.media && (
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Music className="h-3 w-3 text-accent" /> Viral Sounds
@@ -1094,10 +1267,12 @@ function JobEditor() {
               }}
             />
           </div>
+          )}
 
+          {panels.effects && (
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Sparkles className="h-3 w-3" /> Effekte
+              <Sparkles className="h-3 w-3" /> Werkzeuge
             </div>
             <div className="grid grid-cols-2 gap-1">
               <button
@@ -1130,8 +1305,9 @@ function JobEditor() {
               </button>
             </div>
           </div>
+          )}
 
-          {analysis?.transcript_summary && (
+          {panels.effects && analysis?.transcript_summary && (
             <div className="rounded-md border border-border bg-background p-2 text-[11px] text-muted-foreground">
               <div className="mb-1 font-medium text-foreground">KI-Analyse</div>
               {analysis.transcript_summary}
@@ -1206,7 +1382,7 @@ function JobEditor() {
           </div>
 
           {/* Clip-Übersicht — alle Clips als Streifen unter dem Player (CapCut/Adobe-Stil) */}
-          {segments.length > 0 && (
+          {panels.clipStrip && segments.length > 0 && (
             <div className="shrink-0 border-t border-border bg-card/60 px-3 py-2">
               <div className="mb-1.5 flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -1279,7 +1455,9 @@ function JobEditor() {
           </div>
 
           {/* Timeline */}
-          <div className="max-h-[45%] overflow-auto border-t border-border bg-background p-3">
+          <div
+            className={`${panels.timeline ? "max-h-[45%]" : "hidden"} overflow-auto border-t border-border bg-background p-3`}
+          >
             {segments.length === 0 ? (
               <div className="grid h-32 place-items-center text-xs text-muted-foreground">
                 Noch keine Clips — warte auf KI oder füge manuell hinzu.
@@ -1388,7 +1566,7 @@ function JobEditor() {
           className={`${showRight ? "w-[380px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
         >
           {/* Inspector */}
-          <div className="border-b border-border p-3">
+          <div className={`${panels.inspector ? "" : "hidden"} border-b border-border p-3`}>
             <div className="mb-2 text-xs font-medium text-muted-foreground">
               Inspector — Clip {selectedClip + 1}
             </div>
@@ -1684,8 +1862,11 @@ function JobEditor() {
             </div>
           )}
 
-          {/* Chat */}
-          <div className="p-3">
+          {/* KI-Chat */}
+          <div className={`${panels.chat ? "" : "hidden"} p-3`}>
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <MessageSquare className="h-3 w-3 text-accent" /> KI-Chat — sag, was geändert werden soll
+            </div>
             <EditorChat
               jobId={id}
               userId={user.id}
@@ -1697,6 +1878,34 @@ function JobEditor() {
         </aside>
       </div>
     </div>
+  );
+}
+
+/** Ein-/Ausklapp-Schalter in der Editor-Werkzeugleiste */
+function PanelChip({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={active ? `${label} ausblenden` : `${label} einblenden`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition ${
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border text-muted-foreground hover:bg-secondary"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
