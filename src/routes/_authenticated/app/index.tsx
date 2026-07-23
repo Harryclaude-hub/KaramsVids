@@ -49,16 +49,24 @@ function EditorLanding() {
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [ytDialog, setYtDialog] = useState<{ host: string; original: string } | null>(null);
-  const [clipsDialog, setClipsDialog] = useState<{ rawVideoId: string; duration: number | null } | null>(null);
+  const [clipsDialog, setClipsDialog] = useState<{
+    rawVideoId: string;
+    duration: number | null;
+  } | null>(null);
 
-  useEffect(() => { setFolderId(""); }, [activeBrandId]);
-
+  useEffect(() => {
+    setFolderId("");
+  }, [activeBrandId]);
 
   const foldersQ = useQuery({
     queryKey: ["folders", user.id, activeBrandId],
     enabled: !!activeBrandId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("folders").select("*").eq("brand_id", activeBrandId!).order("created_at");
+      const { data, error } = await supabase
+        .from("folders")
+        .select("*")
+        .eq("brand_id", activeBrandId!)
+        .order("created_at");
       if (error) throw error;
       return data ?? [];
     },
@@ -69,8 +77,18 @@ function EditorLanding() {
     enabled: !!activeBrandId,
     queryFn: async () => {
       const [videos, jobs] = await Promise.all([
-        supabase.from("raw_videos").select("*").eq("brand_id", activeBrandId!).order("created_at", { ascending: false }).limit(30),
-        supabase.from("edit_jobs").select("*, raw_videos(title)").eq("brand_id", activeBrandId!).order("created_at", { ascending: false }).limit(15),
+        supabase
+          .from("raw_videos")
+          .select("*")
+          .eq("brand_id", activeBrandId!)
+          .order("created_at", { ascending: false })
+          .limit(30),
+        supabase
+          .from("edit_jobs")
+          .select("*, raw_videos(title)")
+          .eq("brand_id", activeBrandId!)
+          .order("created_at", { ascending: false })
+          .limit(15),
       ]);
       if (videos.error) throw videos.error;
       if (jobs.error) throw jobs.error;
@@ -98,9 +116,15 @@ function EditorLanding() {
     if (!activeBrand) return;
     const name = window.prompt("Ordnername")?.trim();
     if (!name) return;
-    const { data, error } = await supabase.from("folders").insert({
-      user_id: user.id, brand_id: activeBrand.id, name,
-    }).select().single();
+    const { data, error } = await supabase
+      .from("folders")
+      .insert({
+        user_id: user.id,
+        brand_id: activeBrand.id,
+        name,
+      })
+      .select()
+      .single();
     if (error) return toast.error(error.message);
     setFolderId(data.id);
     foldersQ.refetch();
@@ -114,23 +138,34 @@ function EditorLanding() {
     setClipsDialog({ rawVideoId, duration });
   }
 
-  async function startAnalysisWithConfig(cfg: { mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual"; desiredCount: number | null; captions: boolean; aspect: "9:16" | "16:9" | "1:1"; templateId: string | null }) {
+  async function startAnalysisWithConfig(cfg: {
+    mode: "auto_cut" | "ugc_shorts" | "long_to_many" | "manual";
+    desiredCount: number | null;
+    captions: boolean;
+    aspect: "9:16" | "16:9" | "1:1";
+    templateId: string | null;
+  }) {
     if (!clipsDialog || !activeBrand) return;
     const { rawVideoId } = clipsDialog;
     setClipsDialog(null);
     try {
-      const { data: job, error } = await supabase.from("edit_jobs").insert({
-        user_id: user.id,
-        raw_video_id: rawVideoId,
-        brand_id: activeBrand.id,
-        mode: cfg.mode,
-        options: { captions: cfg.captions, aspect: cfg.aspect, template_id: cfg.templateId },
-        desired_clip_count: cfg.desiredCount,
-      }).select().single();
+      const { data: job, error } = await supabase
+        .from("edit_jobs")
+        .insert({
+          user_id: user.id,
+          raw_video_id: rawVideoId,
+          brand_id: activeBrand.id,
+          mode: cfg.mode,
+          options: { captions: cfg.captions, aspect: cfg.aspect, template_id: cfg.templateId },
+          desired_clip_count: cfg.desiredCount,
+        })
+        .select()
+        .single();
       if (error) throw error;
       const { analyzeVideo } = await import("@/lib/ai.functions");
-      analyzeVideo({ data: { jobId: job.id, desiredClipCount: cfg.desiredCount ?? undefined } })
-        .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
+      analyzeVideo({
+        data: { jobId: job.id, desiredClipCount: cfg.desiredCount ?? undefined },
+      }).catch((e) => toast.error(e instanceof Error ? e.message : "KI-Fehler"));
       navigate({ to: "/app/job/$id", params: { id: job.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Konnte Editor nicht öffnen");
@@ -138,28 +173,33 @@ function EditorLanding() {
     }
   }
 
-
   async function handleFile(file: File) {
     if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
-    setBusy(true); setProgress(5);
+    setBusy(true);
+    setProgress(5);
     try {
       const key = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: upErr } = await supabase.storage.from("raw-videos").upload(key, file, {
-        contentType: file.type || "video/mp4", upsert: false,
+        contentType: file.type || "video/mp4",
+        upsert: false,
       });
       if (upErr) throw upErr;
       setProgress(80);
       const duration = await probeDuration(file).catch(() => null);
-      const { data: row, error: dbErr } = await supabase.from("raw_videos").insert({
-        user_id: user.id,
-        brand_id: activeBrand.id,
-        folder_id: folderId || null,
-        platform: platform || null,
-        title: title || file.name,
-        storage_path: key,
-        size_bytes: file.size,
-        duration_s: duration,
-      }).select().single();
+      const { data: row, error: dbErr } = await supabase
+        .from("raw_videos")
+        .insert({
+          user_id: user.id,
+          brand_id: activeBrand.id,
+          folder_id: folderId || null,
+          platform: platform || null,
+          title: title || file.name,
+          storage_path: key,
+          size_bytes: file.size,
+          duration_s: duration,
+        })
+        .select()
+        .single();
       if (dbErr) throw dbErr;
       setProgress(100);
       toast.success("Upload fertig — Editor öffnet");
@@ -169,7 +209,8 @@ function EditorLanding() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
     } finally {
-      setBusy(false); setProgress(0);
+      setBusy(false);
+      setProgress(0);
     }
   }
 
@@ -189,17 +230,22 @@ function EditorLanding() {
     if (!activeBrand) return;
     setBusy(true);
     try {
-      const { data: row, error } = await supabase.from("raw_videos").insert({
-        user_id: user.id,
-        brand_id: activeBrand.id,
-        folder_id: folderId || null,
-        platform: platform || null,
-        title: title || url,
-        source_url: url,
-      }).select().single();
+      const { data: row, error } = await supabase
+        .from("raw_videos")
+        .insert({
+          user_id: user.id,
+          brand_id: activeBrand.id,
+          folder_id: folderId || null,
+          platform: platform || null,
+          title: title || url,
+          source_url: url,
+        })
+        .select()
+        .single();
       if (error) throw error;
       toast.success("Video-Link gespeichert — Editor öffnet");
-      setUrlInput(""); setTitle("");
+      setUrlInput("");
+      setTitle("");
       libraryQ.refetch();
       await afterInsertNavigate(row.id, null);
     } catch (e) {
@@ -208,7 +254,6 @@ function EditorLanding() {
       setBusy(false);
     }
   }
-
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -226,7 +271,8 @@ function EditorLanding() {
           </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">Neues Video schneiden</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Datei oder Link einfügen — KI schlägt Cuts vor, Timeline & Chat lassen dich alles feintunen.
+            Datei oder Link einfügen — KI schlägt Cuts vor, Timeline & Chat lassen dich alles
+            feintunen.
           </p>
         </div>
         <BrandHeader
@@ -244,38 +290,104 @@ function EditorLanding() {
       {!brandReady && (
         <div className="flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-          <span>Bitte oben rechts einen Brand wählen oder neu anlegen — jedes Video gehört zu genau einem Brand.</span>
+          <span>
+            Bitte oben rechts einen Brand wählen oder neu anlegen — jedes Video gehört zu genau
+            einem Brand.
+          </span>
         </div>
       )}
+
+      {/* Studio-Bereiche */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Link
+          to="/app/clip"
+          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+        >
+          <Layers className="h-5 w-5 text-primary" />
+          <div className="mt-2 text-sm font-medium">Massen-Clipping</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            YouTube-Link → bis zu 20 Szenen-Clips mit Untertiteln & Audioeffekten.
+          </p>
+        </Link>
+        <Link
+          to="/app/generate"
+          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+        >
+          <Wand2 className="h-5 w-5 text-accent" />
+          <div className="mt-2 text-sm font-medium">KI-Studio</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            Komplette Videos generieren — Storylines mit Gedächtnis pro Brand.
+          </p>
+        </Link>
+        <Link
+          to="/app/avatars"
+          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+        >
+          <Film className="h-5 w-5 text-primary" />
+          <div className="mt-2 text-sm font-medium">Avatare & Overlap</div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            KI-Models erzeugen und per Overlap über dein eigenes Video legen.
+          </p>
+        </Link>
+      </div>
 
       {/* Editor-Aufnahme-Zone */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
         <div
           className={`space-y-4 rounded-2xl border border-border bg-card p-5 transition ${brandReady ? "" : "pointer-events-none opacity-50"}`}
-          onDragOver={(e) => { e.preventDefault(); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+          }}
           onDrop={onDrop}
         >
           {/* Meta-Zeile */}
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Titel (optional)</span>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kurzer Projekt-Titel" className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary" />
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Titel (optional)
+              </span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Kurzer Projekt-Titel"
+                className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+              />
             </label>
             <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ordner</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Ordner
+              </span>
               <div className="mt-1 flex gap-1">
-                <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className="flex-1 rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary">
+                <select
+                  value={folderId}
+                  onChange={(e) => setFolderId(e.target.value)}
+                  className="flex-1 rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                >
                   <option value="">Kein Ordner</option>
-                  {(foldersQ.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {(foldersQ.data ?? []).map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
                 </select>
-                <button type="button" onClick={newFolder} className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-secondary">
+                <button
+                  type="button"
+                  onClick={newFolder}
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-secondary"
+                >
                   <FolderPlus className="h-3 w-3" />
                 </button>
               </div>
             </label>
             <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ziel-Plattform</span>
-              <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Ziel-Plattform
+              </span>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+              >
                 <option value="">— Keine —</option>
                 <option value="tiktok">TikTok</option>
                 <option value="youtube">YouTube</option>
@@ -298,14 +410,26 @@ function EditorLanding() {
               </div>
               <div>
                 <div className="text-sm font-medium">Datei ablegen oder klicken</div>
-                <div className="mt-1 font-mono text-[10px] text-muted-foreground">MP4 · MOV · WEBM · MKV — bis 500 MB</div>
+                <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                  MP4 · MOV · WEBM · MKV — bis 500 MB
+                </div>
               </div>
               {busy && progress > 0 && (
                 <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-background">
-                  <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
               )}
-              <input ref={fileRef} type="file" accept="video/*" disabled={busy || !brandReady} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept="video/*"
+                disabled={busy || !brandReady}
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+              />
             </button>
 
             <div className="flex flex-col justify-center gap-3 rounded-2xl border border-border bg-background/40 p-5">
@@ -327,18 +451,26 @@ function EditorLanding() {
                 <ChevronRight className="h-4 w-4" /> In Editor öffnen
               </button>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Link wird gespeichert. Für YouTube/TikTok läuft der Download beim ersten Öffnen im Editor.
+                Link wird gespeichert. Für YouTube/TikTok läuft der Download beim ersten Öffnen im
+                Editor.
               </p>
             </div>
           </div>
 
           {/* Mode-Hinweis */}
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background/40 p-3 text-xs">
-            <input type="checkbox" checked={autoAnalyze} onChange={(e) => setAutoAnalyze(e.target.checked)} className="h-4 w-4 accent-primary" />
+            <input
+              type="checkbox"
+              checked={autoAnalyze}
+              onChange={(e) => setAutoAnalyze(e.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="flex-1">
               <span className="font-medium text-foreground">Direkt KI-Cuts anwenden</span>
-              <span className="ml-1 text-muted-foreground">(UGC Shorts, 9:16, Untertitel) — im Editor jederzeit umschaltbar.</span>
+              <span className="ml-1 text-muted-foreground">
+                (UGC Shorts, 9:16, Untertitel) — im Editor jederzeit umschaltbar.
+              </span>
             </span>
           </label>
         </div>
@@ -346,7 +478,8 @@ function EditorLanding() {
         {/* Bibliothek: Aktuelle Jobs & Videos des Brands */}
         <aside className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Layers className="h-4 w-4 text-primary" /> {activeBrand ? `${activeBrand.name} · Bibliothek` : "Bibliothek"}
+            <Layers className="h-4 w-4 text-primary" />{" "}
+            {activeBrand ? `${activeBrand.name} · Bibliothek` : "Bibliothek"}
           </div>
           {!activeBrand ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
@@ -354,17 +487,20 @@ function EditorLanding() {
             </div>
           ) : libraryQ.isLoading ? (
             <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-card" />)}
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-card" />
+              ))}
             </div>
           ) : (
-            <LibraryList
-              jobs={libraryQ.data?.jobs ?? []}
-              videos={libraryQ.data?.videos ?? []}
-            />
+            <LibraryList jobs={libraryQ.data?.jobs ?? []} videos={libraryQ.data?.videos ?? []} />
           )}
 
           {activeBrand && (
-            <Link to="/app/brand/$id" params={{ id: activeBrand.id }} className="block rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground">
+            <Link
+              to="/app/brand/$id"
+              params={{ id: activeBrand.id }}
+              className="block rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            >
               Brand-Übersicht öffnen →
             </Link>
           )}
@@ -415,14 +551,25 @@ function EditorLanding() {
           open
           host={ytDialog.host}
           onClose={() => setYtDialog(null)}
-          onUseDirectUrl={(u) => { setYtDialog(null); setUrlInput(u); commitUrl(u); }}
-          onUploadFile={() => { setYtDialog(null); fileRef.current?.click(); }}
+          onUseDirectUrl={(u) => {
+            setYtDialog(null);
+            setUrlInput(u);
+            commitUrl(u);
+          }}
+          onUploadFile={() => {
+            setYtDialog(null);
+            fileRef.current?.click();
+          }}
         />
       )}
       <ClipsCountDialog
         open={!!clipsDialog}
         duration={clipsDialog?.duration ?? null}
-        onClose={() => { setClipsDialog(null); if (clipsDialog) navigate({ to: "/app/video/$id", params: { id: clipsDialog.rawVideoId } }); }}
+        onClose={() => {
+          setClipsDialog(null);
+          if (clipsDialog)
+            navigate({ to: "/app/video/$id", params: { id: clipsDialog.rawVideoId } });
+        }}
         onConfirm={startAnalysisWithConfig}
       />
     </div>
@@ -447,7 +594,14 @@ function SoundPreview({ url }: { url: string }) {
 }
 
 function BrandHeader({
-  brands, activeBrand, onPick, creating, onToggleCreate, newBrandName, setNewBrandName, onSubmitNew,
+  brands,
+  activeBrand,
+  onPick,
+  creating,
+  onToggleCreate,
+  newBrandName,
+  setNewBrandName,
+  onSubmitNew,
 }: {
   brands: { id: string; name: string; color: string }[];
   activeBrand: { id: string; name: string; color: string } | null;
@@ -460,7 +614,9 @@ function BrandHeader({
 }) {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Brand</span>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        Brand
+      </span>
       <select
         value={activeBrand?.id ?? ""}
         onChange={(e) => onPick(e.target.value || null)}
@@ -468,23 +624,42 @@ function BrandHeader({
       >
         <option value="">— wählen —</option>
         {brands.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
         ))}
       </select>
       {activeBrand && (
-        <span className="inline-block h-3 w-3 rounded-full border border-border" style={{ background: activeBrand.color }} />
+        <span
+          className="inline-block h-3 w-3 rounded-full border border-border"
+          style={{ background: activeBrand.color }}
+        />
       )}
-      <button onClick={onToggleCreate} className="rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-foreground" title="Neuer Brand">+</button>
+      <button
+        onClick={onToggleCreate}
+        className="rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        title="Neuer Brand"
+      >
+        +
+      </button>
       {creating && (
         <div className="flex items-center gap-1">
           <input
-            autoFocus value={newBrandName}
+            autoFocus
+            value={newBrandName}
             onChange={(e) => setNewBrandName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") onSubmitNew(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSubmitNew();
+            }}
             placeholder="Brand-Name"
             className="w-36 rounded border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
           />
-          <button onClick={onSubmitNew} className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">OK</button>
+          <button
+            onClick={onSubmitNew}
+            className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            OK
+          </button>
         </div>
       )}
     </div>
@@ -497,12 +672,22 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
   return (
     <div className="rounded-xl border border-border bg-card">
       <div className="flex border-b border-border text-xs">
-        <button onClick={() => setTab("jobs")} className={`flex-1 px-3 py-2 ${tab === "jobs" ? "text-foreground" : "text-muted-foreground"}`}>
-          <span className="inline-flex items-center gap-1"><Wand2 className="h-3 w-3" /> Schnitte ({jobs.length})</span>
+        <button
+          onClick={() => setTab("jobs")}
+          className={`flex-1 px-3 py-2 ${tab === "jobs" ? "text-foreground" : "text-muted-foreground"}`}
+        >
+          <span className="inline-flex items-center gap-1">
+            <Wand2 className="h-3 w-3" /> Schnitte ({jobs.length})
+          </span>
           {tab === "jobs" && <div className="mx-auto mt-1 h-0.5 w-8 bg-primary" />}
         </button>
-        <button onClick={() => setTab("videos")} className={`flex-1 px-3 py-2 ${tab === "videos" ? "text-foreground" : "text-muted-foreground"}`}>
-          <span className="inline-flex items-center gap-1"><Film className="h-3 w-3" /> Videos ({videos.length})</span>
+        <button
+          onClick={() => setTab("videos")}
+          className={`flex-1 px-3 py-2 ${tab === "videos" ? "text-foreground" : "text-muted-foreground"}`}
+        >
+          <span className="inline-flex items-center gap-1">
+            <Film className="h-3 w-3" /> Videos ({videos.length})
+          </span>
           {tab === "videos" && <div className="mx-auto mt-1 h-0.5 w-8 bg-primary" />}
         </button>
       </div>
@@ -512,27 +697,43 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
         ) : tab === "jobs" ? (
           <div className="space-y-1">
             {(items as any[]).map((j) => (
-              <Link key={j.id} to="/app/job/$id" params={{ id: j.id }} className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60">
+              <Link
+                key={j.id}
+                to="/app/job/$id"
+                params={{ id: j.id }}
+                className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60"
+              >
                 <Sparkles className="h-3 w-3 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{j.raw_videos?.title ?? "Video"}</div>
                   <div className="font-mono text-[10px] text-muted-foreground">
-                    <Clock className="mr-1 inline h-2.5 w-2.5" />{new Date(j.created_at).toLocaleDateString()} · {j.mode}
+                    <Clock className="mr-1 inline h-2.5 w-2.5" />
+                    {new Date(j.created_at).toLocaleDateString()} · {j.mode}
                   </div>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${statusColor(j.status)}`}>{j.status}</span>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${statusColor(j.status)}`}
+                >
+                  {j.status}
+                </span>
               </Link>
             ))}
           </div>
         ) : (
           <div className="space-y-1">
             {(items as any[]).map((v) => (
-              <Link key={v.id} to="/app/video/$id" params={{ id: v.id }} className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60">
+              <Link
+                key={v.id}
+                to="/app/video/$id"
+                params={{ id: v.id }}
+                className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60"
+              >
                 <Play className="h-3 w-3 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{v.title}</div>
                   <div className="font-mono text-[10px] text-muted-foreground">
-                    {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"} · {new Date(v.created_at).toLocaleDateString()}
+                    {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"} ·{" "}
+                    {new Date(v.created_at).toLocaleDateString()}
                   </div>
                 </div>
               </Link>
@@ -545,14 +746,18 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
 }
 
 function statusColor(s: string) {
-  return ({
-    pending: "bg-muted text-muted-foreground",
-    analyzing: "bg-accent/20 text-accent",
-    ready: "bg-primary/20 text-primary",
-    rendering: "bg-accent/20 text-accent",
-    done: "bg-primary/20 text-primary",
-    failed: "bg-destructive/20 text-destructive",
-  } as Record<string, string>)[s] ?? "bg-muted text-muted-foreground";
+  return (
+    (
+      {
+        pending: "bg-muted text-muted-foreground",
+        analyzing: "bg-accent/20 text-accent",
+        ready: "bg-primary/20 text-primary",
+        rendering: "bg-accent/20 text-accent",
+        done: "bg-primary/20 text-primary",
+        failed: "bg-destructive/20 text-destructive",
+      } as Record<string, string>
+    )[s] ?? "bg-muted text-muted-foreground"
+  );
 }
 
 function probeDuration(file: File): Promise<number> {
@@ -560,9 +765,14 @@ function probeDuration(file: File): Promise<number> {
     const v = document.createElement("video");
     v.preload = "metadata";
     const url = URL.createObjectURL(file);
-    v.onloadedmetadata = () => { res(v.duration); URL.revokeObjectURL(url); };
-    v.onerror = () => { URL.revokeObjectURL(url); rej(new Error("probe failed")); };
+    v.onloadedmetadata = () => {
+      res(v.duration);
+      URL.revokeObjectURL(url);
+    };
+    v.onerror = () => {
+      URL.revokeObjectURL(url);
+      rej(new Error("probe failed"));
+    };
     v.src = url;
   });
 }
-

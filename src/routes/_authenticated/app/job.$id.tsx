@@ -3,14 +3,39 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft, Download, Play, Pause, Loader2, Plus, Trash2, RotateCcw, Sparkles,
-  ListPlus, CheckCircle2, Type, Music, Film, Scissors as ScissorsIcon,
-  ZoomIn, ZoomOut, UploadCloud, Volume2, VolumeX, ChevronRight,
+  ArrowLeft,
+  Download,
+  Play,
+  Pause,
+  Loader2,
+  Plus,
+  Trash2,
+  RotateCcw,
+  Sparkles,
+  ListPlus,
+  CheckCircle2,
+  Type,
+  Music,
+  Film,
+  Scissors as ScissorsIcon,
+  ZoomIn,
+  ZoomOut,
+  UploadCloud,
+  Volume2,
+  VolumeX,
+  ChevronRight,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
 import type { UIMessage } from "ai";
-import type { Segment, Transition, TextOverlay, AudioTrack, TransitionType } from "@/lib/editor-types";
+import type {
+  Segment,
+  Transition,
+  TextOverlay,
+  AudioTrack,
+  TransitionType,
+} from "@/lib/editor-types";
 import { MUSIC_LIBRARY, type ViralTrack } from "@/lib/music-library";
 import { templateById } from "@/lib/clip-templates";
 
@@ -54,6 +79,10 @@ function JobEditor() {
   const [rendering, setRendering] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<Record<string, string>>({});
+  // KI-Autopilot: KI übernimmt den ganzen Prozess (analysieren → alle Clips rendern),
+  // der Mensch kann davor/danach jederzeit manuell eingreifen.
+  const [autopilot, setAutopilot] = useState<"idle" | "analyzing" | "rendering" | "done">("idle");
+  const [apProgress, setApProgress] = useState({ current: 0, total: 0 });
   const outputBlobs = useRef<Record<string, Blob>>({});
   const [masterUrl, setMasterUrl] = useState<string | null>(null);
   const [queuedIds, setQueuedIds] = useState<Record<string, string>>({});
@@ -61,12 +90,17 @@ function JobEditor() {
   const [targetPlatform, setTargetPlatform] = useState<string>("");
 
   const ffmpegRef = useRef<any>(null);
+  const inputLoadedRef = useRef<string | null>(null); // signedUrl, deren Datei bereits in ffmpeg liegt
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const jobQ = useQuery({
     queryKey: ["edit_job", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("edit_jobs").select("*, raw_videos(*)").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("edit_jobs")
+        .select("*, raw_videos(*)")
+        .eq("id", id)
+        .single();
       if (error) throw error;
       return data;
     },
@@ -74,13 +108,27 @@ function JobEditor() {
   });
 
   const job = jobQ.data;
-  const raw = job?.raw_videos as { title: string; storage_path: string | null; duration_s: number | null; brand_id: string | null; platform: string | null } | undefined;
+  const raw = job?.raw_videos as
+    | {
+        title: string;
+        storage_path: string | null;
+        duration_s: number | null;
+        brand_id: string | null;
+        platform: string | null;
+      }
+    | undefined;
   const brandId = raw?.brand_id ?? null;
   const analysis = (job?.analysis as unknown as Analysis | null) ?? null;
-  const options = (job?.options ?? {}) as { aspect?: string; captions?: boolean; template_id?: string };
+  const options = (job?.options ?? {}) as {
+    aspect?: string;
+    captions?: boolean;
+    template_id?: string;
+  };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
 
-  useEffect(() => { if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform); }, [raw?.platform, targetPlatform]);
+  useEffect(() => {
+    if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform);
+  }, [raw?.platform, targetPlatform]);
 
   useEffect(() => {
     if (!analysis?.segments || originalSegsRef.current) return;
@@ -104,9 +152,12 @@ function JobEditor() {
 
   useEffect(() => {
     if (!raw?.storage_path) return;
-    supabase.storage.from("raw-videos").createSignedUrl(raw.storage_path, 3600).then(({ data }) => {
-      if (data?.signedUrl) setSignedUrl(data.signedUrl);
-    });
+    supabase.storage
+      .from("raw-videos")
+      .createSignedUrl(raw.storage_path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setSignedUrl(data.signedUrl);
+      });
   }, [raw?.storage_path]);
 
   useEffect(() => {
@@ -114,9 +165,14 @@ function JobEditor() {
       const next: Record<string, string> = { ...audioSignedUrls };
       for (const a of audioTracks) {
         if (next[a.id]) continue;
-        if (a.source_url) { next[a.id] = a.source_url; continue; }
+        if (a.source_url) {
+          next[a.id] = a.source_url;
+          continue;
+        }
         if (!a.storage_path) continue;
-        const { data } = await supabase.storage.from("raw-videos").createSignedUrl(a.storage_path, 3600);
+        const { data } = await supabase.storage
+          .from("raw-videos")
+          .createSignedUrl(a.storage_path, 3600);
         if (data?.signedUrl) next[a.id] = data.signedUrl;
       }
       setAudioSignedUrls(next);
@@ -124,25 +180,39 @@ function JobEditor() {
     // eslint-disable-next-line
   }, [audioTracks]);
 
-  const totalDur = useMemo(() => segments.reduce((a, s) => a + Math.max(0, s.end_s - s.start_s), 0), [segments]);
+  const totalDur = useMemo(
+    () => segments.reduce((a, s) => a + Math.max(0, s.end_s - s.start_s), 0),
+    [segments],
+  );
   const rawDur = raw?.duration_s ? Number(raw.duration_s) : 300;
 
   // Timeline layout: horizontal cumulative offsets per clip
   const clipOffsets = useMemo(() => {
     const arr: number[] = [];
     let cur = 0;
-    for (const s of segments) { arr.push(cur); cur += Math.max(0, s.end_s - s.start_s); }
+    for (const s of segments) {
+      arr.push(cur);
+      cur += Math.max(0, s.end_s - s.start_s);
+    }
     return arr;
   }, [segments]);
 
-  async function saveTimelineState(next?: { transitions?: Transition[]; overlays?: TextOverlay[]; audio_tracks?: AudioTrack[] }) {
+  async function saveTimelineState(next?: {
+    transitions?: Transition[];
+    overlays?: TextOverlay[];
+    audio_tracks?: AudioTrack[];
+  }) {
     const payload = {
       transitions: next?.transitions ?? transitions,
       overlays: next?.overlays ?? overlays,
       audio_tracks: next?.audio_tracks ?? audioTracks,
-      zoom, playhead,
+      zoom,
+      playhead,
     };
-    await supabase.from("edit_jobs").update({ timeline_state: payload as any }).eq("id", id);
+    await supabase
+      .from("edit_jobs")
+      .update({ timeline_state: payload as any })
+      .eq("id", id);
   }
 
   function updateSeg(idx: number, patch: Partial<Segment>) {
@@ -150,14 +220,25 @@ function JobEditor() {
   }
   function deleteSeg(idx: number) {
     setSegments((prev) => prev.filter((_, i) => i !== idx));
-    setOverlays((prev) => prev.filter((o) => o.clip_index !== idx).map((o) => (o.clip_index > idx ? { ...o, clip_index: o.clip_index - 1 } : o)));
-    setTransitions((prev) => prev.filter((t) => t.after_index !== idx && t.after_index !== idx - 1).map((t) => (t.after_index > idx ? { ...t, after_index: t.after_index - 1 } : t)));
+    setOverlays((prev) =>
+      prev
+        .filter((o) => o.clip_index !== idx)
+        .map((o) => (o.clip_index > idx ? { ...o, clip_index: o.clip_index - 1 } : o)),
+    );
+    setTransitions((prev) =>
+      prev
+        .filter((t) => t.after_index !== idx && t.after_index !== idx - 1)
+        .map((t) => (t.after_index > idx ? { ...t, after_index: t.after_index - 1 } : t)),
+    );
     setSelectedClip(Math.max(0, selectedClip - (idx <= selectedClip ? 1 : 0)));
   }
   function addSeg() {
     const last = segments[segments.length - 1];
     const start = last ? Math.min(last.end_s, rawDur - 5) : 0;
-    setSegments((prev) => [...prev, { start_s: start, end_s: Math.min(start + 10, rawDur), title: `Clip ${prev.length + 1}` }]);
+    setSegments((prev) => [
+      ...prev,
+      { start_s: start, end_s: Math.min(start + 10, rawDur), title: `Clip ${prev.length + 1}` },
+    ]);
   }
   function splitAtPlayhead() {
     const seg = segments[selectedClip];
@@ -165,7 +246,8 @@ function JobEditor() {
     const off = clipOffsets[selectedClip] ?? 0;
     const rel = playhead - off;
     const cut = seg.start_s + rel;
-    if (cut <= seg.start_s + 0.1 || cut >= seg.end_s - 0.1) return toast.error("Playhead ist außerhalb des Clips");
+    if (cut <= seg.start_s + 0.1 || cut >= seg.end_s - 0.1)
+      return toast.error("Playhead ist außerhalb des Clips");
     const a = { ...seg, end_s: cut };
     const b = { ...seg, start_s: cut, title: `${seg.title} (2)` };
     setSegments((prev) => [...prev.slice(0, selectedClip), a, b, ...prev.slice(selectedClip + 1)]);
@@ -173,7 +255,8 @@ function JobEditor() {
   }
   function resetSeg(idx: number) {
     const o = originalSegsRef.current?.[idx];
-    if (o) updateSeg(idx, o); else toast.info("Kein KI-Original");
+    if (o) updateSeg(idx, o);
+    else toast.info("Kein KI-Original");
   }
 
   function setTransition(afterIdx: number, type: TransitionType, duration = 0.5) {
@@ -191,10 +274,20 @@ function JobEditor() {
     const seg = segments[clipIdx];
     if (!seg) return;
     const dur = seg.end_s - seg.start_s;
-    setOverlays((prev) => [...prev, {
-      id: uid(), clip_index: clipIdx, start_s: 0, end_s: Math.min(3, dur),
-      text: "Text-Overlay", position: "bottom", font_size: 42, color: "#ffffff", bg: true,
-    }]);
+    setOverlays((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        clip_index: clipIdx,
+        start_s: 0,
+        end_s: Math.min(3, dur),
+        text: "Text-Overlay",
+        position: "bottom",
+        font_size: 42,
+        color: "#ffffff",
+        bg: true,
+      },
+    ]);
   }
   function updateOverlay(id: string, patch: Partial<TextOverlay>) {
     setOverlays((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
@@ -206,9 +299,14 @@ function JobEditor() {
   async function uploadAudio(file: File) {
     try {
       const key = `${user.id}/${brandId}/audio/${uid()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error } = await supabase.storage.from("raw-videos").upload(key, file, { contentType: file.type || "audio/mpeg" });
+      const { error } = await supabase.storage
+        .from("raw-videos")
+        .upload(key, file, { contentType: file.type || "audio/mpeg" });
       if (error) throw error;
-      setAudioTracks((prev) => [...prev, { id: uid(), storage_path: key, name: file.name, volume: 0.6, duck: true }]);
+      setAudioTracks((prev) => [
+        ...prev,
+        { id: uid(), storage_path: key, name: file.name, volume: 0.6, duck: true },
+      ]);
       toast.success("Audio hinzugefügt");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
@@ -224,7 +322,9 @@ function JobEditor() {
   // Persist on any change (debounced-ish)
   useEffect(() => {
     if (!job) return;
-    const t = setTimeout(() => { saveTimelineState(); }, 500);
+    const t = setTimeout(() => {
+      saveTimelineState();
+    }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line
   }, [transitions, overlays, audioTracks, zoom]);
@@ -232,7 +332,10 @@ function JobEditor() {
   useEffect(() => {
     if (!job || !segments.length) return;
     const t = setTimeout(() => {
-      supabase.from("edit_jobs").update({ analysis: { ...(analysis ?? {}), segments } as any }).eq("id", id);
+      supabase
+        .from("edit_jobs")
+        .update({ analysis: { ...(analysis ?? {}), segments } as any })
+        .eq("id", id);
     }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line
@@ -252,8 +355,13 @@ function JobEditor() {
   }
   function togglePlay() {
     if (!videoRef.current) return;
-    if (videoRef.current.paused) { videoRef.current.play(); setPlaying(true); }
-    else { videoRef.current.pause(); setPlaying(false); }
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setPlaying(true);
+    } else {
+      videoRef.current.pause();
+      setPlaying(false);
+    }
   }
 
   async function getFFmpeg() {
@@ -263,7 +371,9 @@ function JobEditor() {
       const { toBlobURL } = await import("@ffmpeg/util");
       const ff = new FFmpeg();
       const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
-      ff.on("progress", ({ progress }: { progress: number }) => setProgress(Math.round(progress * 100)));
+      ff.on("progress", ({ progress }: { progress: number }) =>
+        setProgress(Math.round(progress * 100)),
+      );
       await ff.load({
         coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
         wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
@@ -271,7 +381,10 @@ function JobEditor() {
       ffmpegRef.current = ff;
       return ff;
     } catch (e) {
-      throw new Error("Rendering-Engine konnte nicht geladen werden — bitte Seite neu laden oder anderen Browser probieren. Detail: " + (e instanceof Error ? e.message : String(e)));
+      throw new Error(
+        "Rendering-Engine konnte nicht geladen werden — bitte Seite neu laden oder anderen Browser probieren. Detail: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
     }
   }
 
@@ -284,24 +397,38 @@ function JobEditor() {
   function drawtextForClip(clipIdx: number, clipStartInOut: number) {
     // clipStartInOut: offset within the output where this clip begins (0 for single-clip render)
     const clipOverlays = overlays.filter((o) => o.clip_index === clipIdx);
-    return clipOverlays.map((o) => {
-      const t1 = (clipStartInOut + o.start_s).toFixed(2);
-      const t2 = (clipStartInOut + o.end_s).toFixed(2);
-      const y = o.position === "top" ? "h*0.08" : o.position === "center" ? "(h-text_h)/2" : "h*0.82";
-      const box = o.bg ? ":box=1:boxcolor=black@0.55:boxborderw=18" : "";
-      const safe = o.text.replace(/[':\\%]/g, "").replace(/,/g, "\\,");
-      return `drawtext=text='${safe}':fontsize=${o.font_size}:fontcolor=${o.color}${box}:x=(w-text_w)/2:y=${y}:enable='between(t,${t1},${t2})'`;
-    }).join(",");
+    return clipOverlays
+      .map((o) => {
+        const t1 = (clipStartInOut + o.start_s).toFixed(2);
+        const t2 = (clipStartInOut + o.end_s).toFixed(2);
+        const y =
+          o.position === "top" ? "h*0.08" : o.position === "center" ? "(h-text_h)/2" : "h*0.82";
+        const box = o.bg ? ":box=1:boxcolor=black@0.55:boxborderw=18" : "";
+        const safe = o.text.replace(/[':\\%]/g, "").replace(/,/g, "\\,");
+        return `drawtext=text='${safe}':fontsize=${o.font_size}:fontcolor=${o.color}${box}:x=(w-text_w)/2:y=${y}:enable='between(t,${t1},${t2})'`;
+      })
+      .join(",");
   }
 
   async function renderSegment(seg: Segment, idx: number) {
-    if (!signedUrl) { toast.error("Video-URL fehlt"); return; }
-    if (seg.end_s <= seg.start_s) { toast.error("Endzeit nach Startzeit setzen"); return; }
-    setRendering(String(idx)); setProgress(0);
+    if (!signedUrl) {
+      toast.error("Video-URL fehlt");
+      return;
+    }
+    if (seg.end_s <= seg.start_s) {
+      toast.error("Endzeit nach Startzeit setzen");
+      return;
+    }
+    setRendering(String(idx));
+    setProgress(0);
     try {
       const ff = await getFFmpeg();
       const { fetchFile } = await import("@ffmpeg/util");
-      await ff.writeFile("in.mp4", await fetchFile(signedUrl));
+      // Quelle nur einmal laden — bei 20 Clips spart das 19 Downloads
+      if (inputLoadedRef.current !== signedUrl) {
+        await ff.writeFile("in.mp4", await fetchFile(signedUrl));
+        inputLoadedRef.current = signedUrl;
+      }
 
       const duration = Math.max(0.5, seg.end_s - seg.start_s);
       const vf: string[] = [aspectFilter()];
@@ -316,17 +443,28 @@ function JobEditor() {
         await ff.writeFile("bg.audio", await fetchFile(audioSignedUrls[audio.id]));
         inputs.push("-i", "bg.audio");
         audioArgs = [
-          "-filter_complex", `[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
-          "-map", "0:v", "-map", "[aout]",
-          "-c:a", "aac",
+          "-filter_complex",
+          `[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
+          "-map",
+          "0:v",
+          "-map",
+          "[aout]",
+          "-c:a",
+          "aac",
         ];
       }
 
       const args = [
         ...inputs,
-        "-vf", vf.join(","),
+        "-vf",
+        vf.join(","),
         ...audioArgs,
-        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "23",
         "out.mp4",
       ];
       await ff.exec(args);
@@ -339,17 +477,66 @@ function JobEditor() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Render fehlgeschlagen");
     } finally {
-      setRendering(null); setProgress(0);
+      setRendering(null);
+      setProgress(0);
+    }
+  }
+
+  /**
+   * KI-Autopilot: kompletter Prozess ohne Eingreifen.
+   * 1) Falls noch keine Clips: KI-Analyse anstoßen und auf Ergebnis warten
+   * 2) Alle Clips nacheinander rendern
+   * Danach kann der Mensch jeden Clip manuell nachbearbeiten und neu rendern.
+   */
+  async function runAutopilot() {
+    if (autopilot === "analyzing" || autopilot === "rendering") return;
+    try {
+      let segs = segments;
+      if (!segs.length) {
+        setAutopilot("analyzing");
+        if (job?.status === "pending" || job?.status === "failed") {
+          const { analyzeVideo } = await import("@/lib/ai.functions");
+          analyzeVideo({ data: { jobId: id } }).catch(() => {});
+        }
+        for (let i = 0; i < 60 && !segs.length; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const { data } = await supabase
+            .from("edit_jobs")
+            .select("analysis,status")
+            .eq("id", id)
+            .single();
+          const a = data?.analysis as unknown as Analysis | null;
+          if (a?.segments?.length) segs = a.segments;
+          if (data?.status === "failed") throw new Error("KI-Analyse fehlgeschlagen");
+        }
+        if (!segs.length) throw new Error("KI-Analyse dauert zu lange — bitte gleich nochmal");
+        jobQ.refetch();
+      }
+      setAutopilot("rendering");
+      setApProgress({ current: 0, total: segs.length });
+      for (let i = 0; i < segs.length; i++) {
+        setApProgress({ current: i + 1, total: segs.length });
+        await renderSegment(segs[i], i);
+      }
+      setAutopilot("done");
+      toast.success(`Autopilot fertig — ${segs.length} Clips gerendert. Galerie rechts →`);
+    } catch (e) {
+      setAutopilot("idle");
+      toast.error(e instanceof Error ? e.message : "Autopilot-Fehler");
     }
   }
 
   async function renderMaster() {
     if (!signedUrl || segments.length === 0) return;
-    setRendering("master"); setProgress(0);
+    setRendering("master");
+    setProgress(0);
     try {
       const ff = await getFFmpeg();
       const { fetchFile } = await import("@ffmpeg/util");
-      await ff.writeFile("in.mp4", await fetchFile(signedUrl));
+      if (inputLoadedRef.current !== signedUrl) {
+        await ff.writeFile("in.mp4", await fetchFile(signedUrl));
+        inputLoadedRef.current = signedUrl;
+      }
 
       // Extract each clip first with aspect crop, then concat
       const clipFiles: string[] = [];
@@ -358,9 +545,23 @@ function JobEditor() {
         const dur = Math.max(0.5, s.end_s - s.start_s);
         const name = `c${i}.mp4`;
         await ff.exec([
-          "-ss", String(s.start_s), "-i", "in.mp4", "-t", String(dur),
-          "-vf", aspectFilter(),
-          "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", "-c:a", "aac", name,
+          "-ss",
+          String(s.start_s),
+          "-i",
+          "in.mp4",
+          "-t",
+          String(dur),
+          "-vf",
+          aspectFilter(),
+          "-c:v",
+          "libx264",
+          "-preset",
+          "ultrafast",
+          "-crf",
+          "23",
+          "-c:a",
+          "aac",
+          name,
         ]);
         clipFiles.push(name);
       }
@@ -390,7 +591,21 @@ function JobEditor() {
           filter += `;[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first[aout]`;
           map = ["-map", "[vout]", "-map", "[aout]"];
         }
-        await ff.exec([...inputs, "-filter_complex", filter, ...map, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22", "-c:a", "aac", "master.mp4"]);
+        await ff.exec([
+          ...inputs,
+          "-filter_complex",
+          filter,
+          ...map,
+          "-c:v",
+          "libx264",
+          "-preset",
+          "ultrafast",
+          "-crf",
+          "22",
+          "-c:a",
+          "aac",
+          "master.mp4",
+        ]);
         finalName = "master.mp4";
       }
 
@@ -402,36 +617,62 @@ function JobEditor() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Master-Export fehlgeschlagen");
     } finally {
-      setRendering(null); setProgress(0);
+      setRendering(null);
+      setProgress(0);
     }
   }
 
   async function pushToQueue(idx: number, seg: Segment) {
-    if (!brandId) { toast.error("Video hat keinen Brand"); return; }
-    if (!targetPlatform) { toast.error("Bitte Plattform wählen"); return; }
+    if (!brandId) {
+      toast.error("Video hat keinen Brand");
+      return;
+    }
+    if (!targetPlatform) {
+      toast.error("Bitte Plattform wählen");
+      return;
+    }
     const blob = outputBlobs.current[idx];
-    if (!blob) { toast.error("Bitte erst rendern"); return; }
+    if (!blob) {
+      toast.error("Bitte erst rendern");
+      return;
+    }
     setQueuing(String(idx));
     try {
       const key = `${user.id}/${brandId}/${uid()}.mp4`;
-      const up = await supabase.storage.from("rendered-clips").upload(key, blob, { contentType: "video/mp4" });
+      const up = await supabase.storage
+        .from("rendered-clips")
+        .upload(key, blob, { contentType: "video/mp4" });
       if (up.error) throw up.error;
       const { data: maxRow } = await supabase
-        .from("generated_clips").select("queue_position")
-        .eq("brand_id", brandId).eq("platform", targetPlatform as any)
-        .order("queue_position", { ascending: false }).limit(1).maybeSingle();
+        .from("generated_clips")
+        .select("queue_position")
+        .eq("brand_id", brandId)
+        .eq("platform", targetPlatform as any)
+        .order("queue_position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       const nextPos = (maxRow?.queue_position ?? 0) + 1;
-      const { data: row, error } = await supabase.from("generated_clips").insert({
-        user_id: user.id, job_id: id, brand_id: brandId,
-        platform: targetPlatform, storage_path: key,
-        aspect, duration_s: Math.max(0.1, seg.end_s - seg.start_s),
-        title: seg.title, caption_srt: seg.captions ?? null,
-        status: "queued", queue_position: nextPos,
-        meta: { hook: seg.hook ?? null } as any,
-        overlays: overlays.filter((o) => o.clip_index === idx) as any,
-        transitions: [] as any,
-        audio_tracks: audioTracks as any,
-      }).select().single();
+      const { data: row, error } = await supabase
+        .from("generated_clips")
+        .insert({
+          user_id: user.id,
+          job_id: id,
+          brand_id: brandId,
+          platform: targetPlatform,
+          storage_path: key,
+          aspect,
+          duration_s: Math.max(0.1, seg.end_s - seg.start_s),
+          title: seg.title,
+          caption_srt: seg.captions ?? null,
+          status: "queued",
+          queue_position: nextPos,
+          meta: { hook: seg.hook ?? null } as any,
+          overlays: overlays.filter((o) => o.clip_index === idx) as any,
+          transitions: [] as any,
+          audio_tracks: audioTracks as any,
+        })
+        .select()
+        .single();
       if (error) throw error;
       setQueuedIds((q) => ({ ...q, [idx]: row.id }));
       toast.success(`Clip ${idx + 1} in Warteschlange`);
@@ -475,13 +716,17 @@ function JobEditor() {
   }
 
   const jobError = (job as { error?: string | null }).error ?? null;
-  const isYouTubeSource = !raw?.storage_path && !!(raw as { source_url?: string | null } | undefined)?.source_url;
+  const isYouTubeSource =
+    !raw?.storage_path && !!(raw as { source_url?: string | null } | undefined)?.source_url;
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background text-foreground">
       {/* Top bar */}
       <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
-        <Link to="/app" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary">
+        <Link
+          to="/app"
+          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary"
+        >
           <ArrowLeft className="h-3 w-3" /> Editor
         </Link>
         <div className="min-w-0 flex-1">
@@ -490,13 +735,26 @@ function JobEditor() {
             {job.mode} · {aspect} · {segments.length} Clips · {totalDur.toFixed(1)}s Output
           </div>
         </div>
-        <select value={aspect} onChange={async (e) => { await supabase.from("edit_jobs").update({ options: { ...options, aspect: e.target.value } as any }).eq("id", id); jobQ.refetch(); }}
-          className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary">
+        <select
+          value={aspect}
+          onChange={async (e) => {
+            await supabase
+              .from("edit_jobs")
+              .update({ options: { ...options, aspect: e.target.value } as any })
+              .eq("id", id);
+            jobQ.refetch();
+          }}
+          className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+        >
           <option value="9:16">9:16</option>
           <option value="16:9">16:9</option>
           <option value="1:1">1:1</option>
         </select>
-        <select value={targetPlatform} onChange={(e) => setTargetPlatform(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary">
+        <select
+          value={targetPlatform}
+          onChange={(e) => setTargetPlatform(e.target.value)}
+          className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+        >
           <option value="">Plattform…</option>
           <option value="tiktok">TikTok</option>
           <option value="youtube">YouTube</option>
@@ -504,8 +762,39 @@ function JobEditor() {
           <option value="facebook">Facebook</option>
           <option value="x">X</option>
         </select>
-        <button onClick={renderMaster} disabled={rendering !== null || segments.length === 0 || isYouTubeSource} className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          <Sparkles className="h-3 w-3" /> {rendering === "master" ? `Master ${progress}%` : "Master exportieren"}
+        <button
+          onClick={runAutopilot}
+          disabled={
+            autopilot === "analyzing" ||
+            autopilot === "rendering" ||
+            rendering !== null ||
+            isYouTubeSource
+          }
+          className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
+          title="KI übernimmt: analysieren + alle Clips rendern — danach kannst du manuell nacharbeiten"
+        >
+          {autopilot === "analyzing" ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert…
+            </>
+          ) : autopilot === "rendering" ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Clip {apProgress.current}/
+              {apProgress.total} · {progress}%
+            </>
+          ) : (
+            <>
+              <Wand2 className="h-3 w-3" /> KI-Autopilot
+            </>
+          )}
+        </button>
+        <button
+          onClick={renderMaster}
+          disabled={rendering !== null || segments.length === 0 || isYouTubeSource}
+          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Sparkles className="h-3 w-3" />{" "}
+          {rendering === "master" ? `Master ${progress}%` : "Master exportieren"}
         </button>
       </div>
 
@@ -559,18 +848,33 @@ function JobEditor() {
             <div className="space-y-2">
               <div className="rounded-md border border-border bg-background p-2 text-xs">
                 <div className="truncate font-medium">{raw?.title}</div>
-                <div className="font-mono text-[10px] text-muted-foreground">{Math.round(rawDur)}s Quelle</div>
+                <div className="font-mono text-[10px] text-muted-foreground">
+                  {Math.round(rawDur)}s Quelle
+                </div>
               </div>
               {audioTracks.map((a) => (
-                <div key={a.id} className="flex items-center gap-2 rounded-md border border-border bg-background p-2 text-xs">
+                <div
+                  key={a.id}
+                  className="flex items-center gap-2 rounded-md border border-border bg-background p-2 text-xs"
+                >
                   <Music className="h-3 w-3 shrink-0 text-accent" />
                   <div className="min-w-0 flex-1 truncate">{a.name}</div>
-                  <button onClick={() => deleteAudio(a.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  <button
+                    onClick={() => deleteAudio(a.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                 </div>
               ))}
               <label className="inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">
                 <UploadCloud className="h-3 w-3" /> Audio hinzufügen
-                <input type="file" accept="audio/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAudio(e.target.files[0])} />
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadAudio(e.target.files[0])}
+                />
               </label>
             </div>
           </div>
@@ -585,31 +889,52 @@ function JobEditor() {
               onPick={(t) => {
                 setAudioTracks((prev) => [
                   ...prev,
-                  { id: uid(), storage_path: "", source_url: t.url, name: `${t.title} · ${t.bpm}BPM`, volume: 0.35, duck: true },
+                  {
+                    id: uid(),
+                    storage_path: "",
+                    source_url: t.url,
+                    name: `${t.title} · ${t.bpm}BPM`,
+                    volume: 0.35,
+                    duck: true,
+                  },
                 ]);
                 toast.success(`„${t.title}" hinzugefügt`);
               }}
             />
           </div>
 
-
-
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3 w-3" /> Effekte
             </div>
             <div className="grid grid-cols-2 gap-1">
-              <button onClick={() => addOverlay(selectedClip)} className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50">
-                <Type className="mx-auto h-4 w-4" /><div className="mt-1">Text</div>
+              <button
+                onClick={() => addOverlay(selectedClip)}
+                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+              >
+                <Type className="mx-auto h-4 w-4" />
+                <div className="mt-1">Text</div>
               </button>
-              <button onClick={splitAtPlayhead} className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50">
-                <ScissorsIcon className="mx-auto h-4 w-4" /><div className="mt-1">Split</div>
+              <button
+                onClick={splitAtPlayhead}
+                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+              >
+                <ScissorsIcon className="mx-auto h-4 w-4" />
+                <div className="mt-1">Split</div>
               </button>
-              <button onClick={addSeg} className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50">
-                <Plus className="mx-auto h-4 w-4" /><div className="mt-1">Neuer Clip</div>
+              <button
+                onClick={addSeg}
+                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+              >
+                <Plus className="mx-auto h-4 w-4" />
+                <div className="mt-1">Neuer Clip</div>
               </button>
-              <button onClick={() => resetSeg(selectedClip)} className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50">
-                <RotateCcw className="mx-auto h-4 w-4" /><div className="mt-1">KI-Original</div>
+              <button
+                onClick={() => resetSeg(selectedClip)}
+                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+              >
+                <RotateCcw className="mx-auto h-4 w-4" />
+                <div className="mt-1">KI-Original</div>
               </button>
             </div>
           </div>
@@ -655,30 +980,60 @@ function JobEditor() {
                 </div>
               )}
               {/* Live text overlay preview */}
-              {selectedSeg && videoRef.current && selectedOverlays.map((o) => {
-                const rel = videoRef.current!.currentTime - selectedSeg.start_s;
-                if (rel < o.start_s || rel > o.end_s) return null;
-                const posClass = o.position === "top" ? "top-[8%]" : o.position === "center" ? "top-1/2 -translate-y-1/2" : "bottom-[10%]";
-                return (
-                  <div key={o.id} className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${posClass}`}>
-                    <div style={{ color: o.color, fontSize: Math.max(14, o.font_size / 3), background: o.bg ? "rgba(0,0,0,.55)" : "transparent", padding: o.bg ? "6px 14px" : 0 }} className="rounded-md font-semibold">
-                      {o.text}
+              {selectedSeg &&
+                videoRef.current &&
+                selectedOverlays.map((o) => {
+                  const rel = videoRef.current!.currentTime - selectedSeg.start_s;
+                  if (rel < o.start_s || rel > o.end_s) return null;
+                  const posClass =
+                    o.position === "top"
+                      ? "top-[8%]"
+                      : o.position === "center"
+                        ? "top-1/2 -translate-y-1/2"
+                        : "bottom-[10%]";
+                  return (
+                    <div
+                      key={o.id}
+                      className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${posClass}`}
+                    >
+                      <div
+                        style={{
+                          color: o.color,
+                          fontSize: Math.max(14, o.font_size / 3),
+                          background: o.bg ? "rgba(0,0,0,.55)" : "transparent",
+                          padding: o.bg ? "6px 14px" : 0,
+                        }}
+                        className="rounded-md font-semibold"
+                      >
+                        {o.text}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
 
           {/* Transport */}
           <div className="flex items-center gap-3 border-y border-border bg-card px-3 py-2 text-xs">
-            <button onClick={togglePlay} className="rounded-md border border-border p-1.5 hover:bg-secondary">
+            <button
+              onClick={togglePlay}
+              className="rounded-md border border-border p-1.5 hover:bg-secondary"
+            >
               {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             </button>
-            <div className="font-mono text-[11px] tabular-nums text-muted-foreground">{fmt(playhead)} / {fmt(totalDur)}</div>
+            <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              {fmt(playhead)} / {fmt(totalDur)}
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <ZoomOut className="h-3 w-3 text-muted-foreground" />
-              <input type="range" min={PX_PER_S_MIN} max={PX_PER_S_MAX} value={zoom} onChange={(e) => setZoom(parseInt(e.target.value))} className="w-32" />
+              <input
+                type="range"
+                min={PX_PER_S_MIN}
+                max={PX_PER_S_MAX}
+                value={zoom}
+                onChange={(e) => setZoom(parseInt(e.target.value))}
+                className="w-32"
+              />
               <ZoomIn className="h-3 w-3 text-muted-foreground" />
             </div>
           </div>
@@ -691,13 +1046,33 @@ function JobEditor() {
               </div>
             ) : (
               <div style={{ width: Math.max(600, totalDur * zoom + 60) }} className="relative">
-                {/* Ruler */}
+                {/* Ruler — adaptive Ticks, damit auch 1h-Videos flüssig bleiben */}
                 <div className="mb-1 h-4 border-b border-border">
-                  {Array.from({ length: Math.ceil(totalDur) + 1 }).map((_, s) => (
-                    <div key={s} style={{ left: s * zoom }} className="absolute -top-0.5 h-3 border-l border-border/60 pl-1 font-mono text-[9px] text-muted-foreground">{s}s</div>
-                  ))}
+                  {(() => {
+                    // Tick-Abstand so wählen, dass Ticks ≥ 60px auseinander liegen
+                    const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+                    const step = steps.find((st) => st * zoom >= 60) ?? 600;
+                    const count = Math.floor(totalDur / step) + 1;
+                    return Array.from({ length: count }).map((_, i) => {
+                      const s = i * step;
+                      return (
+                        <div
+                          key={s}
+                          style={{ left: s * zoom }}
+                          className="absolute -top-0.5 h-3 border-l border-border/60 pl-1 font-mono text-[9px] text-muted-foreground"
+                        >
+                          {s >= 60
+                            ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+                            : `${s}s`}
+                        </div>
+                      );
+                    });
+                  })()}
                   {/* Playhead */}
-                  <div style={{ left: playhead * zoom }} className="pointer-events-none absolute -top-0.5 bottom-0 z-10 w-px bg-primary shadow-[0_0_6px_hsl(var(--primary))]" />
+                  <div
+                    style={{ left: playhead * zoom }}
+                    className="pointer-events-none absolute -top-0.5 bottom-0 z-10 w-px bg-primary shadow-[0_0_6px_hsl(var(--primary))]"
+                  />
                 </div>
 
                 {/* Track: Video */}
@@ -707,12 +1082,18 @@ function JobEditor() {
                     const off = clipOffsets[i] ?? 0;
                     const tr = getTransition(i);
                     return (
-                      <div key={i} className="absolute top-1 bottom-1" style={{ left: off * zoom, width: dur * zoom }}>
+                      <div
+                        key={i}
+                        className="absolute top-1 bottom-1"
+                        style={{ left: off * zoom, width: dur * zoom }}
+                      >
                         <button
                           onClick={() => jumpToClip(i)}
                           className={`h-full w-full rounded-md border px-2 text-left text-[10px] font-mono leading-tight overflow-hidden ${selectedClip === i ? "border-primary bg-primary/30 text-primary-foreground" : "border-primary/40 bg-primary/15 hover:bg-primary/25"}`}
                         >
-                          <div className="truncate">{i + 1}. {s.title}</div>
+                          <div className="truncate">
+                            {i + 1}. {s.title}
+                          </div>
                           <div className="text-[9px] opacity-70">{dur.toFixed(1)}s</div>
                         </button>
                         {i < segments.length - 1 && (
@@ -732,7 +1113,11 @@ function JobEditor() {
                     const left = (clipOff + o.start_s) * zoom;
                     const width = Math.max(6, (o.end_s - o.start_s) * zoom);
                     return (
-                      <div key={o.id} style={{ left, width }} className="absolute top-1 bottom-1 rounded-md border border-accent/50 bg-accent/20 px-2 text-[10px] text-accent overflow-hidden">
+                      <div
+                        key={o.id}
+                        style={{ left, width }}
+                        className="absolute top-1 bottom-1 rounded-md border border-accent/50 bg-accent/20 px-2 text-[10px] text-accent overflow-hidden"
+                      >
                         <div className="truncate leading-6">{o.text}</div>
                       </div>
                     );
@@ -742,8 +1127,14 @@ function JobEditor() {
                 {/* Track: Audio */}
                 <TrackRow label="A" icon={<Music className="h-3 w-3" />}>
                   {audioTracks.map((a, i) => (
-                    <div key={a.id} style={{ left: 0, width: totalDur * zoom }} className={`absolute rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 text-[10px] text-emerald-400 overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}>
-                      <div className="truncate leading-6">{a.name} · vol {Math.round(a.volume * 100)}%{a.duck ? " · ducking" : ""}</div>
+                    <div
+                      key={a.id}
+                      style={{ left: 0, width: totalDur * zoom }}
+                      className={`absolute rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 text-[10px] text-emerald-400 overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}
+                    >
+                      <div className="truncate leading-6">
+                        {a.name} · vol {Math.round(a.volume * 100)}%{a.duck ? " · ducking" : ""}
+                      </div>
                     </div>
                   ))}
                 </TrackRow>
@@ -756,57 +1147,143 @@ function JobEditor() {
         <aside className="w-[380px] shrink-0 overflow-y-auto border-l border-border bg-card/40">
           {/* Inspector */}
           <div className="border-b border-border p-3">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">Inspector — Clip {selectedClip + 1}</div>
+            <div className="mb-2 text-xs font-medium text-muted-foreground">
+              Inspector — Clip {selectedClip + 1}
+            </div>
             {selectedSeg ? (
               <div className="space-y-2 text-xs">
                 <label className="block">
                   <span className="text-muted-foreground">Titel</span>
-                  <input value={selectedSeg.title} onChange={(e) => updateSeg(selectedClip, { title: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-sm outline-none focus:border-primary" />
+                  <input
+                    value={selectedSeg.title}
+                    onChange={(e) => updateSeg(selectedClip, { title: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-sm outline-none focus:border-primary"
+                  />
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block">
                     <span className="text-muted-foreground">Start (s)</span>
-                    <input type="number" step={0.1} min={0} max={rawDur} value={selectedSeg.start_s} onChange={(e) => updateSeg(selectedClip, { start_s: Math.max(0, +e.target.value) })} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                    <input
+                      type="number"
+                      step={0.1}
+                      min={0}
+                      max={rawDur}
+                      value={selectedSeg.start_s}
+                      onChange={(e) =>
+                        updateSeg(selectedClip, { start_s: Math.max(0, +e.target.value) })
+                      }
+                      className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                    />
                   </label>
                   <label className="block">
                     <span className="text-muted-foreground">Ende (s)</span>
-                    <input type="number" step={0.1} min={0} max={rawDur} value={selectedSeg.end_s} onChange={(e) => updateSeg(selectedClip, { end_s: Math.max(0, +e.target.value) })} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                    <input
+                      type="number"
+                      step={0.1}
+                      min={0}
+                      max={rawDur}
+                      value={selectedSeg.end_s}
+                      onChange={(e) =>
+                        updateSeg(selectedClip, { end_s: Math.max(0, +e.target.value) })
+                      }
+                      className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                    />
                   </label>
                 </div>
                 <label className="block">
                   <span className="text-muted-foreground">Hook</span>
-                  <input value={selectedSeg.hook ?? ""} onChange={(e) => updateSeg(selectedClip, { hook: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                  <input
+                    value={selectedSeg.hook ?? ""}
+                    onChange={(e) => updateSeg(selectedClip, { hook: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                  />
                 </label>
                 <label className="block">
                   <span className="text-muted-foreground">Untertitel</span>
-                  <textarea rows={2} value={selectedSeg.captions ?? ""} onChange={(e) => updateSeg(selectedClip, { captions: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                  <textarea
+                    rows={2}
+                    value={selectedSeg.captions ?? ""}
+                    onChange={(e) => updateSeg(selectedClip, { captions: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                  />
                 </label>
 
                 {/* Overlays for this clip */}
                 <div className="rounded-md border border-border bg-background p-2">
                   <div className="mb-1 flex items-center justify-between">
-                    <div className="text-[11px] font-medium">Text-Overlays ({selectedOverlays.length})</div>
-                    <button onClick={() => addOverlay(selectedClip)} className="text-primary hover:underline"><Plus className="inline h-3 w-3" /> Add</button>
+                    <div className="text-[11px] font-medium">
+                      Text-Overlays ({selectedOverlays.length})
+                    </div>
+                    <button
+                      onClick={() => addOverlay(selectedClip)}
+                      className="text-primary hover:underline"
+                    >
+                      <Plus className="inline h-3 w-3" /> Add
+                    </button>
                   </div>
                   {selectedOverlays.map((o) => (
                     <div key={o.id} className="mt-1 space-y-1 rounded border border-border p-2">
                       <div className="flex gap-1">
-                        <input value={o.text} onChange={(e) => updateOverlay(o.id, { text: e.target.value })} className="flex-1 rounded border border-border bg-input px-1.5 py-1 text-[11px] outline-none focus:border-primary" />
-                        <button onClick={() => deleteOverlay(o.id)} className="text-destructive"><Trash2 className="h-3 w-3" /></button>
+                        <input
+                          value={o.text}
+                          onChange={(e) => updateOverlay(o.id, { text: e.target.value })}
+                          className="flex-1 rounded border border-border bg-input px-1.5 py-1 text-[11px] outline-none focus:border-primary"
+                        />
+                        <button onClick={() => deleteOverlay(o.id)} className="text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
                       <div className="grid grid-cols-3 gap-1">
-                        <input type="number" step={0.1} value={o.start_s} onChange={(e) => updateOverlay(o.id, { start_s: +e.target.value })} title="Start" className="rounded border border-border bg-input px-1 py-0.5 text-[10px]" />
-                        <input type="number" step={0.1} value={o.end_s} onChange={(e) => updateOverlay(o.id, { end_s: +e.target.value })} title="Ende" className="rounded border border-border bg-input px-1 py-0.5 text-[10px]" />
-                        <select value={o.position} onChange={(e) => updateOverlay(o.id, { position: e.target.value as any })} className="rounded border border-border bg-input px-1 py-0.5 text-[10px]">
+                        <input
+                          type="number"
+                          step={0.1}
+                          value={o.start_s}
+                          onChange={(e) => updateOverlay(o.id, { start_s: +e.target.value })}
+                          title="Start"
+                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                        />
+                        <input
+                          type="number"
+                          step={0.1}
+                          value={o.end_s}
+                          onChange={(e) => updateOverlay(o.id, { end_s: +e.target.value })}
+                          title="Ende"
+                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                        />
+                        <select
+                          value={o.position}
+                          onChange={(e) => updateOverlay(o.id, { position: e.target.value as any })}
+                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                        >
                           <option value="top">oben</option>
                           <option value="center">mitte</option>
                           <option value="bottom">unten</option>
                         </select>
                       </div>
                       <div className="flex items-center gap-2 text-[10px]">
-                        <input type="number" min={12} max={120} value={o.font_size} onChange={(e) => updateOverlay(o.id, { font_size: +e.target.value })} className="w-14 rounded border border-border bg-input px-1 py-0.5" /> px
-                        <input type="color" value={o.color} onChange={(e) => updateOverlay(o.id, { color: e.target.value })} className="h-5 w-6 rounded border border-border" />
-                        <label className="ml-auto inline-flex items-center gap-1"><input type="checkbox" checked={o.bg} onChange={(e) => updateOverlay(o.id, { bg: e.target.checked })} /> BG</label>
+                        <input
+                          type="number"
+                          min={12}
+                          max={120}
+                          value={o.font_size}
+                          onChange={(e) => updateOverlay(o.id, { font_size: +e.target.value })}
+                          className="w-14 rounded border border-border bg-input px-1 py-0.5"
+                        />{" "}
+                        px
+                        <input
+                          type="color"
+                          value={o.color}
+                          onChange={(e) => updateOverlay(o.id, { color: e.target.value })}
+                          className="h-5 w-6 rounded border border-border"
+                        />
+                        <label className="ml-auto inline-flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={o.bg}
+                            onChange={(e) => updateOverlay(o.id, { bg: e.target.checked })}
+                          />{" "}
+                          BG
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -815,14 +1292,32 @@ function JobEditor() {
                 {/* Audio inspector */}
                 {audioTracks[0] && (
                   <div className="rounded-md border border-border bg-background p-2">
-                    <div className="mb-1 flex items-center gap-2 text-[11px] font-medium"><Music className="h-3 w-3 text-emerald-400" /> Musik: {audioTracks[0].name}</div>
+                    <div className="mb-1 flex items-center gap-2 text-[11px] font-medium">
+                      <Music className="h-3 w-3 text-emerald-400" /> Musik: {audioTracks[0].name}
+                    </div>
                     <label className="flex items-center gap-2 text-[10px]">
                       <Volume2 className="h-3 w-3" />
-                      <input type="range" min={0} max={1} step={0.05} value={audioTracks[0].volume} onChange={(e) => updateAudio(audioTracks[0].id, { volume: +e.target.value })} className="flex-1" />
-                      <span className="tabular-nums">{Math.round(audioTracks[0].volume * 100)}%</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={audioTracks[0].volume}
+                        onChange={(e) =>
+                          updateAudio(audioTracks[0].id, { volume: +e.target.value })
+                        }
+                        className="flex-1"
+                      />
+                      <span className="tabular-nums">
+                        {Math.round(audioTracks[0].volume * 100)}%
+                      </span>
                     </label>
                     <label className="mt-1 flex items-center gap-2 text-[10px]">
-                      <input type="checkbox" checked={audioTracks[0].duck} onChange={(e) => updateAudio(audioTracks[0].id, { duck: e.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={audioTracks[0].duck}
+                        onChange={(e) => updateAudio(audioTracks[0].id, { duck: e.target.checked })}
+                      />
                       <VolumeX className="h-3 w-3" /> Ducking bei Sprache
                     </label>
                   </div>
@@ -830,10 +1325,25 @@ function JobEditor() {
 
                 {/* Render + queue */}
                 <div className="flex gap-1 pt-1">
-                  <button onClick={() => renderSegment(selectedSeg, selectedClip)} disabled={rendering !== null} className="flex-1 inline-flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
-                    {rendering === String(selectedClip) ? <><Loader2 className="h-3 w-3 animate-spin" /> {progress}%</> : <><Download className="h-3 w-3" /> Rendern</>}
+                  <button
+                    onClick={() => renderSegment(selectedSeg, selectedClip)}
+                    disabled={rendering !== null}
+                    className="flex-1 inline-flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {rendering === String(selectedClip) ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" /> {progress}%
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-3 w-3" /> Rendern
+                      </>
+                    )}
                   </button>
-                  <button onClick={() => deleteSeg(selectedClip)} className="rounded-md border border-destructive/50 px-2 py-1.5 text-[11px] text-destructive hover:bg-destructive/10">
+                  <button
+                    onClick={() => deleteSeg(selectedClip)}
+                    className="rounded-md border border-destructive/50 px-2 py-1.5 text-[11px] text-destructive hover:bg-destructive/10"
+                  >
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
@@ -841,12 +1351,30 @@ function JobEditor() {
                   <div className="space-y-1 rounded-md border border-border bg-background p-2">
                     <video src={outputs[selectedClip]} controls className="w-full rounded-md" />
                     <div className="flex gap-1">
-                      <a href={outputs[selectedClip]} download={`clip-${selectedClip + 1}.mp4`} className="flex-1 rounded-md border border-border p-1.5 text-center text-[10px] hover:bg-secondary">MP4 laden</a>
+                      <a
+                        href={outputs[selectedClip]}
+                        download={`clip-${selectedClip + 1}.mp4`}
+                        className="flex-1 rounded-md border border-border p-1.5 text-center text-[10px] hover:bg-secondary"
+                      >
+                        MP4 laden
+                      </a>
                       {queuedIds[selectedClip] ? (
-                        <span className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-primary/10 p-1.5 text-[10px] text-primary"><CheckCircle2 className="h-3 w-3" /> In Queue</span>
+                        <span className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-primary/10 p-1.5 text-[10px] text-primary">
+                          <CheckCircle2 className="h-3 w-3" /> In Queue
+                        </span>
                       ) : (
-                        <button onClick={() => pushToQueue(selectedClip, selectedSeg)} disabled={queuing === String(selectedClip) || !targetPlatform} className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-primary p-1.5 text-[10px] text-primary hover:bg-primary/10 disabled:opacity-50">
-                          {queuing === String(selectedClip) ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ListPlus className="h-3 w-3" /> Queue</>}
+                        <button
+                          onClick={() => pushToQueue(selectedClip, selectedSeg)}
+                          disabled={queuing === String(selectedClip) || !targetPlatform}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-primary p-1.5 text-[10px] text-primary hover:bg-primary/10 disabled:opacity-50"
+                        >
+                          {queuing === String(selectedClip) ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <ListPlus className="h-3 w-3" /> Queue
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -858,11 +1386,59 @@ function JobEditor() {
             )}
           </div>
 
+          {/* Clip-Galerie: alle gerenderten Clips ansehen & herunterladen */}
+          {Object.keys(outputs).length > 0 && (
+            <div className="border-b border-border p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium">
+                  Clip-Galerie ({Object.keys(outputs).length}/{segments.length})
+                </span>
+                {Object.keys(outputs).length < segments.length && (
+                  <button
+                    onClick={runAutopilot}
+                    disabled={autopilot === "rendering" || rendering !== null}
+                    className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                  >
+                    Restliche rendern
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {segments.map((s, i) =>
+                  outputs[i] ? (
+                    <div key={i} className="space-y-1">
+                      <video
+                        src={outputs[i]}
+                        controls
+                        preload="metadata"
+                        className="w-full rounded-md bg-black"
+                      />
+                      <a
+                        href={outputs[i]}
+                        download={`clip-${i + 1}.mp4`}
+                        className="block truncate rounded border border-border px-1.5 py-1 text-center text-[10px] hover:bg-secondary"
+                        title={s.title}
+                      >
+                        ⬇ {i + 1}. {s.title}
+                      </a>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          )}
+
           {masterUrl && (
             <div className="border-b border-border p-3">
               <div className="mb-2 text-xs font-medium">Master-Export</div>
               <video src={masterUrl} controls className="w-full rounded-md bg-black" />
-              <a href={masterUrl} download="master.mp4" className="mt-1 block rounded-md border border-border p-1.5 text-center text-[11px] hover:bg-secondary">Master herunterladen</a>
+              <a
+                href={masterUrl}
+                download="master.mp4"
+                className="mt-1 block rounded-md border border-border p-1.5 text-center text-[11px] hover:bg-secondary"
+              >
+                Master herunterladen
+              </a>
             </div>
           )}
 
@@ -871,7 +1447,7 @@ function JobEditor() {
             <EditorChat
               jobId={id}
               userId={user.id}
-              initialMessages={((job?.chat_messages ?? []) as unknown) as UIMessage[]}
+              initialMessages={(job?.chat_messages ?? []) as unknown as UIMessage[]}
               styleReference={(job?.style_reference ?? null) as Record<string, unknown> | null}
               onChanged={() => jobQ.refetch()}
             />
@@ -882,29 +1458,57 @@ function JobEditor() {
   );
 }
 
-function TrackRow({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+function TrackRow({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="relative mb-1 flex" style={{ height: TRACK_H }}>
       <div className="absolute left-[-32px] top-0 flex h-full w-7 items-center justify-center rounded-l-md border border-border bg-card font-mono text-[10px] text-muted-foreground">
-        <div className="flex flex-col items-center gap-0.5">{icon}<span>{label}</span></div>
+        <div className="flex flex-col items-center gap-0.5">
+          {icon}
+          <span>{label}</span>
+        </div>
       </div>
       <div className="relative flex-1 rounded-md border border-border bg-card">{children}</div>
     </div>
   );
 }
 
-function TransitionPicker({ value, onChange }: { value: Transition | null; onChange: (t: TransitionType) => void }) {
+function TransitionPicker({
+  value,
+  onChange,
+}: {
+  value: Transition | null;
+  onChange: (t: TransitionType) => void;
+}) {
   const [open, setOpen] = useState(false);
   const label = value?.type ?? "cut";
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} title={`Übergang: ${label}`} className={`grid h-5 w-5 place-items-center rounded-sm border text-[9px] rotate-45 ${value ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground"}`}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title={`Übergang: ${label}`}
+        className={`grid h-5 w-5 place-items-center rounded-sm border text-[9px] rotate-45 ${value ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground"}`}
+      >
         <span className="-rotate-45">{label === "cut" ? "|" : label === "fade" ? "F" : "X"}</span>
       </button>
       {open && (
         <div className="absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-md border border-border bg-card p-1 shadow-lg">
           {(["cut", "fade", "crossfade"] as TransitionType[]).map((t) => (
-            <button key={t} onClick={() => { onChange(t); setOpen(false); }} className="block w-full whitespace-nowrap rounded px-2 py-1 text-left text-[11px] hover:bg-secondary">
+            <button
+              key={t}
+              onClick={() => {
+                onChange(t);
+                setOpen(false);
+              }}
+              className="block w-full whitespace-nowrap rounded px-2 py-1 text-left text-[11px] hover:bg-secondary"
+            >
               <ChevronRight className="mr-1 inline h-3 w-3" /> {t}
             </button>
           ))}
@@ -929,9 +1533,16 @@ function ViralMusicPicker({
 
   function toggle(url: string) {
     if (!audioRef.current) return;
-    if (preview === url) { audioRef.current.pause(); setPreview(null); return; }
+    if (preview === url) {
+      audioRef.current.pause();
+      setPreview(null);
+      return;
+    }
     audioRef.current.src = url;
-    audioRef.current.play().then(() => setPreview(url)).catch(() => setPreview(null));
+    audioRef.current
+      .play()
+      .then(() => setPreview(url))
+      .catch(() => setPreview(null));
   }
 
   const Row = ({ t }: { t: ViralTrack }) => (
@@ -945,9 +1556,16 @@ function ViralMusicPicker({
       </button>
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{t.title}</div>
-        <div className="truncate text-[9px] text-muted-foreground">{t.mood} · {t.bpm}BPM · {t.duration_s}s</div>
+        <div className="truncate text-[9px] text-muted-foreground">
+          {t.mood} · {t.bpm}BPM · {t.duration_s}s
+        </div>
       </div>
-      <button onClick={() => onPick(t)} className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10">Add</button>
+      <button
+        onClick={() => onPick(t)}
+        className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+      >
+        Add
+      </button>
     </div>
   );
 
@@ -956,17 +1574,27 @@ function ViralMusicPicker({
       <audio ref={audioRef} onEnded={() => setPreview(null)} className="hidden" />
       {suggested.length > 0 && (
         <div className="space-y-1">
-          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">Passend zu „{template?.label}"</div>
-          {suggested.map((t) => <Row key={t.id} t={t} />)}
+          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">
+            Passend zu „{template?.label}"
+          </div>
+          {suggested.map((t) => (
+            <Row key={t.id} t={t} />
+          ))}
         </div>
       )}
       <details className="rounded-md border border-border bg-background/60">
-        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">Alle {rest.length} weiteren Sounds</summary>
+        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">
+          Alle {rest.length} weiteren Sounds
+        </summary>
         <div className="space-y-1 border-t border-border p-1.5">
-          {rest.map((t) => <Row key={t.id} t={t} />)}
+          {rest.map((t) => (
+            <Row key={t.id} t={t} />
+          ))}
         </div>
       </details>
-      <div className="text-[9px] leading-tight text-muted-foreground">Pixabay Content License · CC0 · sofort kommerziell nutzbar.</div>
+      <div className="text-[9px] leading-tight text-muted-foreground">
+        Pixabay Content License · CC0 · sofort kommerziell nutzbar.
+      </div>
     </div>
   );
 }

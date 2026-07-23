@@ -29,6 +29,7 @@ function ClipPage() {
   const [count, setCount] = useState<number>(tpl.defaultCount ?? 10);
   const [aspect, setAspect] = useState<Aspect>(tpl.aspect);
   const [captions, setCaptions] = useState<boolean>(tpl.captions);
+  const [aiExplain, setAiExplain] = useState(false);
   const [minLen, setMinLen] = useState<number>(tpl.targetLenS[0]);
   const [maxLen, setMaxLen] = useState<number>(tpl.targetLenS[1]);
   const [duration, setDuration] = useState<number | null>(null);
@@ -122,7 +123,7 @@ function ClipPage() {
     setBusyLabel("KI-Schnittplan wird erstellt … (10-60 Sek)");
     const { data: job, error } = await supabase.from("edit_jobs").insert({
       user_id: user.id, raw_video_id: rawVideoId, brand_id: activeBrand.id,
-      mode: tpl.mode, options: { captions, aspect, template_id: templateId, min_len_s: minLen, max_len_s: maxLen, music_mood: tpl.musicMood },
+      mode: tpl.mode, options: { captions, aspect, ai_explain: aiExplain, template_id: templateId, min_len_s: minLen, max_len_s: maxLen, music_mood: tpl.musicMood },
       desired_clip_count: count,
     }).select().single();
     if (error) { toast.error("Job-Erstellung fehlgeschlagen: " + error.message, { duration: 8000 }); return; }
@@ -254,6 +255,10 @@ function ClipPage() {
               <label className="flex cursor-pointer items-center gap-2 text-xs">
                 <input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} className="h-4 w-4 accent-primary" />
                 Untertitel automatisch generieren (Karaoke-Style bei UGC-Vorlagen)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs">
+                <input type="checkbox" checked={aiExplain} onChange={(e) => setAiExplain(e.target.checked)} className="h-4 w-4 accent-primary" />
+                KI-Erklärungen — Kontext-Overlay je Szene (was passiert gerade?)
               </label>
             </div>
           </div>

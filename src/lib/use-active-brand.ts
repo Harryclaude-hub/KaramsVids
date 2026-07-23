@@ -61,12 +61,3 @@ export function useCreateBrand(userId: string) {
     return data as Brand;
   };
 }
-
-/**
- * Modal-artiger Helfer: gibt garantiert eine Brand-ID zurück oder wirft.
- * Wird von Upload/Editor genutzt, damit jedes Video zu einem Brand gehört.
- */
-export function useRequireBrand() {
-  const [activeBrandId, setActiveBrandId] = useActiveBrandId();
-  return { activeBrandId, setActiveBrandId };
-}

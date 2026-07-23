@@ -43,7 +43,9 @@ export const analyzeVideo = createServerFn({ method: "POST" })
 
     await supabase.from("edit_jobs").update({ status: "analyzing", progress: 10 }).eq("id", job.id);
 
-    const raw = (job as { raw_videos: { title: string; duration_s: number | null; source_url: string | null } }).raw_videos;
+    const raw = (
+      job as { raw_videos: { title: string; duration_s: number | null; source_url: string | null } }
+    ).raw_videos;
     const dur = raw.duration_s ?? 60;
     const mode = job.mode;
 
@@ -51,18 +53,34 @@ export const analyzeVideo = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY fehlt");
 
     if (data.desiredClipCount) {
-      await supabase.from("edit_jobs").update({ desired_clip_count: data.desiredClipCount }).eq("id", job.id);
+      await supabase
+        .from("edit_jobs")
+        .update({ desired_clip_count: data.desiredClipCount })
+        .eq("id", job.id);
     }
     const countHint = data.desiredClipCount
       ? `WICHTIG: Der Nutzer möchte GENAU ${data.desiredClipCount} Clips — halte dich exakt an diese Anzahl.`
       : "Wähle die Anzahl passend zur Länge (kurz → wenige, lang → viele).";
+
+    const jobOptions = (job.options ?? {}) as {
+      ai_explain?: boolean;
+      audio_fx?: string;
+      captions?: boolean;
+    };
+    const explainHint = jobOptions.ai_explain
+      ? "\nZUSATZ: Der Nutzer möchte KI-Erklärungen — schreibe für jedes Segment in 'hook' eine kurze Kontext-Erklärung (1 Satz), die als Overlay eingeblendet wird und dem Zuschauer erklärt, was in der Szene passiert."
+      : "";
+    const audioFxHint =
+      jobOptions.audio_fx && jobOptions.audio_fx !== "none"
+        ? `\nAudio-Stil des Projekts: "${jobOptions.audio_fx}" — wähle Schnittpunkte, die zu diesem Stil passen (punchy = schnelle Cuts, cinematic = ruhiger, podcast = an Sprechpausen).`
+        : "";
 
     const prompt = `Du bist ein Profi-Video-Editor. Ein Nutzer hat ein Video hochgeladen:
 Titel: "${raw.title}"
 Dauer: ${Math.round(dur)}s
 Quelle: ${raw.source_url ?? "Upload"}
 Schnitt-Modus: ${mode}
-${countHint}
+${countHint}${explainHint}${audioFxHint}
 
 Erzeuge einen Schnittplan als JSON. Modus-Regeln:
 - auto_cut: 1 durchgehender Clip, straffe Cuts, Länge ≈ 70% Original.
@@ -93,17 +111,23 @@ Antworte NUR mit JSON, das dieser Struktur folgt:
       if (res.status === 402) throw new Error("KI-Credits aufgebraucht.");
       throw new Error("KI-Analyse fehlgeschlagen: " + msg);
     }
-    const payload = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const payload = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const text = payload.choices?.[0]?.message?.content ?? "{}";
     let analysis: Analysis;
-    try { analysis = JSON.parse(text) as Analysis; }
-    catch { throw new Error("KI-Antwort war kein gültiges JSON"); }
+    try {
+      analysis = JSON.parse(text) as Analysis;
+    } catch {
+      throw new Error("KI-Antwort war kein gültiges JSON");
+    }
 
-    await supabase.from("edit_jobs").update({
-      status: "ready",
-      progress: 100,
-      analysis: JSON.parse(JSON.stringify(analysis)),
-    }).eq("id", job.id);
+    await supabase
+      .from("edit_jobs")
+      .update({
+        status: "ready",
+        progress: 100,
+        analysis: JSON.parse(JSON.stringify(analysis)),
+      })
+      .eq("id", job.id);
 
     return { analysis };
   });
