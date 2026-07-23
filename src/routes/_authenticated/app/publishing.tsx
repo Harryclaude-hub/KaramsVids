@@ -164,6 +164,72 @@ function fmtInterval(min: number): string {
   return `${min} Min`;
 }
 
+/** Intervall direkt in der Liste bearbeiten: "alle [n] [Einheit]" + OK */
+function IntervalEditor({ schedule, onSaved }: { schedule: Schedule; onSaved: () => void }) {
+  const init = schedule.interval_minutes ?? 60;
+  const initUnit: "minutes" | "hours" | "days" =
+    init % 1440 === 0 ? "days" : init % 60 === 0 ? "hours" : "minutes";
+  const initN = initUnit === "days" ? init / 1440 : initUnit === "hours" ? init / 60 : init;
+  const [n, setN] = useState(initN);
+  const [unit, setUnit] = useState<"minutes" | "hours" | "days">(initUnit);
+  const [saving, setSaving] = useState(false);
+
+  const minutes = Math.max(
+    5,
+    Math.round(n * (unit === "minutes" ? 1 : unit === "hours" ? 60 : 1440)),
+  );
+  const changed = minutes !== init;
+
+  async function save() {
+    setSaving(true);
+    const nextRun = new Date(Date.now() + minutes * 60_000);
+    const { error } = await supabase
+      .from("publish_schedules")
+      .update({
+        interval_minutes: minutes,
+        next_run_at: nextRun.toISOString(),
+      } as never)
+      .eq("id", schedule.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(
+      `Intervall geändert — nächster Upload um ${nextRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr, danach alle ${fmtInterval(minutes)}`,
+    );
+    onSaved();
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-normal">
+      · alle
+      <input
+        type="number"
+        min={1}
+        value={n}
+        onChange={(e) => setN(Math.max(1, Number(e.target.value)))}
+        className="w-14 rounded border border-border bg-input px-1.5 py-0.5 text-xs outline-none focus:border-primary"
+      />
+      <select
+        value={unit}
+        onChange={(e) => setUnit(e.target.value as "minutes" | "hours" | "days")}
+        className="rounded border border-border bg-input px-1 py-0.5 text-xs outline-none focus:border-primary"
+      >
+        <option value="minutes">Minuten</option>
+        <option value="hours">Stunden</option>
+        <option value="days">Tage</option>
+      </select>
+      {changed && (
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+        >
+          {saving ? "…" : "OK"}
+        </button>
+      )}
+    </span>
+  );
+}
+
 function ScheduleSection({
   brandId, userId, schedules, onChange, queuedByPlatform,
 }: {
@@ -179,15 +245,22 @@ function ScheduleSection({
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
 
+  const unitFactor = intervalUnit === "minutes" ? 1 : intervalUnit === "hours" ? 60 : 1440;
+  const previewMinutes = Math.max(5, Math.round(intervalN * unitFactor)); // min. 5 Min (Cron-Takt)
+  const previewFirstRun = new Date(Date.now() + previewMinutes * 60_000);
+
   async function add() {
-    const unitFactor = intervalUnit === "minutes" ? 1 : intervalUnit === "hours" ? 60 : 1440;
-    const intervalMinutes = Math.max(5, Math.round(intervalN * unitFactor)); // min. 5 Min (Cron-Takt)
+    const intervalMinutes = previewMinutes;
     const { error } = await supabase.from("publish_schedules").insert({
       user_id: userId, brand_id: brandId,
       platform, cadence,
       weekdays: cadence === "weekly" ? days : [],
       time_of_day: time,
       interval_minutes: cadence === "interval" ? intervalMinutes : null,
+      // Intervall: erster Upload exakt in X Minuten — vorhersehbar statt "irgendwann"
+      ...(cadence === "interval"
+        ? { next_run_at: new Date(Date.now() + intervalMinutes * 60_000).toISOString() }
+        : {}),
       videos_per_slot: count,
       active: true,
     } as never);
@@ -244,7 +317,7 @@ function ScheduleSection({
               <select value={cadence} onChange={(e) => setCadence(e.target.value as any)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary">
                 <option value="daily">Täglich</option>
                 <option value="weekly">Wöchentlich</option>
-                <option value="interval">Intervall (alle X …)</option>
+                <option value="interval">Alle paar Minuten / Stunden / Tage</option>
               </select>
             </label>
             {cadence === "interval" ? (
@@ -280,6 +353,17 @@ function ScheduleSection({
               <input type="number" min={1} max={10} value={count} onChange={(e) => setCount(Math.max(1, Number(e.target.value)))} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
             </label>
           </div>
+          {cadence === "interval" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+              ⏱ Postet automatisch <b>alle {fmtInterval(previewMinutes)}</b> · erster Upload:{" "}
+              <b>
+                {previewFirstRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })}{" "}
+                Uhr
+              </b>{" "}
+              ({previewFirstRun.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })}),
+              danach fortlaufend — solange Videos in der Warteschlange sind.
+            </div>
+          )}
           {cadence === "weekly" && (
             <div>
               <div className="mb-1 text-xs text-muted-foreground">Wochentage</div>
@@ -312,16 +396,28 @@ function ScheduleSection({
               <div key={s.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-sm font-medium capitalize">
-                      {s.platform} ·{" "}
-                      {s.cadence === "interval" && s.interval_minutes
-                        ? `alle ${fmtInterval(s.interval_minutes)}`
-                        : s.cadence === "daily"
-                          ? `täglich · ${s.time_of_day.slice(0, 5)}`
-                          : `wöchentlich · ${s.time_of_day.slice(0, 5)}`}
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                      <span className="capitalize">{s.platform}</span>
+                      {s.cadence === "interval" ? (
+                        <IntervalEditor schedule={s} onSaved={onChange} />
+                      ) : (
+                        <span>
+                          ·{" "}
+                          {s.cadence === "daily"
+                            ? `täglich · ${s.time_of_day.slice(0, 5)}`
+                            : `wöchentlich · ${s.time_of_day.slice(0, 5)}`}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                      Nächster Slot: {new Date(s.next_run_at).toLocaleString()}
+                      Nächster Upload:{" "}
+                      {new Date(s.next_run_at).toLocaleString("de-AT", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      Uhr
                     </div>
                     {s.cadence === "weekly" && s.weekdays && s.weekdays.length > 0 && (
                       <div className="mt-1 flex gap-1">
