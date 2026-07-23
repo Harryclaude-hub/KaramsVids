@@ -18,24 +18,47 @@ import {
   Wand2,
   Clapperboard,
   Users,
+  Shield,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBrands, useActiveBrandId, useCreateBrand } from "@/lib/use-active-brand";
 import { toast } from "sonner";
 
+const ADMIN_EMAIL = "saifokaram1@gmail.com";
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+
+    // Freigabe-Gate: ohne Admin-Genehmigung kein Zugang zur App.
+    // Der Admin-Account selbst ist immer freigeschaltet.
+    let isAdmin = data.user.email === ADMIN_EMAIL;
+    if (!isAdmin) {
+      const { data: profile, error: profErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (!profErr && profile) {
+        const p = profile as { status?: string; role?: string };
+        isAdmin = p.role === "admin";
+        // Solange die Admin-Migration noch nicht lief, gibt es keine status-Spalte
+        // (undefined) — dann nicht aussperren. Danach gilt: nur 'approved' darf rein.
+        if (!isAdmin && p.status !== undefined && p.status !== "approved") {
+          throw redirect({ to: "/pending" });
+        }
+      }
+    }
+    return { user: data.user, isAdmin };
   },
   component: AppShell,
 });
 
 function AppShell() {
-  const { user } = Route.useRouteContext();
+  const { user, isAdmin } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -47,7 +70,14 @@ function AppShell() {
   const [newName, setNewName] = useState("");
 
   const nav: {
-    to: "/app" | "/app/clip" | "/app/generate" | "/app/avatars" | "/app/publishing" | "/app/connections";
+    to:
+      | "/app"
+      | "/app/clip"
+      | "/app/generate"
+      | "/app/avatars"
+      | "/app/publishing"
+      | "/app/connections"
+      | "/app/admin";
     label: string;
     icon: typeof Scissors;
   }[] = [
@@ -55,6 +85,9 @@ function AppShell() {
     { to: "/app/clip", label: "Massen-Clipping", icon: Wand2 },
     { to: "/app/generate", label: "KI-Studio", icon: Clapperboard },
     { to: "/app/avatars", label: "Avatare", icon: Users },
+    ...(isAdmin
+      ? [{ to: "/app/admin" as const, label: "Admin", icon: Shield }]
+      : []),
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
   ];

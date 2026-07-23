@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PendingRouteImport } from './routes/pending'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
+import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app/admin'
 import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
 import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
@@ -42,6 +44,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
@@ -55,6 +62,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
+  id: '/app/admin',
+  path: '/app/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
@@ -127,8 +139,10 @@ const ApiPublicHooksSyncAnalyticsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -146,8 +160,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -167,8 +183,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/_authenticated/app/admin': typeof AuthenticatedAppAdminRoute
   '/_authenticated/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/_authenticated/app/clip': typeof AuthenticatedAppClipRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -188,8 +206,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/pending'
     | '/api/chat'
     | '/api/transcribe'
+    | '/app/admin'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -207,8 +227,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/pending'
     | '/api/chat'
     | '/api/transcribe'
+    | '/app/admin'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -227,8 +249,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/pending'
     | '/api/chat'
     | '/api/transcribe'
+    | '/_authenticated/app/admin'
     | '/_authenticated/app/avatars'
     | '/_authenticated/app/clip'
     | '/_authenticated/app/connections'
@@ -248,6 +272,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PendingRoute: typeof PendingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
@@ -278,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -297,6 +329,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/admin': {
+      id: '/_authenticated/app/admin'
+      path: '/app/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/avatars': {
@@ -387,6 +426,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRoute
   AuthenticatedAppAvatarsRoute: typeof AuthenticatedAppAvatarsRoute
   AuthenticatedAppClipRoute: typeof AuthenticatedAppClipRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
@@ -400,6 +440,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAppAdminRoute: AuthenticatedAppAdminRoute,
   AuthenticatedAppAvatarsRoute: AuthenticatedAppAvatarsRoute,
   AuthenticatedAppClipRoute: AuthenticatedAppClipRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
@@ -419,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PendingRoute: PendingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicHooksProcessGenerationQueueRoute:
