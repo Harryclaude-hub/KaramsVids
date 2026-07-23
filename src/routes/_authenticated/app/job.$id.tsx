@@ -88,6 +88,8 @@ function JobEditor() {
   const [queuedIds, setQueuedIds] = useState<Record<string, string>>({});
   const [queuing, setQueuing] = useState<string | null>(null);
   const [targetPlatform, setTargetPlatform] = useState<string>("");
+  const [ytImporting, setYtImporting] = useState(false);
+  const [ytImportError, setYtImportError] = useState<string | null>(null);
 
   const ffmpegRef = useRef<any>(null);
   const inputLoadedRef = useRef<string | null>(null); // signedUrl, deren Datei bereits in ffmpeg liegt
@@ -361,6 +363,25 @@ function JobEditor() {
     } else {
       videoRef.current.pause();
       setPlaying(false);
+    }
+  }
+
+  // YouTube → MP4: Server lädt die Datei und legt sie in den Storage
+  async function runYtImport() {
+    if (!job?.raw_video_id) return;
+    setYtImporting(true);
+    setYtImportError(null);
+    try {
+      const { importYouTubeVideo } = await import("@/lib/youtube.functions");
+      await importYouTubeVideo({ data: { rawVideoId: job.raw_video_id } });
+      toast.success("MP4 importiert — Editor lädt jetzt die echte Datei");
+      await jobQ.refetch();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Import fehlgeschlagen";
+      setYtImportError(msg);
+      toast.error(msg, { duration: 10000 });
+    } finally {
+      setYtImporting(false);
     }
   }
 
@@ -812,11 +833,29 @@ function JobEditor() {
       )}
 
       {isYouTubeSource && (
-        <div className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-600 dark:text-amber-400">
-          <div className="font-semibold">YouTube-Quelle erkannt — direktes Rendering im Browser nicht möglich</div>
-          <div className="mt-0.5 text-[11px] opacity-90">
-            YouTube blockiert das Herunterladen aus dem Browser. Für echtes Clipping brauchen wir eine Backend-Download-API (yt-dlp / Cobalt / RapidAPI). Bis dahin bitte die Original-MP4-Datei hochladen — die KI-Analyse & der Schnittplan funktionieren bereits, nur der Export braucht die Datei.
+        <div className="flex flex-wrap items-center gap-3 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-600 dark:text-amber-400">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold">YouTube-Quelle — MP4 noch nicht importiert</div>
+            <div className="mt-0.5 text-[11px] opacity-90">
+              {ytImportError ??
+                "Der Server kann das Video als MP4 importieren — danach laufen Preview, Schnitt & Export mit der echten Datei."}
+            </div>
           </div>
+          <button
+            onClick={runYtImport}
+            disabled={ytImporting}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            {ytImporting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Import läuft… (1–3 Min)
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" /> MP4 jetzt importieren
+              </>
+            )}
+          </button>
         </div>
       )}
 

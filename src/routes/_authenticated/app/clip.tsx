@@ -94,12 +94,29 @@ function ClipPage() {
     } finally { setBusy(false); setProgress(0); setBusyLabel(""); }
   }
 
+  const providersQ = useQuery({
+    queryKey: ["yt_download_providers"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { getDownloadProviders } = await import("@/lib/youtube.functions");
+      return getDownloadProviders();
+    },
+  });
+
   async function handleUrl() {
     if (!activeBrand) return toast.error("Bitte oben links einen Brand wählen");
     const url = urlInput.trim();
     if (!url) return;
     const host = detectRestrictedHost(url);
-    if (host && !isDirectVideoUrl(url)) { setYtDialog({ host, original: url }); return; }
+    if (host && !isDirectVideoUrl(url)) {
+      // Mit konfiguriertem Download-Provider: direkt importieren, kein Dialog
+      if (providersQ.data?.any) {
+        await commitUrl(url);
+        return;
+      }
+      setYtDialog({ host, original: url });
+      return;
+    }
     await commitUrl(url);
   }
 
@@ -112,6 +129,22 @@ function ClipPage() {
         title: title || url, source_url: url,
       }).select().single();
       if (error) throw new Error("Speichern fehlgeschlagen: " + error.message);
+
+      // YouTube & Co.: MP4-Import läuft im Hintergrund, während die KI plant
+      if (detectRestrictedHost(url) && providersQ.data?.any) {
+        toast.info("MP4-Download gestartet — läuft im Hintergrund (1–3 Min)");
+        import("@/lib/youtube.functions").then(({ importYouTubeVideo }) =>
+          importYouTubeVideo({ data: { rawVideoId: row.id } })
+            .then(() => toast.success("YouTube-Video als MP4 importiert"))
+            .catch((e) =>
+              toast.error(
+                "MP4-Import: " + (e instanceof Error ? e.message : "fehlgeschlagen"),
+                { duration: 10000 },
+              ),
+            ),
+        );
+      }
+
       await startClipping(row.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen", { duration: 8000 });
