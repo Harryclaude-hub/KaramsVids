@@ -11,12 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
-import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app/admin'
 import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
 import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
@@ -39,6 +40,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -48,6 +54,11 @@ const PendingRoute = PendingRouteImport.update({
   id: '/pending',
   path: '/pending',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
@@ -62,11 +73,6 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
@@ -138,11 +144,12 @@ const ApiPublicHooksSyncAnalyticsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/app/admin': typeof AuthenticatedAppAdminRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -163,7 +170,7 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/app/admin': typeof AuthenticatedAppAdminRoute
+  '/admin': typeof AdminIndexRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -182,11 +189,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/pending': typeof PendingRoute
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/_authenticated/app/admin': typeof AuthenticatedAppAdminRoute
+  '/admin/': typeof AdminIndexRoute
   '/_authenticated/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/_authenticated/app/clip': typeof AuthenticatedAppClipRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -205,11 +213,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/pending'
     | '/api/chat'
     | '/api/transcribe'
-    | '/app/admin'
+    | '/admin/'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -230,7 +239,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/api/chat'
     | '/api/transcribe'
-    | '/app/admin'
+    | '/admin'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -248,11 +257,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin'
     | '/auth'
     | '/pending'
     | '/api/chat'
     | '/api/transcribe'
-    | '/_authenticated/app/admin'
+    | '/admin/'
     | '/_authenticated/app/avatars'
     | '/_authenticated/app/clip'
     | '/_authenticated/app/connections'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   PendingRoute: typeof PendingRoute
   ApiChatRoute: typeof ApiChatRoute
@@ -296,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -309,6 +327,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pending'
       preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/api/chat': {
       id: '/api/chat'
@@ -329,13 +354,6 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/admin': {
-      id: '/_authenticated/app/admin'
-      path: '/app/admin'
-      fullPath: '/app/admin'
-      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/avatars': {
@@ -426,7 +444,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRoute
   AuthenticatedAppAvatarsRoute: typeof AuthenticatedAppAvatarsRoute
   AuthenticatedAppClipRoute: typeof AuthenticatedAppClipRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
@@ -440,7 +457,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAppAdminRoute: AuthenticatedAppAdminRoute,
   AuthenticatedAppAvatarsRoute: AuthenticatedAppAvatarsRoute,
   AuthenticatedAppClipRoute: AuthenticatedAppClipRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
@@ -456,9 +472,20 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   PendingRoute: PendingRoute,
   ApiChatRoute: ApiChatRoute,
@@ -472,13 +499,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

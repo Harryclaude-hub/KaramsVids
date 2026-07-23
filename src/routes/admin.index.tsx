@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
@@ -15,11 +15,9 @@ import {
   Search,
 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/app/admin")({
+export const Route = createFileRoute("/admin/")({
   component: AdminPortal,
 });
-
-const ADMIN_EMAIL = "saifokaram1@gmail.com";
 
 type Profile = {
   id: string;
@@ -37,12 +35,9 @@ function AdminPortal() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const isAdmin = user.email === ADMIN_EMAIL;
-
   const usersQ = useQuery({
     queryKey: ["admin_users"],
-    enabled: isAdmin,
-    refetchInterval: 20_000, // neue Registrierungen erscheinen automatisch
+    refetchInterval: 20_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -52,24 +47,6 @@ function AdminPortal() {
       return (data ?? []) as unknown as Profile[];
     },
   });
-
-  if (!isAdmin) {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-        <Shield className="mx-auto h-8 w-8 text-destructive" />
-        <h1 className="mt-3 text-lg font-semibold">Kein Zugriff</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Dieser Bereich ist dem Administrator vorbehalten.
-        </p>
-        <Link
-          to="/app"
-          className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Zurück zur App
-        </Link>
-      </div>
-    );
-  }
 
   const users = usersQ.data ?? [];
   const pending = users.filter((u) => u.status === "pending");
@@ -124,7 +101,6 @@ function AdminPortal() {
         </p>
       </div>
 
-      {/* Statistik */}
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard icon={<Users className="h-4 w-4" />} label="Gesamt" value={users.length} />
         <StatCard
@@ -145,7 +121,6 @@ function AdminPortal() {
         />
       </div>
 
-      {/* Wartende Registrierungen */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Hourglass className="h-4 w-4 text-accent" /> Neue Registrierungen ({pending.length})
@@ -190,7 +165,6 @@ function AdminPortal() {
         )}
       </div>
 
-      {/* Alle Nutzer */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-sm font-medium">

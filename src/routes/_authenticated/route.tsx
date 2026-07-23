@@ -76,8 +76,7 @@ function AppShell() {
       | "/app/generate"
       | "/app/avatars"
       | "/app/publishing"
-      | "/app/connections"
-      | "/app/admin";
+      | "/app/connections";
     label: string;
     icon: typeof Scissors;
   }[] = [
@@ -85,9 +84,6 @@ function AppShell() {
     { to: "/app/clip", label: "Massen-Clipping", icon: Wand2 },
     { to: "/app/generate", label: "KI-Studio", icon: Clapperboard },
     { to: "/app/avatars", label: "Avatare", icon: Users },
-    ...(isAdmin
-      ? [{ to: "/app/admin" as const, label: "Admin", icon: Shield }]
-      : []),
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
   ];
@@ -236,6 +232,14 @@ function AppShell() {
         </div>
 
         <div className="mt-auto space-y-2 border-t border-border pt-4">
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm text-primary hover:bg-primary/10"
+            >
+              <Shield className="h-4 w-4" /> Admin-Portal
+            </Link>
+          )}
           <div className="truncate px-3 text-xs text-muted-foreground">{user.email}</div>
           <button
             onClick={signOut}
