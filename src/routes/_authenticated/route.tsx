@@ -76,8 +76,7 @@ function AppShell() {
       | "/app/generate"
       | "/app/avatars"
       | "/app/publishing"
-      | "/app/connections"
-      | "/app/admin";
+      | "/app/connections";
     label: string;
     icon: typeof Scissors;
   }[] = [
@@ -85,9 +84,6 @@ function AppShell() {
     { to: "/app/clip", label: "Massen-Clipping", icon: Wand2 },
     { to: "/app/generate", label: "KI-Studio", icon: Clapperboard },
     { to: "/app/avatars", label: "Avatare", icon: Users },
-    ...(isAdmin
-      ? [{ to: "/app/admin" as const, label: "Admin", icon: Shield }]
-      : []),
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
   ];

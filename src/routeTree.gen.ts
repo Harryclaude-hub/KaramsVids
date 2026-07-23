@@ -18,7 +18,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
-import { Route as AuthenticatedAppAdminRouteImport } from './routes/_authenticated/app/admin'
 import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
 import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
@@ -74,11 +73,6 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppAdminRoute = AuthenticatedAppAdminRouteImport.update({
-  id: '/app/admin',
-  path: '/app/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
@@ -156,7 +150,6 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/admin/': typeof AdminIndexRoute
-  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -178,7 +171,6 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/admin': typeof AdminIndexRoute
-  '/app/admin': typeof AuthenticatedAppAdminRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -203,7 +195,6 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/admin/': typeof AdminIndexRoute
-  '/_authenticated/app/admin': typeof AuthenticatedAppAdminRoute
   '/_authenticated/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/_authenticated/app/clip': typeof AuthenticatedAppClipRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
@@ -228,7 +219,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/admin/'
-    | '/app/admin'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -250,7 +240,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/admin'
-    | '/app/admin'
     | '/app/avatars'
     | '/app/clip'
     | '/app/connections'
@@ -274,7 +263,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/transcribe'
     | '/admin/'
-    | '/_authenticated/app/admin'
     | '/_authenticated/app/avatars'
     | '/_authenticated/app/clip'
     | '/_authenticated/app/connections'
@@ -368,13 +356,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/admin': {
-      id: '/_authenticated/app/admin'
-      path: '/app/admin'
-      fullPath: '/app/admin'
-      preLoaderRoute: typeof AuthenticatedAppAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app/avatars': {
       id: '/_authenticated/app/avatars'
       path: '/app/avatars'
@@ -463,7 +444,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAppAdminRoute: typeof AuthenticatedAppAdminRoute
   AuthenticatedAppAvatarsRoute: typeof AuthenticatedAppAvatarsRoute
   AuthenticatedAppClipRoute: typeof AuthenticatedAppClipRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
@@ -477,7 +457,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAppAdminRoute: AuthenticatedAppAdminRoute,
   AuthenticatedAppAvatarsRoute: AuthenticatedAppAvatarsRoute,
   AuthenticatedAppClipRoute: AuthenticatedAppClipRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
