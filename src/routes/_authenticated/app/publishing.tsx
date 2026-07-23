@@ -152,11 +152,17 @@ type Schedule = {
   weekdays: number[] | null;
   time_of_day: string;
   interval_minutes?: number | null;
+  platforms?: string[] | null;
   videos_per_slot: number;
   active: boolean;
   next_run_at: string;
   last_run_at: string | null;
 };
+
+/** Plattform-Liste eines Plans (neues Array-Feld mit Fallback aufs Altfeld) */
+function schedulePlatforms(s: Schedule): string[] {
+  return (s.platforms && s.platforms.length > 0 ? s.platforms : [s.platform]).filter(Boolean);
+}
 
 function fmtInterval(min: number): string {
   if (min % 1440 === 0) return `${min / 1440} Tag${min / 1440 > 1 ? "e" : ""}`;
@@ -237,10 +243,10 @@ function ScheduleSection({
   queuedByPlatform: Record<string, number>;
 }) {
   const [creating, setCreating] = useState(false);
-  const [platform, setPlatform] = useState("tiktok");
-  const [cadence, setCadence] = useState<"daily" | "weekly" | "interval">("daily");
+  const [selPlatforms, setSelPlatforms] = useState<string[]>(PLATFORMS.map((p) => p.id));
+  const [mode, setMode] = useState<"week" | "interval">("week");
   const [time, setTime] = useState("18:00");
-  const [days, setDays] = useState<number[]>([1, 3, 5]);
+  const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // ganze Woche
   const [count, setCount] = useState(1);
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
@@ -249,17 +255,40 @@ function ScheduleSection({
   const previewMinutes = Math.max(5, Math.round(intervalN * unitFactor)); // min. 5 Min (Cron-Takt)
   const previewFirstRun = new Date(Date.now() + previewMinutes * 60_000);
 
+  const allSelected = selPlatforms.length === PLATFORMS.length;
+  const platformLabel = allSelected
+    ? "allen Plattformen"
+    : selPlatforms.map((id) => PLATFORMS.find((p) => p.id === id)?.name ?? id).join(", ");
+  // Anzeige-Reihenfolge Mo–So
+  const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+  const dayLabel =
+    days.length === 7
+      ? "jeden Tag"
+      : "immer " +
+        DAY_ORDER.filter((d) => days.includes(d))
+          .map((d) => WEEKDAYS[d])
+          .join(", ");
+
+  function togglePlatform(id: string) {
+    setSelPlatforms((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  }
+
   async function add() {
-    const intervalMinutes = previewMinutes;
+    if (selPlatforms.length === 0) return toast.error("Bitte mindestens eine Plattform wählen");
+    if (mode === "week" && days.length === 0)
+      return toast.error("Bitte mindestens einen Wochentag wählen");
+    const cadence = mode === "interval" ? "interval" : days.length === 7 ? "daily" : "weekly";
     const { error } = await supabase.from("publish_schedules").insert({
       user_id: userId, brand_id: brandId,
-      platform, cadence,
+      platform: selPlatforms[0], // Altfeld (Kompatibilität)
+      platforms: selPlatforms,
+      cadence,
       weekdays: cadence === "weekly" ? days : [],
       time_of_day: time,
-      interval_minutes: cadence === "interval" ? intervalMinutes : null,
+      interval_minutes: mode === "interval" ? previewMinutes : null,
       // Intervall: erster Upload exakt in X Minuten — vorhersehbar statt "irgendwann"
-      ...(cadence === "interval"
-        ? { next_run_at: new Date(Date.now() + intervalMinutes * 60_000).toISOString() }
+      ...(mode === "interval"
+        ? { next_run_at: new Date(Date.now() + previewMinutes * 60_000).toISOString() }
         : {}),
       videos_per_slot: count,
       active: true,
@@ -267,9 +296,9 @@ function ScheduleSection({
     if (error) return toast.error(error.message);
     setCreating(false);
     toast.success(
-      cadence === "interval"
-        ? `Zeitplan erstellt — postet alle ${fmtInterval(intervalMinutes)}`
-        : "Zeitplan erstellt",
+      mode === "interval"
+        ? `Plan gespeichert — postet alle ${fmtInterval(previewMinutes)} auf ${platformLabel}`
+        : `Plan gespeichert — postet ${dayLabel} um ${time} Uhr auf ${platformLabel}`,
     );
     onChange();
   }
@@ -304,82 +333,168 @@ function ScheduleSection({
       </div>
 
       {creating && (
-        <div className="mb-3 rounded-xl border border-primary/40 bg-primary/5 p-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-4">
-            <label className="text-xs">
-              <span className="text-muted-foreground">Plattform</span>
-              <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary">
-                {PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
-            <label className="text-xs">
-              <span className="text-muted-foreground">Kadenz</span>
-              <select value={cadence} onChange={(e) => setCadence(e.target.value as any)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary">
-                <option value="daily">Täglich</option>
-                <option value="weekly">Wöchentlich</option>
-                <option value="interval">Alle paar Minuten / Stunden / Tage</option>
-              </select>
-            </label>
-            {cadence === "interval" ? (
-              <label className="text-xs">
-                <span className="text-muted-foreground">Alle …</span>
-                <div className="mt-1 flex gap-1">
-                  <input
-                    type="number"
-                    min={1}
-                    value={intervalN}
-                    onChange={(e) => setIntervalN(Math.max(1, Number(e.target.value)))}
-                    className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
-                  />
-                  <select
-                    value={intervalUnit}
-                    onChange={(e) => setIntervalUnit(e.target.value as any)}
-                    className="flex-1 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
-                  >
-                    <option value="minutes">Minuten</option>
-                    <option value="hours">Stunden</option>
-                    <option value="days">Tage</option>
-                  </select>
-                </div>
-              </label>
-            ) : (
-              <label className="text-xs">
-                <span className="text-muted-foreground">Uhrzeit</span>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
-              </label>
-            )}
-            <label className="text-xs">
-              <span className="text-muted-foreground">Videos pro Slot</span>
-              <input type="number" min={1} max={10} value={count} onChange={(e) => setCount(Math.max(1, Number(e.target.value)))} className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary" />
-            </label>
+        <div className="mb-3 space-y-4 rounded-xl border border-primary/40 bg-primary/5 p-4">
+          {/* So funktioniert's */}
+          <div className="rounded-lg border border-border bg-background/60 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+            <b className="text-foreground">So funktioniert die Upload-Planung:</b> Du füllst die
+            Warteschlange unten mit fertigen Clips (im Editor über „Queue"). Dieser Plan nimmt dann
+            automatisch die nächsten Clips aus der Warteschlange und postet sie zum eingestellten
+            Zeitpunkt auf die gewählten Plattformen — pro Plattform ihre eigene Warteschlange.
           </div>
-          {cadence === "interval" && (
-            <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
-              ⏱ Postet automatisch <b>alle {fmtInterval(previewMinutes)}</b> · erster Upload:{" "}
-              <b>
-                {previewFirstRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })}{" "}
-                Uhr
-              </b>{" "}
-              ({previewFirstRun.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })}),
-              danach fortlaufend — solange Videos in der Warteschlange sind.
+
+          {/* Schritt 1: Plattformen */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">1</span>
+              Wohin posten?
             </div>
-          )}
-          {cadence === "weekly" && (
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Wochentage</div>
-              <div className="flex gap-1">
-                {WEEKDAYS.map((d, i) => (
-                  <button key={i} onClick={() => setDays((cur) => cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i])}
-                    className={`w-9 rounded-md border px-2 py-1 text-xs ${days.includes(i) ? "border-primary bg-primary/20 text-primary" : "border-border"}`}>
-                    {d}
-                  </button>
-                ))}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setSelPlatforms(allSelected ? [] : PLATFORMS.map((p) => p.id))}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${allSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
+              >
+                Alle Plattformen
+              </button>
+              <span className="text-[10px] text-muted-foreground">oder einzeln:</span>
+              {PLATFORMS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => togglePlatform(p.id)}
+                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selPlatforms.includes(p.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Schritt 2: Wann */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2</span>
+              Wann posten?
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => setMode("week")}
+                className={`rounded-lg border p-3 text-left text-xs ${mode === "week" ? "border-primary bg-primary/10" : "border-border hover:bg-card"}`}
+              >
+                <div className="font-medium">📅 Wochenplan</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  Feste Tage + Uhrzeit — plane die ganze Woche im Voraus
+                </div>
+              </button>
+              <button
+                onClick={() => setMode("interval")}
+                className={`rounded-lg border p-3 text-left text-xs ${mode === "interval" ? "border-primary bg-primary/10" : "border-border hover:bg-card"}`}
+              >
+                <div className="font-medium">⏱ Intervall</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  Alle paar Minuten, Stunden oder Tage — läuft fortlaufend
+                </div>
+              </button>
+            </div>
+
+            {mode === "week" ? (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5, 6, 0].map((i) => (
+                    <button
+                      key={i}
+                      onClick={() =>
+                        setDays((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]))
+                      }
+                      className={`w-9 rounded-md border px-2 py-1.5 text-xs ${days.includes(i) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}
+                    >
+                      {WEEKDAYS[i]}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setDays([1, 2, 3, 4, 5, 6, 0])}
+                  className="rounded-md border border-border px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-card"
+                >
+                  Jeden Tag
+                </button>
+                <label className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">um</span>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    className="rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                  />
+                  <span className="text-muted-foreground">Uhr</span>
+                </label>
               </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">alle</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={intervalN}
+                  onChange={(e) => setIntervalN(Math.max(1, Number(e.target.value)))}
+                  className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                />
+                <select
+                  value={intervalUnit}
+                  onChange={(e) => setIntervalUnit(e.target.value as "minutes" | "hours" | "days")}
+                  className="rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                >
+                  <option value="minutes">Minuten</option>
+                  <option value="hours">Stunden</option>
+                  <option value="days">Tage</option>
+                </select>
+                <span className="text-[10px] text-muted-foreground">(Minimum: 5 Minuten)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Schritt 3: Menge */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">3</span>
+              Wie viele Videos pro Termin?
             </div>
-          )}
+            <div className="flex items-center gap-2 text-xs">
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={count}
+                onChange={(e) => setCount(Math.max(1, Number(e.target.value)))}
+                className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+              />
+              <span className="text-muted-foreground">
+                Video(s) — genommen wird immer das oberste aus der Warteschlange, pro Plattform
+              </span>
+            </div>
+          </div>
+
+          {/* Live-Zusammenfassung */}
+          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+            {mode === "interval" ? (
+              <>
+                ⏱ Postet <b>alle {fmtInterval(previewMinutes)}</b> jeweils <b>{count} Video(s)</b>{" "}
+                auf <b>{platformLabel || "— noch keine Plattform gewählt —"}</b> · erster Upload:{" "}
+                <b>
+                  {previewFirstRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr
+                </b>{" "}
+                ({previewFirstRun.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })})
+              </>
+            ) : (
+              <>
+                📅 Postet <b>{days.length === 0 ? "— noch keine Tage gewählt —" : dayLabel}</b> um{" "}
+                <b>{time} Uhr</b> jeweils <b>{count} Video(s)</b> auf{" "}
+                <b>{platformLabel || "— noch keine Plattform gewählt —"}</b>
+              </>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2">
             <button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs">Abbrechen</button>
-            <button onClick={add} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Speichern</button>
+            <button onClick={add} className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">Plan speichern</button>
           </div>
         </div>
       )}
@@ -391,21 +506,32 @@ function ScheduleSection({
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {schedules.map((s) => {
-            const q = queuedByPlatform[s.platform] ?? 0;
+            const plats = schedulePlatforms(s);
             return (
               <div key={s.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span className="capitalize">{s.platform}</span>
+                      <span className="flex flex-wrap gap-1">
+                        {plats.length === PLATFORMS.length ? (
+                          <span className="rounded-md bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                            Alle Plattformen
+                          </span>
+                        ) : (
+                          plats.map((p) => (
+                            <span key={p} className="rounded-md bg-secondary px-2 py-0.5 text-xs capitalize">
+                              {PLATFORMS.find((x) => x.id === p)?.name ?? p}
+                            </span>
+                          ))
+                        )}
+                      </span>
                       {s.cadence === "interval" ? (
                         <IntervalEditor schedule={s} onSaved={onChange} />
                       ) : (
-                        <span>
-                          ·{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
                           {s.cadence === "daily"
-                            ? `täglich · ${s.time_of_day.slice(0, 5)}`
-                            : `wöchentlich · ${s.time_of_day.slice(0, 5)}`}
+                            ? `täglich um ${s.time_of_day.slice(0, 5)} Uhr`
+                            : `wöchentlich um ${s.time_of_day.slice(0, 5)} Uhr`}
                         </span>
                       )}
                     </div>
@@ -429,7 +555,21 @@ function ScheduleSection({
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${s.active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {s.active ? <CheckCircle2 className="h-3 w-3" /> : <Pause className="h-3 w-3" />} {s.active ? "aktiv" : "pausiert"}
                     </span>
-                    <span className="font-mono text-[10px] text-muted-foreground">{q} in Queue</span>
+                    <span className="text-right font-mono text-[10px] leading-relaxed">
+                      {plats.map((p) => {
+                        const n = queuedByPlatform[p] ?? 0;
+                        return (
+                          <span
+                            key={p}
+                            className={`ml-1.5 ${n === 0 ? "text-destructive" : "text-muted-foreground"}`}
+                            title={n === 0 ? "Warteschlange leer — es wird nichts gepostet!" : undefined}
+                          >
+                            {(PLATFORMS.find((x) => x.id === p)?.name ?? p).slice(0, 2)}:{n}
+                            {n === 0 ? "⚠" : ""}
+                          </span>
+                        );
+                      })}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">

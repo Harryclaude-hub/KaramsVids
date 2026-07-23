@@ -27,11 +27,22 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
 
         for (const s of schedules ?? []) {
           try {
+            // Ein Plan kann mehrere Plattformen bedienen (platforms[]);
+            // Altbestand hat nur die einzelne platform-Spalte.
+            const platformList: string[] = (
+              Array.isArray((s as { platforms?: string[] }).platforms) &&
+              ((s as { platforms?: string[] }).platforms?.length ?? 0) > 0
+                ? ((s as { platforms?: string[] }).platforms as string[])
+                : [s.platform]
+            ).filter(Boolean);
+
+            let pickedTotal = 0;
+            for (const platform of platformList) {
             const { data: clips, error: clipErr } = await supabaseAdmin
               .from("generated_clips")
               .select("*")
               .eq("brand_id", s.brand_id)
-              .eq("platform", s.platform)
+              .eq("platform", platform)
               .eq("status", "queued")
               .order("queue_position", { ascending: true })
               .limit(s.videos_per_slot);
@@ -41,7 +52,7 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
               .from("social_accounts")
               .select("id,status,handle")
               .eq("brand_id", s.brand_id)
-              .eq("platform", s.platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
+              .eq("platform", platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
               .neq("status", "disconnected")
               .maybeSingle();
 
@@ -53,7 +64,7 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
                   .update({
                     status: "failed",
                     scheduled_for: publishedAt,
-                    publish_error: `Kein verbundener ${s.platform}-Account für diesen Brand`,
+                    publish_error: `Kein verbundener ${platform}-Account für diesen Brand`,
                   })
                   .eq("id", c.id);
               } else {
@@ -71,6 +82,8 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
                 published++;
               }
             }
+            pickedTotal += (clips ?? []).length;
+            } // Ende Plattform-Schleife
 
             const nextRun = computeNextRun(s, now);
             await supabaseAdmin
@@ -84,8 +97,8 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
             details.push({
               schedule_id: s.id,
               brand_id: s.brand_id,
-              platform: s.platform,
-              picked: (clips ?? []).length,
+              platforms: platformList,
+              picked: pickedTotal,
               next_run_at: nextRun.toISOString(),
             });
           } catch (e) {
