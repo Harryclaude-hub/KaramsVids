@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
   RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
-  Pencil, Trash2, Loader2,
+  Pencil, Trash2, Loader2, Stamp,
 } from "lucide-react";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { BrandAvatar } from "@/components/brand-avatar";
@@ -39,6 +39,8 @@ function BrandDetail() {
   const allBrands = allBrandsQ.data ?? [];
   const avatarFileRef = useRef<HTMLInputElement | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const wmFileRef = useRef<HTMLInputElement | null>(null);
+  const [wmUploading, setWmUploading] = useState(false);
   const [editingBrand, setEditingBrand] = useState(false);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("#F26A1F");
@@ -245,6 +247,38 @@ function BrandDetail() {
     }
   }
 
+  async function uploadWatermark(file: File) {
+    setWmUploading(true);
+    try {
+      const key = `${user.id}/brand-watermarks/${id}-${crypto.randomUUID()}.${(file.name.split(".").pop() ?? "png").toLowerCase()}`;
+      const { error: upErr } = await supabase.storage.from("raw-videos").upload(key, file, {
+        contentType: file.type || "image/png",
+        upsert: true,
+      });
+      if (upErr) throw upErr;
+      const { error } = await supabase
+        .from("brands")
+        .update({ watermark_path: key, watermark_enabled: true } as never)
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Wasserzeichen gespeichert — wird ab jetzt in Exporte eingeblendet");
+      qc.invalidateQueries({ queryKey: ["brand", id] });
+      qc.invalidateQueries({ queryKey: ["brand_watermark", id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload fehlgeschlagen");
+    } finally {
+      setWmUploading(false);
+    }
+  }
+
+  async function patchWatermark(patch: Record<string, unknown>, msg?: string) {
+    const { error } = await supabase.from("brands").update(patch as never).eq("id", id);
+    if (error) return toast.error(error.message);
+    if (msg) toast.success(msg);
+    qc.invalidateQueries({ queryKey: ["brand", id] });
+    qc.invalidateQueries({ queryKey: ["brand_watermark", id] });
+  }
+
   async function duplicateVideo(v: any, targetBrandId: string) {
     if (!targetBrandId || targetBrandId === id) return;
     const target = allBrands.find((b) => b.id === targetBrandId);
@@ -420,6 +454,87 @@ function BrandDetail() {
               </button>
             </label>
           </div>
+          {/* Wasserzeichen (Logo im Video-Eck) */}
+          <div className="rounded-lg border border-border bg-background/60 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium">
+              <Stamp className="h-4 w-4 text-primary" /> Wasserzeichen — Logo im Video
+            </div>
+            {(brand as any).watermark_path ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <WatermarkThumb path={(brand as any).watermark_path} />
+                <label className="flex cursor-pointer items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={!!(brand as any).watermark_enabled}
+                    onChange={(e) =>
+                      patchWatermark(
+                        { watermark_enabled: e.target.checked },
+                        e.target.checked ? "Wasserzeichen aktiv" : "Wasserzeichen ausgeschaltet",
+                      )
+                    }
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Standardmäßig einblenden
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">Ecke:</span>
+                  <select
+                    value={(brand as any).watermark_position ?? "br"}
+                    onChange={(e) => patchWatermark({ watermark_position: e.target.value })}
+                    className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary"
+                  >
+                    <option value="tl">oben links</option>
+                    <option value="tr">oben rechts</option>
+                    <option value="bl">unten links</option>
+                    <option value="br">unten rechts</option>
+                  </select>
+                </label>
+                <button
+                  onClick={() => wmFileRef.current?.click()}
+                  disabled={wmUploading}
+                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-card disabled:opacity-60"
+                >
+                  {wmUploading ? "Lädt…" : "Anderes Bild"}
+                </button>
+                <button
+                  onClick={() =>
+                    patchWatermark(
+                      { watermark_path: null, watermark_enabled: false },
+                      "Wasserzeichen entfernt",
+                    )
+                  }
+                  className="rounded-md border border-destructive/50 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Entfernen
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => wmFileRef.current?.click()}
+                disabled={wmUploading}
+                className="inline-flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                {wmUploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                Logo hochladen (PNG mit Transparenz empfohlen)
+              </button>
+            )}
+            <input
+              ref={wmFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && uploadWatermark(e.target.files[0])}
+            />
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Wird beim Rendern in das gewählte Eck aller Clips dieses Brands eingeblendet. Im
+              Editor kannst du es pro Video über den „Logo"-Schalter an- oder ausschalten.
+            </p>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
             <button
               onClick={deleteBrand}
@@ -715,5 +830,26 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
     <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary">
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
+  );
+}
+
+function WatermarkThumb({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.storage
+      .from("raw-videos")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setUrl(data.signedUrl);
+      });
+  }, [path]);
+  return (
+    <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-md border border-border bg-[repeating-conic-gradient(#ddd_0%_25%,#fff_0%_50%)] bg-[length:12px_12px]">
+      {url ? (
+        <img src={url} alt="Wasserzeichen" className="max-h-full max-w-full object-contain" />
+      ) : (
+        <Stamp className="h-4 w-4 text-muted-foreground" />
+      )}
+    </div>
   );
 }

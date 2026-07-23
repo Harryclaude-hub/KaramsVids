@@ -36,31 +36,50 @@
 
 :root {
   --radius: 0.75rem;
-  /* Deep neutral base with warm accent — editorial, not neon */
+  /* Helles, freundliches Theme — warmes Weiß, klare Kontraste,
+     Cut-Orange & Teal als Akzente */
+  --background: oklch(0.975 0.004 80);
+  --foreground: oklch(0.24 0.015 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.015 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.015 60);
+  --primary: oklch(0.63 0.19 45);           /* warm cut-orange */
+  --primary-foreground: oklch(0.99 0.004 80);
+  --secondary: oklch(0.945 0.007 75);
+  --secondary-foreground: oklch(0.28 0.015 60);
+  --muted: oklch(0.945 0.007 75);
+  --muted-foreground: oklch(0.50 0.015 65);
+  --accent: oklch(0.55 0.12 195);           /* teal accent for AI/analysis */
+  --accent-foreground: oklch(0.99 0.004 195);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.004 80);
+  --border: oklch(0.89 0.008 75);
+  --input: oklch(0.965 0.005 78);
+  --ring: oklch(0.63 0.19 45);
+}
+
+/* Dunkles Theme bleibt verfügbar (Klasse .dark), falls später ein Toggle kommt */
+.dark {
   --background: oklch(0.16 0.012 60);
   --foreground: oklch(0.96 0.008 80);
   --card: oklch(0.20 0.014 60);
   --card-foreground: oklch(0.96 0.008 80);
   --popover: oklch(0.20 0.014 60);
   --popover-foreground: oklch(0.96 0.008 80);
-  --primary: oklch(0.72 0.18 45);           /* warm cut-orange */
+  --primary: oklch(0.72 0.18 45);
   --primary-foreground: oklch(0.15 0.02 45);
   --secondary: oklch(0.26 0.014 60);
   --secondary-foreground: oklch(0.96 0.008 80);
   --muted: oklch(0.24 0.012 60);
   --muted-foreground: oklch(0.68 0.014 70);
-  --accent: oklch(0.72 0.14 180);           /* teal accent for AI/analysis */
+  --accent: oklch(0.72 0.14 180);
   --accent-foreground: oklch(0.15 0.02 180);
   --destructive: oklch(0.60 0.22 25);
   --destructive-foreground: oklch(0.98 0.005 80);
   --border: oklch(0.28 0.012 60);
   --input: oklch(0.24 0.012 60);
   --ring: oklch(0.72 0.18 45);
-}
-
-.dark {
-  --background: oklch(0.16 0.012 60);
-  --foreground: oklch(0.96 0.008 80);
 }
 
 @layer base {

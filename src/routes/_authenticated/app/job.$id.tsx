@@ -128,6 +128,51 @@ function JobEditor() {
   };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
 
+  // Brand-Wasserzeichen (Logo im Video-Eck) — pro Video ein-/ausschaltbar
+  const brandWmQ = useQuery({
+    queryKey: ["brand_watermark", brandId],
+    enabled: !!brandId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("id", brandId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as {
+        watermark_path?: string | null;
+        watermark_enabled?: boolean;
+        watermark_position?: string;
+      } | null;
+    },
+  });
+  const brandWm = brandWmQ.data ?? null;
+  const [wmOverride, setWmOverride] = useState<boolean | null>(null);
+  const useWm = !!brandWm?.watermark_path && (wmOverride ?? !!brandWm?.watermark_enabled);
+  const wmLoadedRef = useRef<string | null>(null);
+
+  async function ensureWatermarkFile(
+    ff: { writeFile: (n: string, d: unknown) => Promise<void> },
+    fetchFile: (u: string) => Promise<unknown>,
+  ): Promise<boolean> {
+    const path = brandWm?.watermark_path;
+    if (!path) return false;
+    if (wmLoadedRef.current === path) return true;
+    const { data } = await supabase.storage.from("raw-videos").createSignedUrl(path, 3600);
+    if (!data?.signedUrl) return false;
+    await ff.writeFile("wm.png", await fetchFile(data.signedUrl));
+    wmLoadedRef.current = path;
+    return true;
+  }
+
+  function wmOverlayPos(): string {
+    const pos = brandWm?.watermark_position ?? "br";
+    if (pos === "tl") return "24:24";
+    if (pos === "tr") return "W-w-24:24";
+    if (pos === "bl") return "24:H-h-24";
+    return "W-w-24:H-h-24";
+  }
+
   useEffect(() => {
     if (raw?.platform && !targetPlatform) setTargetPlatform(raw.platform);
   }, [raw?.platform, targetPlatform]);
@@ -452,34 +497,51 @@ function JobEditor() {
       }
 
       const duration = Math.max(0.5, seg.end_s - seg.start_s);
-      const vf: string[] = [aspectFilter()];
-      const dt = drawtextForClip(idx, 0);
-      if (dt) vf.push(dt);
+      const vFilterChain = [aspectFilter(), drawtextForClip(idx, 0)].filter(Boolean).join(",");
 
-      // Optional single audio track mix (first track only for per-clip)
+      // Optional: Musik-Spur + Brand-Wasserzeichen
       const audio = audioTracks[0];
+      const hasAudio = !!(audio && audioSignedUrls[audio.id]);
+      const hasWm = useWm && (await ensureWatermarkFile(ff, fetchFile));
+
       const inputs = ["-ss", String(seg.start_s), "-i", "in.mp4", "-t", String(duration)];
-      let audioArgs: string[] = ["-c:a", "aac"];
-      if (audio && audioSignedUrls[audio.id]) {
+      if (hasAudio) {
         await ff.writeFile("bg.audio", await fetchFile(audioSignedUrls[audio.id]));
         inputs.push("-i", "bg.audio");
-        audioArgs = [
-          "-filter_complex",
-          `[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
-          "-map",
-          "0:v",
-          "-map",
-          "[aout]",
-          "-c:a",
-          "aac",
-        ];
+      }
+      if (hasWm) inputs.push("-i", "wm.png");
+
+      // -vf und -filter_complex dürfen nicht gemischt werden → bei Musik
+      // oder Wasserzeichen läuft alles über EINEN filter_complex-Graphen.
+      let filterArgs: string[];
+      if (hasAudio || hasWm) {
+        const parts: string[] = [`[0:v]${vFilterChain}[v1]`];
+        let vOut = "[v1]";
+        if (hasWm) {
+          const wmIdx = hasAudio ? 2 : 1;
+          parts.push(`[${wmIdx}:v]scale=200:-1[wm]`);
+          parts.push(`${vOut}[wm]overlay=${wmOverlayPos()}[v2]`);
+          vOut = "[v2]";
+        }
+        const maps = ["-map", vOut];
+        if (hasAudio) {
+          parts.push(
+            `[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
+          );
+          maps.push("-map", "[aout]");
+        } else {
+          maps.push("-map", "0:a?");
+        }
+        filterArgs = ["-filter_complex", parts.join(";"), ...maps];
+      } else {
+        filterArgs = ["-vf", vFilterChain];
       }
 
       const args = [
         ...inputs,
-        "-vf",
-        vf.join(","),
-        ...audioArgs,
+        ...filterArgs,
+        "-c:a",
+        "aac",
         "-c:v",
         "libx264",
         "-preset",
@@ -601,16 +663,28 @@ function JobEditor() {
       });
 
       const audio = audioTracks[0];
+      const hasAudioM = !!(audio && audioSignedUrls[audio.id]);
+      const hasWmM = useWm && (await ensureWatermarkFile(ff, fetchFile));
       let finalName = "concat.mp4";
-      if (dtParts.length || audio) {
+      if (dtParts.length || hasAudioM || hasWmM) {
         const inputs = ["-i", "concat.mp4"];
-        let filter = dtParts.length ? `[0:v]${dtParts.join(",")}[vout]` : "[0:v]null[vout]";
-        let map = ["-map", "[vout]", "-map", "0:a?"];
-        if (audio && audioSignedUrls[audio.id]) {
+        if (hasAudioM) {
           await ff.writeFile("bg.audio", await fetchFile(audioSignedUrls[audio.id]));
           inputs.push("-i", "bg.audio");
+        }
+        if (hasWmM) inputs.push("-i", "wm.png");
+
+        let filter = dtParts.length ? `[0:v]${dtParts.join(",")}[v1]` : "[0:v]null[v1]";
+        let vOut = "[v1]";
+        if (hasWmM) {
+          const wmIdx = hasAudioM ? 2 : 1;
+          filter += `;[${wmIdx}:v]scale=200:-1[wm];${vOut}[wm]overlay=${wmOverlayPos()}[v2]`;
+          vOut = "[v2]";
+        }
+        let map = ["-map", vOut, "-map", "0:a?"];
+        if (hasAudioM) {
           filter += `;[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first[aout]`;
-          map = ["-map", "[vout]", "-map", "[aout]"];
+          map = ["-map", vOut, "-map", "[aout]"];
         }
         await ff.exec([
           ...inputs,
@@ -783,6 +857,20 @@ function JobEditor() {
           <option value="facebook">Facebook</option>
           <option value="x">X</option>
         </select>
+        {brandWm?.watermark_path && (
+          <label
+            className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs"
+            title="Brand-Wasserzeichen (Logo) in den Export einblenden"
+          >
+            <input
+              type="checkbox"
+              checked={useWm}
+              onChange={(e) => setWmOverride(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary"
+            />
+            Logo
+          </label>
+        )}
         <button
           onClick={runAutopilot}
           disabled={
@@ -1169,7 +1257,7 @@ function JobEditor() {
                     <div
                       key={a.id}
                       style={{ left: 0, width: totalDur * zoom }}
-                      className={`absolute rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 text-[10px] text-emerald-400 overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}
+                      className={`absolute rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 text-[10px] text-emerald-600 overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}
                     >
                       <div className="truncate leading-6">
                         {a.name} · vol {Math.round(a.volume * 100)}%{a.duck ? " · ducking" : ""}
@@ -1332,7 +1420,7 @@ function JobEditor() {
                 {audioTracks[0] && (
                   <div className="rounded-md border border-border bg-background p-2">
                     <div className="mb-1 flex items-center gap-2 text-[11px] font-medium">
-                      <Music className="h-3 w-3 text-emerald-400" /> Musik: {audioTracks[0].name}
+                      <Music className="h-3 w-3 text-emerald-600" /> Musik: {audioTracks[0].name}
                     </div>
                     <label className="flex items-center gap-2 text-[10px]">
                       <Volume2 className="h-3 w-3" />
