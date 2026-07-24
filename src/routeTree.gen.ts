@@ -9,40 +9,31 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
-import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
-import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
-import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
-import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
-import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
-import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
-import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
-import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
-import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
-import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
+import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
+import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
+import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
+import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
+import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
 import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
+import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
+import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
+import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
+import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -50,9 +41,18 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PendingRoute = PendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -60,14 +60,14 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
@@ -75,20 +75,15 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
-  id: '/app/avatars',
-  path: '/app/avatars',
+const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
+  id: '/app/upload',
+  path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppClipRoute = AuthenticatedAppClipRouteImport.update({
-  id: '/app/clip',
-  path: '/app/clip',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppConnectionsRoute =
-  AuthenticatedAppConnectionsRouteImport.update({
-    id: '/app/connections',
-    path: '/app/connections',
+const AuthenticatedAppPublishingRoute =
+  AuthenticatedAppPublishingRouteImport.update({
+    id: '/app/publishing',
+    path: '/app/publishing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppGenerateRoute =
@@ -97,36 +92,26 @@ const AuthenticatedAppGenerateRoute =
     path: '/app/generate',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppPublishingRoute =
-  AuthenticatedAppPublishingRouteImport.update({
-    id: '/app/publishing',
-    path: '/app/publishing',
+const AuthenticatedAppConnectionsRoute =
+  AuthenticatedAppConnectionsRouteImport.update({
+    id: '/app/connections',
+    path: '/app/connections',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
-  id: '/app/upload',
-  path: '/app/upload',
+const AuthenticatedAppClipRoute = AuthenticatedAppClipRouteImport.update({
+  id: '/app/clip',
+  path: '/app/clip',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
-  id: '/app/brand/$id',
-  path: '/app/brand/$id',
+const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
+  id: '/app/avatars',
+  path: '/app/avatars',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
-  id: '/app/job/$id',
-  path: '/app/job/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
-  id: '/app/video/$id',
-  path: '/app/video/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const ApiPublicHooksProcessGenerationQueueRoute =
-  ApiPublicHooksProcessGenerationQueueRouteImport.update({
-    id: '/api/public/hooks/process-generation-queue',
-    path: '/api/public/hooks/process-generation-queue',
+const ApiPublicHooksSyncAnalyticsRoute =
+  ApiPublicHooksSyncAnalyticsRouteImport.update({
+    id: '/api/public/hooks/sync-analytics',
+    path: '/api/public/hooks/sync-analytics',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksProcessPublishQueueRoute =
@@ -135,12 +120,27 @@ const ApiPublicHooksProcessPublishQueueRoute =
     path: '/api/public/hooks/process-publish-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksSyncAnalyticsRoute =
-  ApiPublicHooksSyncAnalyticsRouteImport.update({
-    id: '/api/public/hooks/sync-analytics',
-    path: '/api/public/hooks/sync-analytics',
+const ApiPublicHooksProcessGenerationQueueRoute =
+  ApiPublicHooksProcessGenerationQueueRouteImport.update({
+    id: '/api/public/hooks/process-generation-queue',
+    path: '/api/public/hooks/process-generation-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
+  id: '/app/video/$id',
+  path: '/app/video/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
+  id: '/app/job/$id',
+  path: '/app/job/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
+  id: '/app/brand/$id',
+  path: '/app/brand/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -293,25 +293,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -321,11 +307,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pending': {
-      id: '/pending'
-      path: '/pending'
-      fullPath: '/pending'
-      preLoaderRoute: typeof PendingRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -335,18 +335,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/transcribe': {
       id: '/api/transcribe'
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
@@ -356,32 +356,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/avatars': {
-      id: '/_authenticated/app/avatars'
-      path: '/app/avatars'
-      fullPath: '/app/avatars'
-      preLoaderRoute: typeof AuthenticatedAppAvatarsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/clip': {
-      id: '/_authenticated/app/clip'
-      path: '/app/clip'
-      fullPath: '/app/clip'
-      preLoaderRoute: typeof AuthenticatedAppClipRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/connections': {
-      id: '/_authenticated/app/connections'
-      path: '/app/connections'
-      fullPath: '/app/connections'
-      preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/generate': {
-      id: '/_authenticated/app/generate'
-      path: '/app/generate'
-      fullPath: '/app/generate'
-      preLoaderRoute: typeof AuthenticatedAppGenerateRouteImport
+    '/_authenticated/app/upload': {
+      id: '/_authenticated/app/upload'
+      path: '/app/upload'
+      fullPath: '/app/upload'
+      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/publishing': {
@@ -391,39 +370,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/upload': {
-      id: '/_authenticated/app/upload'
-      path: '/app/upload'
-      fullPath: '/app/upload'
-      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
+    '/_authenticated/app/generate': {
+      id: '/_authenticated/app/generate'
+      path: '/app/generate'
+      fullPath: '/app/generate'
+      preLoaderRoute: typeof AuthenticatedAppGenerateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/brand/$id': {
-      id: '/_authenticated/app/brand/$id'
-      path: '/app/brand/$id'
-      fullPath: '/app/brand/$id'
-      preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
+    '/_authenticated/app/connections': {
+      id: '/_authenticated/app/connections'
+      path: '/app/connections'
+      fullPath: '/app/connections'
+      preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/job/$id': {
-      id: '/_authenticated/app/job/$id'
-      path: '/app/job/$id'
-      fullPath: '/app/job/$id'
-      preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
+    '/_authenticated/app/clip': {
+      id: '/_authenticated/app/clip'
+      path: '/app/clip'
+      fullPath: '/app/clip'
+      preLoaderRoute: typeof AuthenticatedAppClipRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/video/$id': {
-      id: '/_authenticated/app/video/$id'
-      path: '/app/video/$id'
-      fullPath: '/app/video/$id'
-      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
+    '/_authenticated/app/avatars': {
+      id: '/_authenticated/app/avatars'
+      path: '/app/avatars'
+      fullPath: '/app/avatars'
+      preLoaderRoute: typeof AuthenticatedAppAvatarsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/process-generation-queue': {
-      id: '/api/public/hooks/process-generation-queue'
-      path: '/api/public/hooks/process-generation-queue'
-      fullPath: '/api/public/hooks/process-generation-queue'
-      preLoaderRoute: typeof ApiPublicHooksProcessGenerationQueueRouteImport
+    '/api/public/hooks/sync-analytics': {
+      id: '/api/public/hooks/sync-analytics'
+      path: '/api/public/hooks/sync-analytics'
+      fullPath: '/api/public/hooks/sync-analytics'
+      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/process-publish-queue': {
@@ -433,12 +412,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/sync-analytics': {
-      id: '/api/public/hooks/sync-analytics'
-      path: '/api/public/hooks/sync-analytics'
-      fullPath: '/api/public/hooks/sync-analytics'
-      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
+    '/api/public/hooks/process-generation-queue': {
+      id: '/api/public/hooks/process-generation-queue'
+      path: '/api/public/hooks/process-generation-queue'
+      fullPath: '/api/public/hooks/process-generation-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessGenerationQueueRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/video/$id': {
+      id: '/_authenticated/app/video/$id'
+      path: '/app/video/$id'
+      fullPath: '/app/video/$id'
+      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/job/$id': {
+      id: '/_authenticated/app/job/$id'
+      path: '/app/job/$id'
+      fullPath: '/app/job/$id'
+      preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/brand/$id': {
+      id: '/_authenticated/app/brand/$id'
+      path: '/app/brand/$id'
+      fullPath: '/app/brand/$id'
+      preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -499,13 +499,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

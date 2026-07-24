@@ -64,28 +64,43 @@ export type Database = {
       }
       brands: {
         Row: {
+          avatar_path: string | null
           color: string
           created_at: string
           id: string
           name: string
+          name_font: string
           updated_at: string
           user_id: string
+          watermark_enabled: boolean
+          watermark_path: string | null
+          watermark_position: string
         }
         Insert: {
+          avatar_path?: string | null
           color?: string
           created_at?: string
           id?: string
           name: string
+          name_font?: string
           updated_at?: string
           user_id: string
+          watermark_enabled?: boolean
+          watermark_path?: string | null
+          watermark_position?: string
         }
         Update: {
+          avatar_path?: string | null
           color?: string
           created_at?: string
           id?: string
           name?: string
+          name_font?: string
           updated_at?: string
           user_id?: string
+          watermark_enabled?: boolean
+          watermark_path?: string | null
+          watermark_position?: string
         }
         Relationships: []
       }

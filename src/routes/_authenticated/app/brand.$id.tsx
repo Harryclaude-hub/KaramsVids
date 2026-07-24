@@ -15,6 +15,17 @@ export const Route = createFileRoute("/_authenticated/app/brand/$id")({
   component: BrandDetail,
 });
 
+const FONT_OPTIONS: { value: string; label: string; className: string }[] = [
+  { value: "sans", label: "Sans (Standard)", className: "font-sans" },
+  { value: "serif", label: "Serif", className: "font-serif" },
+  { value: "mono", label: "Mono", className: "font-mono" },
+  { value: "display", label: "Display (bold)", className: "font-sans font-black tracking-tight" },
+];
+
+function fontClass(v?: string | null): string {
+  return FONT_OPTIONS.find((f) => f.value === v)?.className ?? "font-sans";
+}
+
 const platforms = [
   { id: "tiktok", name: "TikTok", icon: Share2 },
   { id: "youtube", name: "YouTube", icon: Youtube },
@@ -44,7 +55,10 @@ function BrandDetail() {
   const [editingBrand, setEditingBrand] = useState(false);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("#F26A1F");
+  const [editFont, setEditFont] = useState<string>("sans");
   const [savingBrand, setSavingBrand] = useState(false);
+  const [analyticsRange, setAnalyticsRange] = useState<string>("30d");
+  const [analyticsPlatform, setAnalyticsPlatform] = useState<string>("all");
 
   const brandQ = useQuery({
     queryKey: ["brand", id],
@@ -168,6 +182,31 @@ function BrandDetail() {
     return t;
   }, [latestByAccount]);
 
+  // Analytics-Aggregat: Views je Plattform im gewählten Zeitraum (aus allen Snapshots, nicht nur "latest")
+  const platformStats = useMemo(() => {
+    const now = Date.now();
+    const rangeDays: Record<string, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
+    const days = rangeDays[analyticsRange] ?? null;
+    const cutoff = days ? now - days * 86400_000 : 0;
+    const agg = new Map<string, { views: number; likes: number; comments: number; shares: number; samples: number }>();
+    for (const s of snapshots as any[]) {
+      if (cutoff && new Date(s.snapshot_at).getTime() < cutoff) continue;
+      if (analyticsPlatform !== "all" && s.platform !== analyticsPlatform) continue;
+      const cur = agg.get(s.platform) ?? { views: 0, likes: 0, comments: 0, shares: 0, samples: 0 };
+      const m = (s.metrics ?? {}) as any;
+      cur.views += Number(m.views ?? 0);
+      cur.likes += Number(m.likes ?? 0);
+      cur.comments += Number(m.comments ?? 0);
+      cur.shares += Number(m.shares ?? 0);
+      cur.samples += 1;
+      agg.set(s.platform, cur);
+    }
+    const rows = Array.from(agg.entries()).map(([platform, v]) => ({ platform, ...v }));
+    rows.sort((a, b) => b.views - a.views);
+    const totalViews = rows.reduce((s, r) => s + r.views, 0);
+    return { rows, totalViews };
+  }, [snapshots, analyticsRange, analyticsPlatform]);
+
   const lastSyncOverall = useMemo(() => {
     const times = accounts.map((a) => a.last_sync_at).filter(Boolean).map((t) => new Date(t!).getTime());
     return times.length ? new Date(Math.max(...times)) : null;
@@ -182,6 +221,7 @@ function BrandDetail() {
     if (!brand) return;
     setEditName(brand.name);
     setEditColor(brand.color ?? "#F26A1F");
+    setEditFont((brand as any).name_font ?? "sans");
     setEditingBrand(true);
   }
 
@@ -192,7 +232,7 @@ function BrandDetail() {
     try {
       const { error } = await supabase
         .from("brands")
-        .update({ name, color: editColor })
+        .update({ name, color: editColor, name_font: editFont } as never)
         .eq("id", id);
       if (error) throw error;
       toast.success("Brand gespeichert");
@@ -395,7 +435,7 @@ function BrandDetail() {
           </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-primary">Brand</p>
-            <h1 className="text-3xl font-semibold tracking-tight">{brand.name}</h1>
+            <h1 className={`text-3xl font-semibold tracking-tight ${fontClass((brand as any).name_font)}`}>{brand.name}</h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {lastSyncOverall ? `Letzter Analyse-Sync: ${lastSyncOverall.toLocaleString()}` : "Noch kein Analyse-Sync"}
             </p>
@@ -452,6 +492,21 @@ function BrandDetail() {
                 )}
                 Bild wählen
               </button>
+            </label>
+            <label className="text-xs sm:col-span-3">
+              <span className="text-muted-foreground">Schrift für Brand-Name</span>
+              <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {FONT_OPTIONS.map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onClick={() => setEditFont(f.value)}
+                    className={`rounded-md border px-3 py-2 text-left text-sm ${editFont === f.value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-input text-muted-foreground hover:text-foreground"} ${f.className}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </label>
           </div>
           {/* Wasserzeichen (Logo im Video-Eck) */}
@@ -569,6 +624,61 @@ function BrandDetail() {
         <Stat label="Likes" value={totals.likes} />
         <Stat label="Kommentare" value={totals.comments} />
       </div>
+
+      {/* Plattform-Analytics: Views je Plattform + Filter */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <BarChart3 className="h-4 w-4" /> Tracking — Views je Plattform
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <Select value={analyticsPlatform} onChange={setAnalyticsPlatform} options={[
+              { value: "all", label: "Alle Plattformen" },
+              ...platforms.map((p) => ({ value: p.id, label: p.name })),
+            ]} />
+            <Select value={analyticsRange} onChange={setAnalyticsRange} options={[
+              { value: "7d", label: "Letzte 7 Tage" },
+              { value: "30d", label: "Letzte 30 Tage" },
+              { value: "90d", label: "Letzte 90 Tage" },
+              { value: "all", label: "Gesamter Zeitraum" },
+            ]} />
+          </div>
+        </div>
+        <div className="mb-4 flex items-baseline gap-3">
+          <div className="text-3xl font-semibold">{platformStats.totalViews.toLocaleString()}</div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gesamt-Views im Zeitraum</div>
+        </div>
+        {platformStats.rows.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            Keine Daten in diesem Zeitraum. Sync läuft alle 30 Min. — oder oben manuell auslösen.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {platformStats.rows.map((r) => {
+              const pct = platformStats.totalViews ? Math.round((r.views / platformStats.totalViews) * 100) : 0;
+              const meta = platforms.find((p) => p.id === r.platform);
+              const Icon = meta?.icon ?? Share2;
+              return (
+                <div key={r.platform} className="rounded-lg border border-border bg-background/60 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5 text-primary" />
+                      <span className="font-medium">{meta?.name ?? r.platform}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">{r.samples} Snapshots</span>
+                    </div>
+                    <div className="font-mono text-muted-foreground">
+                      <span className="text-foreground">{r.views.toLocaleString()}</span> views · {pct}% · {r.likes.toLocaleString()} likes · {r.comments.toLocaleString()} kommentare
+                    </div>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Social accounts */}
       <section>
