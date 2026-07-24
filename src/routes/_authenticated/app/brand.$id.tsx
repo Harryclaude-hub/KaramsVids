@@ -185,6 +185,7 @@ function BrandDetail() {
     if (!brand) return;
     setEditName(brand.name);
     setEditColor(brand.color ?? "#F26A1F");
+    setEditFont((brand as any).name_font ?? "sans");
     setEditingBrand(true);
   }
 
@@ -195,7 +196,7 @@ function BrandDetail() {
     try {
       const { error } = await supabase
         .from("brands")
-        .update({ name, color: editColor })
+        .update({ name, color: editColor, name_font: editFont } as never)
         .eq("id", id);
       if (error) throw error;
       toast.success("Brand gespeichert");
