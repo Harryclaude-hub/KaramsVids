@@ -31,6 +31,14 @@ import {
   Sliders,
   MessageSquare,
   LayoutGrid,
+  Gauge,
+  Palette,
+  Move,
+  Undo2,
+  Redo2,
+  Flag,
+  Keyboard,
+  Frame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
@@ -44,6 +52,14 @@ import type {
 } from "@/lib/editor-types";
 import { MUSIC_LIBRARY, type ViralTrack } from "@/lib/music-library";
 import { templateById } from "@/lib/clip-templates";
+import { CAPTION_PRESETS, type Marker } from "@/lib/editor-types";
+import {
+  buildVideoFilters,
+  buildAudioFilters,
+  buildDrawtext,
+  outputDuration,
+  effectSummary,
+} from "@/lib/editor-render";
 
 type Analysis = { transcript_summary?: string; language?: string; segments: Segment[] };
 
@@ -133,6 +149,39 @@ function JobEditor() {
   const showRight = panels.inspector || panels.chat || panels.library;
   const [fullscreen, setFullscreen] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
+
+  // --- Undo/Redo (Verlauf der Timeline-Zustände) ---
+  const historyRef = useRef<{ past: Segment[][]; future: Segment[][] }>({ past: [], future: [] });
+  const [histTick, setHistTick] = useState(0);
+  /** Zustand vor einer Änderung sichern — vor jedem Schnitt-Eingriff aufrufen */
+  function pushHistory(current: Segment[]) {
+    historyRef.current.past.push(current.map((s) => ({ ...s })));
+    if (historyRef.current.past.length > 50) historyRef.current.past.shift();
+    historyRef.current.future = [];
+    setHistTick((t) => t + 1);
+  }
+  function undo() {
+    const h = historyRef.current;
+    const prev = h.past.pop();
+    if (!prev) return;
+    h.future.push(segments.map((s) => ({ ...s })));
+    setSegments(prev);
+    setSelectedClip((i) => Math.min(i, Math.max(0, prev.length - 1)));
+    setHistTick((t) => t + 1);
+    toast.info("Rückgängig");
+  }
+  function redo() {
+    const h = historyRef.current;
+    const next = h.future.pop();
+    if (!next) return;
+    h.past.push(segments.map((s) => ({ ...s })));
+    setSegments(next);
+    setHistTick((t) => t + 1);
+    toast.info("Wiederhergestellt");
+  }
+  const canUndo = historyRef.current.past.length > 0;
+  const canRedo = historyRef.current.future.length > 0;
+  void histTick; // erzwingt Neurendern der Undo/Redo-Buttons
 
   // Timeline-Höhe per Ziehgriff einstellbar (wird gemerkt)
   const [timelineH, setTimelineH] = useState<number>(() => {
@@ -380,6 +429,7 @@ function JobEditor() {
     setSegments((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
   }
   function deleteSeg(idx: number) {
+    pushHistory(segments);
     setSegments((prev) => prev.filter((_, i) => i !== idx));
     setOverlays((prev) =>
       prev
@@ -394,6 +444,7 @@ function JobEditor() {
     setSelectedClip(Math.max(0, selectedClip - (idx <= selectedClip ? 1 : 0)));
   }
   function addSeg() {
+    pushHistory(segments);
     const last = segments[segments.length - 1];
     const start = last ? Math.min(last.end_s, rawDur - 5) : 0;
     setSegments((prev) => [
@@ -402,6 +453,7 @@ function JobEditor() {
     ]);
   }
   function splitAtPlayhead() {
+    pushHistory(segments);
     const seg = segments[selectedClip];
     if (!seg) return;
     const off = clipOffsets[selectedClip] ?? 0;
@@ -415,6 +467,7 @@ function JobEditor() {
     toast.success("Clip gesplittet");
   }
   function resetSeg(idx: number) {
+    pushHistory(segments);
     const o = originalSegsRef.current?.[idx];
     if (o) updateSeg(idx, o);
     else toast.info("Kein KI-Original");
@@ -525,6 +578,113 @@ function JobEditor() {
     }
   }
 
+  // --- Tastaturkürzel (Premiere-Standard) ---
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      // In Eingabefeldern nichts abfangen
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        e.shiftKey ? redo() : undo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      const v = videoRef.current;
+      switch (e.key) {
+        case " ":
+          e.preventDefault();
+          togglePlay();
+          break;
+        case "k":
+          e.preventDefault();
+          v?.pause();
+          setPlaying(false);
+          break;
+        case "l":
+          e.preventDefault();
+          if (v) {
+            v.playbackRate = Math.min(4, (v.playbackRate || 1) * 2);
+            v.play().catch(() => {});
+            setPlaying(true);
+            toast.info(`Vorlauf ${v.playbackRate}×`);
+          }
+          break;
+        case "j":
+          e.preventDefault();
+          if (v) {
+            v.currentTime = Math.max(0, v.currentTime - 2);
+          }
+          break;
+        case "s":
+          e.preventDefault();
+          splitAtPlayhead();
+          break;
+        case "m":
+          e.preventDefault();
+          addMarker();
+          break;
+        case "Delete":
+        case "Backspace":
+          e.preventDefault();
+          if (segments.length > 0) deleteSeg(selectedClip);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          if (v) v.currentTime = Math.max(0, v.currentTime - (e.shiftKey ? 1 : 1 / 30));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          if (v) v.currentTime = v.currentTime + (e.shiftKey ? 1 : 1 / 30);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          jumpToClip(Math.max(0, selectedClip - 1));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          jumpToClip(Math.min(segments.length - 1, selectedClip + 1));
+          break;
+        case "+":
+        case "=":
+          e.preventDefault();
+          setZoom((z) => Math.min(PX_PER_S_MAX, z + 4));
+          break;
+        case "-":
+          e.preventDefault();
+          setZoom((z) => Math.max(PX_PER_S_MIN, z - 4));
+          break;
+        case "f":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line
+  }, [segments, selectedClip, playing]);
+
+  // --- Marker auf der Timeline ---
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [safeZones, setSafeZones] = useState(false);
+  function addMarker() {
+    const m: Marker = { id: uid(), t: playhead, label: `M${markers.length + 1}` };
+    setMarkers((prev) => [...prev, m].sort((a, b) => a.t - b.t));
+    toast.success(`Marker bei ${fmt(playhead)}`);
+  }
+  function removeMarker(mid: string) {
+    setMarkers((prev) => prev.filter((m) => m.id !== mid));
+  }
+
   // YouTube → MP4: Server lädt die Datei und legt sie in den Storage
   async function runYtImport() {
     if (!job?.raw_video_id) return;
@@ -574,6 +734,17 @@ function JobEditor() {
     return "scale=1920:1080";
   }
 
+  /**
+   * Vollständige Bild-/Tonkette eines Clips inklusive aller Profi-Effekte
+   * (Geschwindigkeit, Farbe, Zoom, Rotation, Fades, Blur-Rand).
+   */
+  function clipVideoChain(seg: Segment, idx: number, offsetInOutput = 0): string {
+    const dur = outputDuration(seg);
+    const base = buildVideoFilters(seg, aspect, dur);
+    const dt = buildDrawtext(overlays, idx, offsetInOutput);
+    return [base, dt].filter(Boolean).join(",");
+  }
+
   function drawtextForClip(clipIdx: number, clipStartInOut: number) {
     // clipStartInOut: offset within the output where this clip begins (0 for single-clip render)
     const clipOverlays = overlays.filter((o) => o.clip_index === clipIdx);
@@ -610,46 +781,67 @@ function JobEditor() {
         inputLoadedRef.current = signedUrl;
       }
 
-      const duration = Math.max(0.5, seg.end_s - seg.start_s);
-      const vFilterChain = [aspectFilter(), drawtextForClip(idx, 0)].filter(Boolean).join(",");
+      const srcDuration = Math.max(0.5, seg.end_s - seg.start_s);
+      // Rückwärts kommt ganz vorne in die Kette
+      const vFilterChain = [seg.reverse ? "reverse" : "", clipVideoChain(seg, idx, 0)]
+        .filter(Boolean)
+        .join(",");
+      const aFilterChain = [seg.reverse ? "areverse" : "", buildAudioFilters(seg, outputDuration(seg))]
+        .filter(Boolean)
+        .join(",");
 
       // Optional: Musik-Spur + Brand-Wasserzeichen
       const audio = audioTracks[0];
       const hasAudio = !!(audio && audioSignedUrls[audio.id]);
       const hasWm = useWm && (await ensureWatermarkFile(ff, fetchFile));
 
-      const inputs = ["-ss", String(seg.start_s), "-i", "in.mp4", "-t", String(duration)];
+      // Standbild: einen Frame einfrieren statt normal abzuspielen
+      const isFreeze = seg.freeze_s != null;
+      const inputs = isFreeze
+        ? [
+            "-ss",
+            String(seg.start_s + (seg.freeze_s ?? 0)),
+            "-i",
+            "in.mp4",
+            "-frames:v",
+            "1",
+            "-loop",
+            "1",
+            "-t",
+            String(srcDuration),
+          ]
+        : ["-ss", String(seg.start_s), "-i", "in.mp4", "-t", String(srcDuration)];
       if (hasAudio) {
         await ff.writeFile("bg.audio", await fetchFile(audioSignedUrls[audio.id]));
         inputs.push("-i", "bg.audio");
       }
       if (hasWm) inputs.push("-i", "wm.png");
 
-      // -vf und -filter_complex dürfen nicht gemischt werden → bei Musik
-      // oder Wasserzeichen läuft alles über EINEN filter_complex-Graphen.
-      let filterArgs: string[];
-      if (hasAudio || hasWm) {
-        const parts: string[] = [`[0:v]${vFilterChain}[v1]`];
-        let vOut = "[v1]";
-        if (hasWm) {
-          const wmIdx = hasAudio ? 2 : 1;
-          parts.push(`[${wmIdx}:v]scale=200:-1[wm]`);
-          parts.push(`${vOut}[wm]overlay=${wmOverlayPos()}[v2]`);
-          vOut = "[v2]";
-        }
-        const maps = ["-map", vOut];
-        if (hasAudio) {
-          parts.push(
-            `[0:a]volume=1.0[a0];[1:a]volume=${audio.volume}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
-          );
-          maps.push("-map", "[aout]");
-        } else {
-          maps.push("-map", "0:a?");
-        }
-        filterArgs = ["-filter_complex", parts.join(";"), ...maps];
-      } else {
-        filterArgs = ["-vf", vFilterChain];
+      // Alles über EINEN filter_complex-Graphen — -vf und -filter_complex
+      // dürfen nicht gemischt werden.
+      const parts: string[] = [`[0:v]${vFilterChain}[v1]`];
+      let vOut = "[v1]";
+      if (hasWm) {
+        const wmIdx = hasAudio ? 2 : 1;
+        parts.push(`[${wmIdx}:v]scale=200:-1[wm]`);
+        parts.push(`${vOut}[wm]overlay=${wmOverlayPos()}[v2]`);
+        vOut = "[v2]";
       }
+      const maps = ["-map", vOut];
+      // Clip-Ton (Tempo/Lautstärke/Fades) immer anwenden, dann ggf. Musik mischen
+      const clipAudioLabel = aFilterChain ? "[a0f]" : "[0:a]";
+      if (aFilterChain) parts.push(`[0:a]${aFilterChain}[a0f]`);
+      if (hasAudio) {
+        parts.push(
+          `[1:a]volume=${audio.volume}[a1];${clipAudioLabel}[a1]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
+        );
+        maps.push("-map", "[aout]");
+      } else if (aFilterChain) {
+        maps.push("-map", "[a0f]");
+      } else {
+        maps.push("-map", "0:a?");
+      }
+      const filterArgs = ["-filter_complex", parts.join(";"), ...maps];
 
       const args = [
         ...inputs,
@@ -735,21 +927,47 @@ function JobEditor() {
         inputLoadedRef.current = signedUrl;
       }
 
-      // Extract each clip first with aspect crop, then concat
+      // Jeden Clip einzeln mit ALLEN Effekten rendern, danach aneinanderhängen
       const clipFiles: string[] = [];
       for (let i = 0; i < segments.length; i++) {
         const s = segments[i];
         const dur = Math.max(0.5, s.end_s - s.start_s);
         const name = `c${i}.mp4`;
+        const vChain =
+          [s.reverse ? "reverse" : "", buildVideoFilters(s, aspect, outputDuration(s))]
+            .filter(Boolean)
+            .join(",") || "null";
+        const aChain = [s.reverse ? "areverse" : "", buildAudioFilters(s, outputDuration(s))]
+          .filter(Boolean)
+          .join(",");
+        const isFreeze = s.freeze_s != null;
+        const inp = isFreeze
+          ? [
+              "-ss",
+              String(s.start_s + (s.freeze_s ?? 0)),
+              "-i",
+              "in.mp4",
+              "-frames:v",
+              "1",
+              "-loop",
+              "1",
+              "-t",
+              String(dur),
+            ]
+          : ["-ss", String(s.start_s), "-i", "in.mp4", "-t", String(dur)];
+        const fc = [`[0:v]${vChain}[v]`];
+        const map = ["-map", "[v]"];
+        if (aChain) {
+          fc.push(`[0:a]${aChain}[a]`);
+          map.push("-map", "[a]");
+        } else {
+          map.push("-map", "0:a?");
+        }
         await ff.exec([
-          "-ss",
-          String(s.start_s),
-          "-i",
-          "in.mp4",
-          "-t",
-          String(dur),
-          "-vf",
-          aspectFilter(),
+          ...inp,
+          "-filter_complex",
+          fc.join(";"),
+          ...map,
           "-c:v",
           "libx264",
           "-preset",
@@ -772,7 +990,7 @@ function JobEditor() {
       const dtParts: string[] = [];
       segments.forEach((_, i) => {
         const off = clipOffsets[i] ?? 0;
-        const p = drawtextForClip(i, off);
+        const p = buildDrawtext(overlays, i, off);
         if (p) dtParts.push(p);
       });
 
@@ -1024,6 +1242,25 @@ function JobEditor() {
 
       {/* Werkzeugleiste — jedes Feature einzeln ein-/ausklappbar */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card/60 px-3 py-1.5">
+        {/* Undo / Redo */}
+        <div className="mr-1 flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            title="Rückgängig (Strg+Z)"
+            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            title="Wiederholen (Strg+Shift+Z)"
+            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
           Ansicht
         </span>
@@ -1091,9 +1328,30 @@ function JobEditor() {
             Fokus-Modus
           </button>
           <button
+            onClick={() => setSafeZones((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] ${safeZones ? "border-amber-500 bg-amber-500/10 text-amber-600" : "border-border hover:bg-secondary"}`}
+            title="Sicherheitsbereiche einblenden (Bereiche, die TikTok/Reels mit Buttons überdecken)"
+          >
+            <Frame className="h-3.5 w-3.5" /> Safe Zones
+          </button>
+          <button
+            onClick={addMarker}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            title="Marker setzen (M)"
+          >
+            <Flag className="h-3.5 w-3.5" /> Marker
+          </button>
+          <button
+            onClick={() => setShowShortcuts((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            title="Tastaturkürzel"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </button>
+          <button
             onClick={toggleFullscreen}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
-            title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus"}
+            title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus (F)"}
           >
             {fullscreen ? (
               <>
@@ -1298,6 +1556,17 @@ function JobEditor() {
                     const rel = videoRef.current.currentTime - selectedSeg.start_s;
                     setPlayhead((clipOffsets[selectedClip] ?? 0) + Math.max(0, rel));
                   }}
+                  style={{
+                    // Live-Vorschau der Farb- und Spiegel-Einstellungen
+                    filter: selectedSeg
+                      ? [
+                          `brightness(${1 + (selectedSeg.color?.brightness ?? 0)})`,
+                          `contrast(${selectedSeg.color?.contrast ?? 1})`,
+                          `saturate(${selectedSeg.color?.saturation ?? 1})`,
+                        ].join(" ")
+                      : undefined,
+                    transform: selectedSeg?.transform?.flip_h ? "scaleX(-1)" : undefined,
+                  }}
                   className={`max-h-full max-w-full ${aspect === "9:16" ? "aspect-[9/16]" : aspect === "1:1" ? "aspect-square" : "aspect-video"}`}
                 />
               ) : isYouTubeSource ? (
@@ -1315,6 +1584,18 @@ function JobEditor() {
                   </div>
                 </div>
               )}
+              {/* Safe Zones — Bereiche, die TikTok/Reels mit UI überdecken */}
+              {safeZones && signedUrl && (
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute inset-x-0 top-0 h-[12%] border-b border-dashed border-amber-400/60 bg-amber-400/10" />
+                  <div className="absolute inset-x-0 bottom-0 h-[18%] border-t border-dashed border-amber-400/60 bg-amber-400/10" />
+                  <div className="absolute bottom-[18%] right-0 h-[30%] w-[18%] border-l border-dashed border-amber-400/60 bg-amber-400/10" />
+                  <span className="absolute left-1 top-1 rounded bg-amber-500/80 px-1 font-mono text-[8px] text-black">
+                    Safe Zone
+                  </span>
+                </div>
+              )}
+
               {/* Live text overlay preview */}
               {selectedSeg &&
                 videoRef.current &&
@@ -1362,7 +1643,6 @@ function JobEditor() {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {segments.map((s, i) => {
-                  const dur = Math.max(0, s.end_s - s.start_s);
                   const isSel = selectedClip === i;
                   const done = !!outputs[i];
                   return (
@@ -1388,8 +1668,22 @@ function JobEditor() {
                         {s.title}
                       </div>
                       <div className="font-mono text-[9px] text-muted-foreground">
-                        {dur.toFixed(1)}s · ab {fmt(s.start_s)}
+                        {outputDuration(s).toFixed(1)}s · ab {fmt(s.start_s)}
                       </div>
+                      {effectSummary(s).length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-0.5">
+                          {effectSummary(s)
+                            .slice(0, 3)
+                            .map((fx) => (
+                              <span
+                                key={fx}
+                                className="rounded bg-accent/15 px-1 py-px font-mono text-[8px] text-accent"
+                              >
+                                {fx}
+                              </span>
+                            ))}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -1485,6 +1779,18 @@ function JobEditor() {
                       );
                     });
                   })()}
+                  {/* Marker */}
+                  {markers.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => removeMarker(m.id)}
+                      style={{ left: m.t * zoom }}
+                      title={`${m.label} bei ${fmt(m.t)} — klicken zum Entfernen`}
+                      className="absolute -top-1 z-20 -translate-x-1/2"
+                    >
+                      <Flag className="h-3 w-3 fill-accent text-accent" />
+                    </button>
+                  ))}
                   {/* Playhead */}
                   <div
                     style={{ left: playhead * zoom }}
@@ -1627,12 +1933,341 @@ function JobEditor() {
                   />
                 </label>
 
+                {/* ===== Profi-Effekte: Tempo, Ton, Farbe, Bewegung ===== */}
+                <div className="space-y-2 rounded-md border border-border bg-background p-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <Gauge className="h-3 w-3 text-primary" /> Tempo & Ton
+                  </div>
+
+                  <label className="block">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Geschwindigkeit</span>
+                      <span className="font-mono text-primary">
+                        {(selectedSeg.speed ?? 1).toFixed(2)}×
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.25}
+                      max={4}
+                      step={0.05}
+                      value={selectedSeg.speed ?? 1}
+                      onChange={(e) => updateSeg(selectedClip, { speed: Number(e.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                    <div className="flex gap-1">
+                      {[0.5, 1, 1.5, 2].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => updateSeg(selectedClip, { speed: s })}
+                          className="flex-1 rounded border border-border px-1 py-0.5 text-[10px] hover:bg-secondary"
+                        >
+                          {s}×
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Clip-Lautstärke</span>
+                      <span className="font-mono">
+                        {selectedSeg.muted
+                          ? "stumm"
+                          : `${Math.round((selectedSeg.volume ?? 1) * 100)}%`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => updateSeg(selectedClip, { muted: !selectedSeg.muted })}
+                        className={`rounded border p-1 ${selectedSeg.muted ? "border-destructive text-destructive" : "border-border text-muted-foreground"}`}
+                        title={selectedSeg.muted ? "Ton an" : "Ton aus"}
+                      >
+                        {selectedSeg.muted ? (
+                          <VolumeX className="h-3 w-3" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={2}
+                        step={0.05}
+                        disabled={selectedSeg.muted}
+                        value={selectedSeg.volume ?? 1}
+                        onChange={(e) => updateSeg(selectedClip, { volume: Number(e.target.value) })}
+                        className="flex-1 accent-primary disabled:opacity-40"
+                      />
+                    </div>
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <label className="block text-[10px] text-muted-foreground">
+                      Einblenden (s)
+                      <input
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={selectedSeg.fade_in_s ?? 0}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, { fade_in_s: Number(e.target.value) })
+                        }
+                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                      />
+                    </label>
+                    <label className="block text-[10px] text-muted-foreground">
+                      Ausblenden (s)
+                      <input
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={selectedSeg.fade_out_s ?? 0}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, { fade_out_s: Number(e.target.value) })
+                        }
+                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      onClick={() => updateSeg(selectedClip, { reverse: !selectedSeg.reverse })}
+                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.reverse ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                    >
+                      ⟲ Rückwärts
+                    </button>
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          freeze_s: selectedSeg.freeze_s == null ? 0 : null,
+                        })
+                      }
+                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.freeze_s != null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                      title="Clip als Standbild einfrieren"
+                    >
+                      ❄ Standbild
+                    </button>
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          fill_mode: selectedSeg.fill_mode === "blur_pad" ? "crop" : "blur_pad",
+                        })
+                      }
+                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.fill_mode === "blur_pad" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                      title="Statt beschneiden: unscharfer Hintergrund füllt das Format"
+                    >
+                      ▣ Blur-Rand
+                    </button>
+                  </div>
+                </div>
+
+                {/* Farbe */}
+                <div className="space-y-1.5 rounded-md border border-border bg-background p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                      <Palette className="h-3 w-3 text-accent" /> Farbe
+                    </div>
+                    <button
+                      onClick={() => updateSeg(selectedClip, { color: undefined })}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      zurücksetzen
+                    </button>
+                  </div>
+                  {(
+                    [
+                      ["brightness", "Helligkeit", -0.5, 0.5, 0, 0.01],
+                      ["contrast", "Kontrast", 0.5, 2, 1, 0.01],
+                      ["saturation", "Sättigung", 0, 2.5, 1, 0.01],
+                      ["gamma", "Gamma", 0.5, 2, 1, 0.01],
+                    ] as const
+                  ).map(([key, label, min, max, def, step]) => (
+                    <label key={key} className="block">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{label}</span>
+                        <span className="font-mono">
+                          {((selectedSeg.color?.[key] ?? def) as number).toFixed(2)}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={selectedSeg.color?.[key] ?? def}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, {
+                            color: { ...(selectedSeg.color ?? {}), [key]: Number(e.target.value) },
+                          })
+                        }
+                        className="w-full accent-accent"
+                      />
+                    </label>
+                  ))}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {(
+                      [
+                        ["Warm", { brightness: 0.03, saturation: 1.25, gamma: 1.05 }],
+                        ["Kalt", { brightness: 0.02, saturation: 0.9, contrast: 1.1 }],
+                        ["Filmisch", { contrast: 1.25, saturation: 0.85, gamma: 0.95 }],
+                        ["Knallig", { saturation: 1.6, contrast: 1.15 }],
+                        ["S/W", { saturation: 0 }],
+                      ] as const
+                    ).map(([label, preset]) => (
+                      <button
+                        key={label}
+                        onClick={() => updateSeg(selectedClip, { color: { ...preset } })}
+                        className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bewegung / Transform */}
+                <div className="space-y-1.5 rounded-md border border-border bg-background p-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <Move className="h-3 w-3 text-primary" /> Bewegung
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <label className="block text-[10px] text-muted-foreground">
+                      Zoom Start
+                      <input
+                        type="number"
+                        min={1}
+                        max={3}
+                        step={0.05}
+                        value={selectedSeg.transform?.zoom_start ?? 1}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, {
+                            transform: {
+                              ...(selectedSeg.transform ?? {}),
+                              zoom_start: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                      />
+                    </label>
+                    <label className="block text-[10px] text-muted-foreground">
+                      Zoom Ende
+                      <input
+                        type="number"
+                        min={1}
+                        max={3}
+                        step={0.05}
+                        value={selectedSeg.transform?.zoom_end ?? 1}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, {
+                            transform: {
+                              ...(selectedSeg.transform ?? {}),
+                              zoom_end: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1, zoom_end: 1.25 },
+                        })
+                      }
+                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                    >
+                      Ken Burns rein
+                    </button>
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1.25, zoom_end: 1 },
+                        })
+                      }
+                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                    >
+                      Ken Burns raus
+                    </button>
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          transform: {
+                            ...(selectedSeg.transform ?? {}),
+                            rotate: (((selectedSeg.transform?.rotate ?? 0) + 90) % 360) as
+                              | 0
+                              | 90
+                              | 180
+                              | 270,
+                          },
+                        })
+                      }
+                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                    >
+                      ⟳ 90°
+                    </button>
+                    <button
+                      onClick={() =>
+                        updateSeg(selectedClip, {
+                          transform: {
+                            ...(selectedSeg.transform ?? {}),
+                            flip_h: !selectedSeg.transform?.flip_h,
+                          },
+                        })
+                      }
+                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                    >
+                      ⇄ Spiegeln
+                    </button>
+                  </div>
+                </div>
+
                 {/* Overlays for this clip */}
                 <div className="rounded-md border border-border bg-background p-2">
                   <div className="mb-1 flex items-center justify-between">
                     <div className="text-[11px] font-medium">
                       Text-Overlays ({selectedOverlays.length})
                     </div>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const p = CAPTION_PRESETS.find((x) => x.id === e.target.value);
+                        if (!p) return;
+                        const seg = segments[selectedClip];
+                        if (!seg) return;
+                        const dur = Math.max(1, seg.end_s - seg.start_s);
+                        setOverlays((prev) => [
+                          ...prev,
+                          {
+                            id: uid(),
+                            clip_index: selectedClip,
+                            start_s: 0,
+                            end_s: Math.min(3, dur),
+                            text: p.uppercase ? "DEIN TEXT" : "Dein Text",
+                            position: "bottom",
+                            font_size: p.font_size,
+                            color: p.color,
+                            bg: p.bg,
+                          },
+                        ]);
+                        toast.success(`Stil „${p.label}" hinzugefügt`);
+                      }}
+                      className="rounded border border-border bg-input px-1.5 py-0.5 text-[10px] outline-none focus:border-primary"
+                      title="Text mit Stilvorlage hinzufügen"
+                    >
+                      <option value="">+ Stil …</option>
+                      {CAPTION_PRESETS.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => addOverlay(selectedClip)}
                       className="text-primary hover:underline"
@@ -1938,6 +2573,53 @@ function JobEditor() {
             </div>
           )}
         </aside>
+      </div>
+
+      {showShortcuts && <ShortcutHelp onClose={() => setShowShortcuts(false)} />}
+    </div>
+  );
+}
+
+/** Übersicht der Tastaturkürzel */
+function ShortcutHelp({ onClose }: { onClose: () => void }) {
+  const rows: Array<[string, string]> = [
+    ["Leertaste", "Abspielen / Pause"],
+    ["J / K / L", "Rückwärts springen / Stopp / Schneller Vorlauf"],
+    ["S", "Clip am Playhead teilen"],
+    ["Entf", "Ausgewählten Clip löschen"],
+    ["← / →", "Ein Frame zurück / vor (mit Shift: 1 Sek)"],
+    ["↑ / ↓", "Vorheriger / nächster Clip"],
+    ["+ / −", "Timeline hinein-/herauszoomen"],
+    ["M", "Marker setzen"],
+    ["F", "Vollbild"],
+    ["Strg+Z", "Rückgängig"],
+    ["Strg+Shift+Z", "Wiederholen"],
+  ];
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Keyboard className="h-4 w-4 text-primary" /> Tastaturkürzel
+        </div>
+        <div className="space-y-1">
+          {rows.map(([k, d]) => (
+            <div key={k} className="flex items-center justify-between gap-3 text-xs">
+              <kbd className="rounded border border-border bg-background px-2 py-0.5 font-mono text-[10px]">
+                {k}
+              </kbd>
+              <span className="text-muted-foreground">{d}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Schließen
+        </button>
       </div>
     </div>
   );
