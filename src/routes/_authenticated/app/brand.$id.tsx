@@ -482,6 +482,21 @@ function BrandDetail() {
                 Bild wählen
               </button>
             </label>
+            <label className="text-xs sm:col-span-3">
+              <span className="text-muted-foreground">Schrift für Brand-Name</span>
+              <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {FONT_OPTIONS.map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onClick={() => setEditFont(f.value)}
+                    className={`rounded-md border px-3 py-2 text-left text-sm ${editFont === f.value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-input text-muted-foreground hover:text-foreground"} ${f.className}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </label>
           </div>
           {/* Wasserzeichen (Logo im Video-Eck) */}
           <div className="rounded-lg border border-border bg-background/60 p-3">
