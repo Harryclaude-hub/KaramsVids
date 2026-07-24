@@ -44,7 +44,10 @@ function BrandDetail() {
   const [editingBrand, setEditingBrand] = useState(false);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("#F26A1F");
+  const [editFont, setEditFont] = useState<string>("sans");
   const [savingBrand, setSavingBrand] = useState(false);
+  const [analyticsRange, setAnalyticsRange] = useState<string>("30d");
+  const [analyticsPlatform, setAnalyticsPlatform] = useState<string>("all");
 
   const brandQ = useQuery({
     queryKey: ["brand", id],
