@@ -21,6 +21,8 @@ import {
   Shield,
   Menu,
   X,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -72,6 +74,22 @@ function AppShell() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
+  // Seitenleiste ausblendbar — Einstellung wird gemerkt
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("vc:sidebar") !== "hidden";
+  });
+  function toggleSidebar() {
+    setSidebarOpen((v) => {
+      const next = !v;
+      try {
+        window.localStorage.setItem("vc:sidebar", next ? "shown" : "hidden");
+      } catch {
+        /* localStorage nicht verfügbar */
+      }
+      return next;
+    });
+  }
 
   const nav: {
     to:
@@ -119,7 +137,9 @@ function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="hidden w-64 flex-col border-r border-border bg-card/40 p-4 md:flex">
+      <aside
+        className={`${sidebarOpen ? "md:flex" : "md:hidden"} hidden w-64 flex-col border-r border-border bg-card/40 p-4`}
+      >
         <Link to="/app" className="mb-6 flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
             <Scissors className="h-4 w-4" />
@@ -302,6 +322,13 @@ function AppShell() {
         )}
         {/* Aktiver Brand — immer sichtbar */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card/95 px-4 py-2 backdrop-blur md:px-6">
+          <button
+            onClick={toggleSidebar}
+            title={sidebarOpen ? "Seitenleiste ausblenden" : "Seitenleiste einblenden"}
+            className="hidden shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground md:block"
+          >
+            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+          </button>
           {activeBrand ? (
             <>
               <BrandAvatar brand={activeBrand} className="h-7 w-7 rounded-lg text-xs" />

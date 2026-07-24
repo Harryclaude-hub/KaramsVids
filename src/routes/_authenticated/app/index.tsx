@@ -12,6 +12,7 @@ import {
   Clock,
   Play,
   Scissors,
+  Scissors as ScissorsIcon,
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
@@ -132,10 +133,43 @@ function EditorLanding() {
 
   async function afterInsertNavigate(rawVideoId: string, duration: number | null) {
     if (!autoAnalyze) {
-      navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
+      // Manuell schneiden: Editor-Projekt ohne KI anlegen — ein Clip über
+      // die volle Länge, den man dann frei trimmen/splitten kann.
+      await openManualEditor(rawVideoId, duration);
       return;
     }
     setClipsDialog({ rawVideoId, duration });
+  }
+
+  /** Legt ein Schnitt-Projekt ohne KI an und öffnet den Editor. */
+  async function openManualEditor(rawVideoId: string, duration: number | null) {
+    if (!activeBrand) return;
+    try {
+      const len = duration && duration > 0 ? duration : 60;
+      const { data: job, error } = await supabase
+        .from("edit_jobs")
+        .insert({
+          user_id: user.id,
+          raw_video_id: rawVideoId,
+          brand_id: activeBrand.id,
+          mode: "manual",
+          status: "ready",
+          progress: 100,
+          options: { captions: false, aspect: "9:16" },
+          analysis: {
+            transcript_summary: "",
+            language: "de",
+            segments: [{ start_s: 0, end_s: len, title: "Clip 1" }],
+          },
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      navigate({ to: "/app/job/$id", params: { id: job.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Editor konnte nicht geöffnet werden");
+      navigate({ to: "/app/video/$id", params: { id: rawVideoId } });
+    }
   }
 
   async function startAnalysisWithConfig(cfg: {
@@ -331,8 +365,8 @@ function EditorLanding() {
         </Link>
       </div>
 
-      {/* Editor-Aufnahme-Zone */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
+      {/* Editor-Aufnahme-Zone — volle Breite */}
+      <div className="space-y-4">
         <div
           className={`space-y-4 rounded-2xl border border-border bg-card p-5 transition ${brandReady ? "" : "pointer-events-none opacity-50"}`}
           onDragOver={(e) => {
@@ -457,55 +491,78 @@ function EditorLanding() {
             </div>
           </div>
 
-          {/* Mode-Hinweis */}
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background/40 p-3 text-xs">
-            <input
-              type="checkbox"
-              checked={autoAnalyze}
-              onChange={(e) => setAutoAnalyze(e.target.checked)}
-              className="h-4 w-4 accent-primary"
-            />
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="flex-1">
-              <span className="font-medium text-foreground">Direkt KI-Cuts anwenden</span>
-              <span className="ml-1 text-muted-foreground">
-                (UGC Shorts, 9:16, Untertitel) — im Editor jederzeit umschaltbar.
+          {/* Schnitt-Modus: manuell oder mit KI */}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setAutoAnalyze(false)}
+              className={`flex items-start gap-2.5 rounded-lg border p-3 text-left text-xs transition ${
+                !autoAnalyze ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+              }`}
+            >
+              <ScissorsIcon
+                className={`mt-0.5 h-4 w-4 shrink-0 ${!autoAnalyze ? "text-primary" : "text-muted-foreground"}`}
+              />
+              <span>
+                <span className="block font-medium text-foreground">Selbst schneiden</span>
+                <span className="text-muted-foreground">
+                  Video öffnet direkt im Editor — Timeline, Trimmen, Text, Musik, Export. Keine KI
+                  nötig.
+                </span>
               </span>
-            </span>
-          </label>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAutoAnalyze(true)}
+              className={`flex items-start gap-2.5 rounded-lg border p-3 text-left text-xs transition ${
+                autoAnalyze ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+              }`}
+            >
+              <Sparkles
+                className={`mt-0.5 h-4 w-4 shrink-0 ${autoAnalyze ? "text-primary" : "text-muted-foreground"}`}
+              />
+              <span>
+                <span className="block font-medium text-foreground">KI schlägt Cuts vor</span>
+                <span className="text-muted-foreground">
+                  KI analysiert und setzt Clips — du kannst danach alles von Hand nachbessern.
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Bibliothek: Aktuelle Jobs & Videos des Brands */}
-        <aside className="space-y-3">
+      {/* Bibliothek — unter dem Editor, volle Breite */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Layers className="h-4 w-4 text-primary" />{" "}
+            <Layers className="h-4 w-4 text-primary" />
             {activeBrand ? `${activeBrand.name} · Bibliothek` : "Bibliothek"}
           </div>
-          {!activeBrand ? (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-              Brand wählen, um Videos & laufende Schnitte anzuzeigen.
-            </div>
-          ) : libraryQ.isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-14 animate-pulse rounded-lg bg-card" />
-              ))}
-            </div>
-          ) : (
-            <LibraryList jobs={libraryQ.data?.jobs ?? []} videos={libraryQ.data?.videos ?? []} />
-          )}
-
           {activeBrand && (
             <Link
               to="/app/brand/$id"
               params={{ id: activeBrand.id }}
-              className="block rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              className="ml-auto rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
             >
               Brand-Übersicht öffnen →
             </Link>
           )}
-        </aside>
-      </div>
+        </div>
+        {!activeBrand ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            Brand wählen, um Videos & laufende Schnitte anzuzeigen.
+          </div>
+        ) : libraryQ.isLoading ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-16 animate-pulse rounded-lg bg-card" />
+            ))}
+          </div>
+        ) : (
+          <LibraryList jobs={libraryQ.data?.jobs ?? []} videos={libraryQ.data?.videos ?? []} />
+        )}
+      </section>
 
       {/* Immer sichtbar: Editor-Tools erkunden — auch ohne Video */}
       <section className="space-y-3 rounded-2xl border border-border bg-card/60 p-5">
@@ -691,47 +748,56 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
           {tab === "videos" && <div className="mx-auto mt-1 h-0.5 w-8 bg-primary" />}
         </button>
       </div>
-      <div className="max-h-[520px] overflow-y-auto p-2">
+      <div className="p-3">
         {items.length === 0 ? (
-          <div className="p-4 text-center text-xs text-muted-foreground">Noch nichts hier.</div>
+          <div className="p-6 text-center text-xs text-muted-foreground">Noch nichts hier.</div>
         ) : tab === "jobs" ? (
-          <div className="space-y-1">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {(items as any[]).map((j) => (
               <Link
                 key={j.id}
                 to="/app/job/$id"
                 params={{ id: j.id }}
-                className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60"
+                className="flex items-start gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs transition hover:border-primary/50 hover:bg-background"
               >
-                <Sparkles className="h-3 w-3 shrink-0 text-primary" />
+                {j.mode === "manual" ? (
+                  <Scissors className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+                ) : (
+                  <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{j.raw_videos?.title ?? "Video"}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">
+                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                     <Clock className="mr-1 inline h-2.5 w-2.5" />
-                    {new Date(j.created_at).toLocaleDateString()} · {j.mode}
+                    {new Date(j.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+                      {j.mode === "manual" ? "manuell" : j.mode}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${statusColor(j.status)}`}
+                    >
+                      {j.status}
+                    </span>
                   </div>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${statusColor(j.status)}`}
-                >
-                  {j.status}
-                </span>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {(items as any[]).map((v) => (
               <Link
                 key={v.id}
                 to="/app/video/$id"
                 params={{ id: v.id }}
-                className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-xs hover:border-primary/40 hover:bg-background/60"
+                className="flex items-start gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs transition hover:border-primary/50 hover:bg-background"
               >
-                <Play className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <Play className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{v.title}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">
+                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                     {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"} ·{" "}
                     {new Date(v.created_at).toLocaleDateString()}
                   </div>
