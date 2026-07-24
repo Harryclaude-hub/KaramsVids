@@ -1439,8 +1439,27 @@ function JobEditor() {
             className={`${panels.timeline ? "shrink-0" : "hidden"} overflow-auto border-t border-border bg-background p-3`}
           >
             {segments.length === 0 ? (
-              <div className="grid h-32 place-items-center text-xs text-muted-foreground">
-                Noch keine Clips — warte auf KI oder füge manuell hinzu.
+              <div className="grid h-32 place-items-center gap-2 text-center text-xs text-muted-foreground">
+                <div>Noch keine Clips auf der Timeline.</div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={() =>
+                      setSegments([{ start_s: 0, end_s: rawDur, title: "Ganzes Video" }])
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-3 w-3" /> Ganzes Video einfügen
+                  </button>
+                  <button
+                    onClick={addSeg}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] hover:bg-secondary"
+                  >
+                    <ScissorsIcon className="h-3 w-3" /> Leeren Clip anlegen
+                  </button>
+                </div>
+                <div className="text-[10px]">
+                  Danach frei trimmen, splitten, Text & Musik hinzufügen — ganz ohne KI.
+                </div>
               </div>
             ) : (
               <div style={{ width: Math.max(600, totalDur * zoom + 60) }} className="relative">
