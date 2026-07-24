@@ -171,6 +171,31 @@ function BrandDetail() {
     return t;
   }, [latestByAccount]);
 
+  // Analytics-Aggregat: Views je Plattform im gewählten Zeitraum (aus allen Snapshots, nicht nur "latest")
+  const platformStats = useMemo(() => {
+    const now = Date.now();
+    const rangeDays: Record<string, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
+    const days = rangeDays[analyticsRange] ?? null;
+    const cutoff = days ? now - days * 86400_000 : 0;
+    const agg = new Map<string, { views: number; likes: number; comments: number; shares: number; samples: number }>();
+    for (const s of snapshots as any[]) {
+      if (cutoff && new Date(s.snapshot_at).getTime() < cutoff) continue;
+      if (analyticsPlatform !== "all" && s.platform !== analyticsPlatform) continue;
+      const cur = agg.get(s.platform) ?? { views: 0, likes: 0, comments: 0, shares: 0, samples: 0 };
+      const m = (s.metrics ?? {}) as any;
+      cur.views += Number(m.views ?? 0);
+      cur.likes += Number(m.likes ?? 0);
+      cur.comments += Number(m.comments ?? 0);
+      cur.shares += Number(m.shares ?? 0);
+      cur.samples += 1;
+      agg.set(s.platform, cur);
+    }
+    const rows = Array.from(agg.entries()).map(([platform, v]) => ({ platform, ...v }));
+    rows.sort((a, b) => b.views - a.views);
+    const totalViews = rows.reduce((s, r) => s + r.views, 0);
+    return { rows, totalViews };
+  }, [snapshots, analyticsRange, analyticsPlatform]);
+
   const lastSyncOverall = useMemo(() => {
     const times = accounts.map((a) => a.last_sync_at).filter(Boolean).map((t) => new Date(t!).getTime());
     return times.length ? new Date(Math.max(...times)) : null;
