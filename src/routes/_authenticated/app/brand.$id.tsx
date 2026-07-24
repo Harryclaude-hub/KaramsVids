@@ -614,6 +614,61 @@ function BrandDetail() {
         <Stat label="Kommentare" value={totals.comments} />
       </div>
 
+      {/* Plattform-Analytics: Views je Plattform + Filter */}
+      <section className="rounded-2xl border border-border bg-card/40 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <BarChart3 className="h-4 w-4" /> Tracking — Views je Plattform
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <Select value={analyticsPlatform} onChange={setAnalyticsPlatform} options={[
+              { value: "all", label: "Alle Plattformen" },
+              ...platforms.map((p) => ({ value: p.id, label: p.name })),
+            ]} />
+            <Select value={analyticsRange} onChange={setAnalyticsRange} options={[
+              { value: "7d", label: "Letzte 7 Tage" },
+              { value: "30d", label: "Letzte 30 Tage" },
+              { value: "90d", label: "Letzte 90 Tage" },
+              { value: "all", label: "Gesamter Zeitraum" },
+            ]} />
+          </div>
+        </div>
+        <div className="mb-4 flex items-baseline gap-3">
+          <div className="text-3xl font-semibold">{platformStats.totalViews.toLocaleString()}</div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gesamt-Views im Zeitraum</div>
+        </div>
+        {platformStats.rows.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            Keine Daten in diesem Zeitraum. Sync läuft alle 30 Min. — oder oben manuell auslösen.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {platformStats.rows.map((r) => {
+              const pct = platformStats.totalViews ? Math.round((r.views / platformStats.totalViews) * 100) : 0;
+              const meta = platforms.find((p) => p.id === r.platform);
+              const Icon = meta?.icon ?? Share2;
+              return (
+                <div key={r.platform} className="rounded-lg border border-border bg-background/60 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5 text-primary" />
+                      <span className="font-medium">{meta?.name ?? r.platform}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">{r.samples} Snapshots</span>
+                    </div>
+                    <div className="font-mono text-muted-foreground">
+                      <span className="text-foreground">{r.views.toLocaleString()}</span> views · {pct}% · {r.likes.toLocaleString()} likes · {r.comments.toLocaleString()} kommentare
+                    </div>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Social accounts */}
       <section>
         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
