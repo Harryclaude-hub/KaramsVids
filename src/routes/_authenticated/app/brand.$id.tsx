@@ -424,7 +424,7 @@ function BrandDetail() {
           </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-primary">Brand</p>
-            <h1 className="text-3xl font-semibold tracking-tight">{brand.name}</h1>
+            <h1 className={`text-3xl font-semibold tracking-tight ${fontClass((brand as any).name_font)}`}>{brand.name}</h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {lastSyncOverall ? `Letzter Analyse-Sync: ${lastSyncOverall.toLocaleString()}` : "Noch kein Analyse-Sync"}
             </p>
