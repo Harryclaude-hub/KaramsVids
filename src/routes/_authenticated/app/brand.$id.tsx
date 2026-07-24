@@ -15,6 +15,17 @@ export const Route = createFileRoute("/_authenticated/app/brand/$id")({
   component: BrandDetail,
 });
 
+const FONT_OPTIONS: { value: string; label: string; className: string }[] = [
+  { value: "sans", label: "Sans (Standard)", className: "font-sans" },
+  { value: "serif", label: "Serif", className: "font-serif" },
+  { value: "mono", label: "Mono", className: "font-mono" },
+  { value: "display", label: "Display (bold)", className: "font-sans font-black tracking-tight" },
+];
+
+function fontClass(v?: string | null): string {
+  return FONT_OPTIONS.find((f) => f.value === v)?.className ?? "font-sans";
+}
+
 const platforms = [
   { id: "tiktok", name: "TikTok", icon: Share2 },
   { id: "youtube", name: "YouTube", icon: Youtube },
