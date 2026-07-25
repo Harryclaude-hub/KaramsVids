@@ -327,7 +327,7 @@ export const Route = createFileRoute("/api/chat")({
               return { ok: true };
             },
           }),
-
+          apply_style_reference: tool({
             description: "Wendet den zuletzt analysierten Referenz-Stil auf alle Clips an. Vorher muss ein Referenzvideo analysiert worden sein.",
             inputSchema: z.object({}),
             execute: async () => {
