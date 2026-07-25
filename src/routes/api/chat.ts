@@ -47,11 +47,23 @@ export const Route = createFileRoute("/api/chat")({
         const gateway = createLovableAiGatewayProvider(key);
 
         const analysis = ((job.analysis as unknown) ?? { segments: [] }) as {
-          segments: Array<{ start_s: number; end_s: number; title: string; hook?: string; captions?: string }>;
+          segments: Array<{
+            start_s: number; end_s: number; title: string; hook?: string; captions?: string;
+            speed?: number; muted?: boolean; reverse?: boolean; freeze_at_s?: number;
+            fill_mode?: "crop" | "letterbox" | "blur_pad";
+            color?: { brightness?: number; contrast?: number; saturation?: number; gamma?: number };
+            transform?: { zoom_start?: number; zoom_end?: number; rotate?: 0|90|180|270; flip_h?: boolean };
+          }>;
+          overlays?: Array<{ id: string; clip_index: number; start_s: number; end_s: number; text: string; position: "top"|"center"|"bottom"; font_size: number; color: string; bg: boolean }>;
+          audio_tracks?: Array<{ id: string; name: string; url?: string; volume: number; duck: boolean }>;
           [k: string]: unknown;
         };
         if (!Array.isArray(analysis.segments)) analysis.segments = [];
+        if (!Array.isArray(analysis.overlays)) analysis.overlays = [];
+        if (!Array.isArray(analysis.audio_tracks)) analysis.audio_tracks = [];
         let options = ((job.options as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+
+        const uid = () => Math.random().toString(36).slice(2, 10);
 
         async function persistAnalysis() {
           await supabase.from("edit_jobs").update({ analysis: analysis as unknown as never }).eq("id", body.jobId!);
@@ -59,6 +71,15 @@ export const Route = createFileRoute("/api/chat")({
         async function persistOptions() {
           await supabase.from("edit_jobs").update({ options: options as unknown as never }).eq("id", body.jobId!);
         }
+
+        const COLOR_PRESETS: Record<string, { brightness?: number; contrast?: number; saturation?: number; gamma?: number }> = {
+          warm: { brightness: 0.03, saturation: 1.25, gamma: 1.05 },
+          cold: { brightness: 0.02, saturation: 0.9, contrast: 1.1 },
+          cinematic: { contrast: 1.25, saturation: 0.85, gamma: 0.95 },
+          vibrant: { saturation: 1.6, contrast: 1.15 },
+          bw: { saturation: 0 },
+          flat: { contrast: 0.9, saturation: 0.95, gamma: 1.0 },
+        };
 
         const tools = {
           list_clips: tool({
