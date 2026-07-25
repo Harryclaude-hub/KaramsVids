@@ -202,7 +202,132 @@ export const Route = createFileRoute("/api/chat")({
               return { ok: true };
             },
           }),
-          apply_style_reference: tool({
+          set_clip_speed: tool({
+            description: "Setzt die Wiedergabegeschwindigkeit eines Clips (0.25 = Slowmo, 2 = doppelt).",
+            inputSchema: z.object({ index: z.number().int().min(0), speed: z.number().min(0.25).max(4) }),
+            execute: async ({ index, speed }) => {
+              const seg = analysis.segments[index];
+              if (!seg) return { ok: false };
+              analysis.segments[index] = { ...seg, speed };
+              await persistAnalysis();
+              return { ok: true, speed };
+            },
+          }),
+          mute_clip: tool({
+            description: "Stellt Original-Audio eines Clips stumm (true) oder wieder an (false).",
+            inputSchema: z.object({ index: z.number().int().min(0), muted: z.boolean() }),
+            execute: async ({ index, muted }) => {
+              const seg = analysis.segments[index];
+              if (!seg) return { ok: false };
+              analysis.segments[index] = { ...seg, muted };
+              await persistAnalysis();
+              return { ok: true };
+            },
+          }),
+          reverse_clip: tool({
+            description: "Spielt einen Clip rückwärts ab.",
+            inputSchema: z.object({ index: z.number().int().min(0), reverse: z.boolean() }),
+            execute: async ({ index, reverse }) => {
+              const seg = analysis.segments[index];
+              if (!seg) return { ok: false };
+              analysis.segments[index] = { ...seg, reverse };
+              await persistAnalysis();
+              return { ok: true };
+            },
+          }),
+          apply_color_preset: tool({
+            description: "Wendet einen Farb-Look an: warm, cold, cinematic, vibrant, bw, flat. Auf einen Clip (index) oder alle (index weglassen).",
+            inputSchema: z.object({
+              preset: z.enum(["warm", "cold", "cinematic", "vibrant", "bw", "flat"]),
+              index: z.number().int().min(0).optional(),
+            }),
+            execute: async ({ preset, index }) => {
+              const color = COLOR_PRESETS[preset];
+              if (index === undefined) {
+                analysis.segments = analysis.segments.map((s) => ({ ...s, color: { ...color } }));
+              } else {
+                const seg = analysis.segments[index];
+                if (!seg) return { ok: false };
+                analysis.segments[index] = { ...seg, color: { ...color } };
+              }
+              await persistAnalysis();
+              return { ok: true, preset };
+            },
+          }),
+          set_fill_mode: tool({
+            description: "Setzt wie das Bild ins Ausgabeformat passt: crop (zuschneiden), letterbox (schwarze Ränder), blur_pad (unscharfer Rand).",
+            inputSchema: z.object({
+              mode: z.enum(["crop", "letterbox", "blur_pad"]),
+              index: z.number().int().min(0).optional(),
+            }),
+            execute: async ({ mode, index }) => {
+              if (index === undefined) {
+                analysis.segments = analysis.segments.map((s) => ({ ...s, fill_mode: mode }));
+              } else {
+                const seg = analysis.segments[index];
+                if (!seg) return { ok: false };
+                analysis.segments[index] = { ...seg, fill_mode: mode };
+              }
+              await persistAnalysis();
+              return { ok: true, mode };
+            },
+          }),
+          apply_ken_burns: tool({
+            description: "Fügt Ken-Burns Zoom-Bewegung hinzu: 'in' (rein), 'out' (raus), 'off' (aus). Auf Clip oder alle.",
+            inputSchema: z.object({
+              direction: z.enum(["in", "out", "off"]),
+              index: z.number().int().min(0).optional(),
+            }),
+            execute: async ({ direction, index }) => {
+              const t = direction === "in" ? { zoom_start: 1, zoom_end: 1.25 }
+                : direction === "out" ? { zoom_start: 1.25, zoom_end: 1 }
+                : { zoom_start: 1, zoom_end: 1 };
+              if (index === undefined) {
+                analysis.segments = analysis.segments.map((s) => ({ ...s, transform: { ...(s.transform ?? {}), ...t } }));
+              } else {
+                const seg = analysis.segments[index];
+                if (!seg) return { ok: false };
+                analysis.segments[index] = { ...seg, transform: { ...(seg.transform ?? {}), ...t } };
+              }
+              await persistAnalysis();
+              return { ok: true };
+            },
+          }),
+          add_text_overlay: tool({
+            description: "Fügt einen Text-Overlay zu einem Clip hinzu (Zeiten relativ zum Clip-Anfang).",
+            inputSchema: z.object({
+              clip_index: z.number().int().min(0),
+              text: z.string(),
+              start_s: z.number().min(0),
+              end_s: z.number().min(0),
+              position: z.enum(["top", "center", "bottom"]),
+              font_size: z.number().min(12).max(160),
+              color: z.string(),
+              bg: z.boolean(),
+            }),
+            execute: async (args) => {
+              const seg = analysis.segments[args.clip_index];
+              if (!seg) return { ok: false };
+              analysis.overlays!.push({ id: uid(), ...args });
+              await persistAnalysis();
+              return { ok: true, count: analysis.overlays!.length };
+            },
+          }),
+          add_music_track: tool({
+            description: "Fügt eine Hintergrundmusik-Spur hinzu (Name/URL aus Bibliothek). Ducking senkt Musik bei Sprache.",
+            inputSchema: z.object({
+              name: z.string(),
+              url: z.string().url().optional(),
+              volume: z.number().min(0).max(1).default(0.6),
+              duck: z.boolean().default(true),
+            }),
+            execute: async ({ name, url, volume, duck }) => {
+              analysis.audio_tracks = [{ id: uid(), name, url, volume, duck }];
+              await persistAnalysis();
+              return { ok: true };
+            },
+          }),
+
             description: "Wendet den zuletzt analysierten Referenz-Stil auf alle Clips an. Vorher muss ein Referenzvideo analysiert worden sein.",
             inputSchema: z.object({}),
             execute: async () => {
