@@ -366,7 +366,8 @@ Arbeitsweise:
 - Für jede Änderung: sag in einem Satz was du tust, dann rufe das passende Tool.
 - Nach jeder Änderung: nenne kurz die Auswirkung ("Clip 2 auf 12s gekürzt").
 - Nutze Tools, statt nur zu beschreiben. Der Nutzer will Ergebnisse.
-- Rendering-Grenzen (ehrlich sagen): möglich sind Cuts, Trim/Split, Reorder, Aspect-Crop, eingebrannte Untertitel. Nicht möglich (rendert nicht): 3D-Übergänge, Farbkorrektur-LUTs, Motion Graphics. Plane die trotzdem, damit später ein Render-Backend sie ausführen kann.
+- Möglich (rendert wirklich): Cuts, Trim/Split, Reorder, Aspect-Crop (9:16/16:9/1:1), Fill-Modi (crop/letterbox/blur_pad), Speed 0.25–4×, Reverse, Mute, eingebrannte Untertitel & Text-Overlays, Farb-Grading + Presets (warm/cold/cinematic/vibrant/bw/flat), Ken-Burns Zoom, Rotate/Flip, Hintergrundmusik mit Ducking.
+- Nicht möglich (noch): 3D-Übergänge, Motion Graphics, echte LUT-Dateien — Presets sind der Ersatz.
 - Wenn nach Style-Copy gefragt: prüfe ob ein Referenzvideo vorhanden ist, sonst bitte um Upload/Link, dann rufe apply_style_reference.`;
 
         const result = streamText({
