@@ -50,7 +50,9 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
 
             const { data: acc } = await supabaseAdmin
               .from("social_accounts")
-              .select("id,status,handle")
+              .select(
+                "id,status,handle,platform,access_token_encrypted,refresh_token_encrypted,expires_at,meta",
+              )
               .eq("brand_id", s.brand_id)
               .eq("platform", platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
               .neq("status", "disconnected")
@@ -67,21 +69,39 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
                     publish_error: `Kein verbundener ${platform}-Account für diesen Brand`,
                   })
                   .eq("id", c.id);
-              } else {
-                // TODO: echte Plattform-Upload-Calls, sobald API-Keys vorliegen
+                continue;
+              }
+              try {
+                const { publishClip } = await import("@/lib/social-publish.server");
+                const result = await publishClip(supabaseAdmin, acc as never, {
+                  id: c.id,
+                  storage_path: c.storage_path,
+                  title: c.title,
+                  caption_srt: c.caption_srt,
+                });
                 await supabaseAdmin
                   .from("generated_clips")
                   .update({
                     status: "published",
                     scheduled_for: publishedAt,
                     published_at: publishedAt,
-                    published_url: null,
-                    publish_error: "Simulierter Upload – wartet auf offizielle API-Freigabe",
+                    published_url: result.url,
+                    publish_error: result.note ?? null,
                   })
                   .eq("id", c.id);
                 published++;
+              } catch (e) {
+                await supabaseAdmin
+                  .from("generated_clips")
+                  .update({
+                    status: "failed",
+                    scheduled_for: publishedAt,
+                    publish_error: e instanceof Error ? e.message : String(e),
+                  })
+                  .eq("id", c.id);
               }
             }
+
             pickedTotal += (clips ?? []).length;
             } // Ende Plattform-Schleife
 
