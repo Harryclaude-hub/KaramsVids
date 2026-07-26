@@ -4,8 +4,9 @@ import { z } from "zod";
 
 const InputSchema = z.object({
   jobId: z.string().uuid(),
-  desiredClipCount: z.number().int().min(1).max(20).nullable().optional(),
+  desiredClipCount: z.number().int().min(1).max(100).nullable().optional(),
 });
+
 
 type Segment = {
   start_s: number;
