@@ -257,7 +257,7 @@ function ClipPage() {
                   <span className="text-muted-foreground">Clips</span>
                   <span className="font-mono">{count}</span>
                 </div>
-                <input type="range" min={1} max={30} value={count} onChange={(e) => setCount(parseInt(e.target.value))} className="w-full accent-primary" />
+                <input type="range" min={1} max={100} value={count} onChange={(e) => setCount(parseInt(e.target.value))} className="w-full accent-primary" />
                 <div className="mt-1 flex gap-1">
                   {[3, 5, 10, 20, 30].map((n) => (
                     <button key={n} onClick={() => setCount(n)} className={`flex-1 rounded border px-2 py-1 text-[11px] ${count === n ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"}`}>{n}</button>

@@ -4,8 +4,9 @@ import { z } from "zod";
 
 const InputSchema = z.object({
   jobId: z.string().uuid(),
-  desiredClipCount: z.number().int().min(1).max(20).nullable().optional(),
+  desiredClipCount: z.number().int().min(1).max(100).nullable().optional(),
 });
+
 
 type Segment = {
   start_s: number;
@@ -119,6 +120,33 @@ Antworte NUR mit JSON, das dieser Struktur folgt:
     } catch {
       throw new Error("KI-Antwort war kein gültiges JSON");
     }
+
+    // Massen-Clipping: bei hohen Stückzahlen liefert das Modell oft weniger
+    // Segmente als gewünscht — auf die exakte Anzahl auffüllen bzw. kürzen,
+    // damit aus einem Link garantiert 10/50/100 Clips entstehen.
+    const want = data.desiredClipCount ?? 0;
+    const segs = Array.isArray(analysis.segments) ? analysis.segments : [];
+    if (want > 0) {
+      const clean = segs
+        .filter((s) => Number.isFinite(s?.start_s) && Number.isFinite(s?.end_s) && s.end_s > s.start_s)
+        .slice(0, want);
+      if (clean.length < want) {
+        const missing = want - clean.length;
+        const slot = Math.max(8, Math.min(60, dur / want));
+        for (let i = 0; i < missing; i++) {
+          const start = Math.min(dur - slot, ((clean.length + i) * slot) % Math.max(slot, dur - slot));
+          const src = segs[i % Math.max(1, segs.length)];
+          clean.push({
+            start_s: Math.max(0, Number(start.toFixed(2))),
+            end_s: Number(Math.min(dur, start + slot).toFixed(2)),
+            title: `${raw.title} — Clip ${clean.length + i + 1}`,
+            hook: src?.hook ?? "Automatisch gesetzter Clip",
+          });
+        }
+      }
+      analysis.segments = clean;
+    }
+
 
     await supabase
       .from("edit_jobs")
