@@ -30,6 +30,7 @@ import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './rout
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
+import { Route as ApiPublicOauthPlatformCallbackRouteImport } from './routes/api/public/oauth/$platform/callback'
 
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
@@ -141,6 +142,12 @@ const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
   path: '/app/brand/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicOauthPlatformCallbackRoute =
+  ApiPublicOauthPlatformCallbackRouteImport.update({
+    id: '/api/public/oauth/$platform/callback',
+    path: '/api/public/oauth/$platform/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -184,6 +192,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -208,6 +217,7 @@ export interface FileRoutesById {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/oauth/$platform/callback'
   id:
     | '__root__'
     | '/'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -289,6 +302,7 @@ export interface RootRouteChildren {
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
+  ApiPublicOauthPlatformCallbackRoute: typeof ApiPublicOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -440,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/oauth/$platform/callback': {
+      id: '/api/public/oauth/$platform/callback'
+      path: '/api/public/oauth/$platform/callback'
+      fullPath: '/api/public/oauth/$platform/callback'
+      preLoaderRoute: typeof ApiPublicOauthPlatformCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -495,6 +516,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksProcessPublishQueueRoute:
     ApiPublicHooksProcessPublishQueueRoute,
   ApiPublicHooksSyncAnalyticsRoute: ApiPublicHooksSyncAnalyticsRoute,
+  ApiPublicOauthPlatformCallbackRoute: ApiPublicOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
