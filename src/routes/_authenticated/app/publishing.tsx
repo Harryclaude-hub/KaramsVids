@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { useState } from "react";
-import { CalendarClock, ListOrdered, Plus, Trash2, ArrowUp, ArrowDown, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, Clock, Edit3, Layers } from "lucide-react";
+import { CalendarClock, ListOrdered, Plus, Trash2, ArrowUp, ArrowDown, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, Clock, Edit3 } from "lucide-react";
 import { toast } from "sonner";
-import { PLATFORM_POST_TYPES, POST_TYPE_LABEL, defaultPostType, normalizePostType, type PostType } from "@/lib/post-types";
+import { PLATFORM_POST_TYPES, POST_TYPE_LABEL, normalizePostType, type PostType } from "@/lib/post-types";
+
 
 export const Route = createFileRoute("/_authenticated/app/publishing")({
   component: PublishingPage,
