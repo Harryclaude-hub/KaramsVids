@@ -154,7 +154,9 @@ type Schedule = {
   weekdays: number[] | null;
   time_of_day: string;
   interval_minutes?: number | null;
+  post_types?: string[] | null;
   platforms?: string[] | null;
+
   videos_per_slot: number;
   active: boolean;
   next_run_at: string;
