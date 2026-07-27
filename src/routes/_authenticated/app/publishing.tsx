@@ -252,6 +252,8 @@ function ScheduleSection({
   const [time, setTime] = useState("18:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // ganze Woche
   const [count, setCount] = useState(1);
+  const [selPostTypes, setSelPostTypes] = useState<string[]>([]); // leer = alle Beitragsarten
+
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
 
