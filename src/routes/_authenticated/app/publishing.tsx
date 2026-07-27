@@ -5,6 +5,8 @@ import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { useState } from "react";
 import { CalendarClock, ListOrdered, Plus, Trash2, ArrowUp, ArrowDown, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, Clock, Edit3 } from "lucide-react";
 import { toast } from "sonner";
+import { PLATFORM_POST_TYPES, POST_TYPE_LABEL, normalizePostType, type PostType } from "@/lib/post-types";
+
 
 export const Route = createFileRoute("/_authenticated/app/publishing")({
   component: PublishingPage,
@@ -19,6 +21,7 @@ const PLATFORMS = [
 ] as const;
 
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
 
 function PublishingPage() {
   const { user } = Route.useRouteContext();
@@ -152,7 +155,9 @@ type Schedule = {
   weekdays: number[] | null;
   time_of_day: string;
   interval_minutes?: number | null;
+  post_types?: string[] | null;
   platforms?: string[] | null;
+
   videos_per_slot: number;
   active: boolean;
   next_run_at: string;
@@ -248,6 +253,8 @@ function ScheduleSection({
   const [time, setTime] = useState("18:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // ganze Woche
   const [count, setCount] = useState(1);
+  const [selPostTypes, setSelPostTypes] = useState<string[]>([]); // leer = alle Beitragsarten
+
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
 
@@ -291,6 +298,8 @@ function ScheduleSection({
         ? { next_run_at: new Date(Date.now() + previewMinutes * 60_000).toISOString() }
         : {}),
       videos_per_slot: count,
+      post_types: selPostTypes,
+
       active: true,
     } as never);
     if (error) return toast.error(error.message);
@@ -451,7 +460,29 @@ function ScheduleSection({
             )}
           </div>
 
+          {/* Beitragsarten */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2b</span>
+              Welche Beitragsarten posten? <span className="font-normal text-muted-foreground">(leer = alle)</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[...new Set(selPlatforms.flatMap((p) => PLATFORM_POST_TYPES[p] ?? []))].map((t) => (
+                <button
+                  key={t}
+                  onClick={() =>
+                    setSelPostTypes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
+                  }
+                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selPostTypes.includes(t) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                >
+                  {POST_TYPE_LABEL[t as PostType]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Schritt 3: Menge */}
+
           <div>
             <div className="mb-1.5 text-xs font-medium">
               <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">3</span>
@@ -693,7 +724,26 @@ function QueueSection({
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs capitalize text-muted-foreground">{c.platform}</td>
+                  <td className="px-3 py-2 font-mono text-xs capitalize text-muted-foreground">
+                    <div>{c.platform}</div>
+                    <select
+                      value={normalizePostType(c.platform, (c as any).post_type)}
+                      onChange={async (e) => {
+                        const { error } = await supabase
+                          .from("generated_clips")
+                          .update({ post_type: e.target.value } as never)
+                          .eq("id", c.id);
+                        if (error) return toast.error(error.message);
+                        onChange();
+                      }}
+                      className="mt-1 rounded border border-border bg-input px-1 py-0.5 text-[10px] normal-case"
+                    >
+                      {(PLATFORM_POST_TYPES[c.platform] ?? ["video"]).map((t) => (
+                        <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>
+                      ))}
+                    </select>
+                  </td>
+
                   <td className="px-3 py-2">
                     <StatusPill s={c.status} />
                   </td>

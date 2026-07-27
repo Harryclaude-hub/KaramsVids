@@ -38,12 +38,19 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
 
             let pickedTotal = 0;
             for (const platform of platformList) {
-            const { data: clips, error: clipErr } = await supabaseAdmin
+            const wantedTypes: string[] = Array.isArray((s as { post_types?: string[] }).post_types)
+              ? ((s as { post_types?: string[] }).post_types as string[])
+              : [];
+
+            let clipQuery = supabaseAdmin
               .from("generated_clips")
               .select("*")
               .eq("brand_id", s.brand_id)
               .eq("platform", platform)
-              .eq("status", "queued")
+              .eq("status", "queued");
+            if (wantedTypes.length > 0) clipQuery = clipQuery.in("post_type", wantedTypes);
+
+            const { data: clips, error: clipErr } = await clipQuery
               .order("queue_position", { ascending: true })
               .limit(s.videos_per_slot);
             if (clipErr) throw new Error(clipErr.message);
@@ -78,7 +85,11 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
                   storage_path: c.storage_path,
                   title: c.title,
                   caption_srt: c.caption_srt,
+                  post_type: (c as { post_type?: string | null }).post_type ?? null,
+                  post_caption: (c as { post_caption?: string | null }).post_caption ?? null,
+                  hashtags: (c as { hashtags?: string[] | null }).hashtags ?? null,
                 });
+
                 await supabaseAdmin
                   .from("generated_clips")
                   .update({

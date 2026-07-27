@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { BrandAvatar } from "@/components/brand-avatar";
+import { BrandIdentity } from "@/components/brand-identity";
+import { BrandAutomations } from "@/components/brand-automations";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -914,9 +917,13 @@ function BrandDetail() {
           </div>
         )}
       </section>
+
+      <BrandIdentity brandId={id} brandName={brand.name} />
+      <BrandAutomations brandId={id} userId={user.id} />
     </div>
   );
 }
+
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
