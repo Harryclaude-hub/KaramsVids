@@ -914,9 +914,13 @@ function BrandDetail() {
           </div>
         )}
       </section>
+
+      <BrandIdentity brandId={id} brandName={brand.name} />
+      <BrandAutomations brandId={id} userId={user.id} />
     </div>
   );
 }
+
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
