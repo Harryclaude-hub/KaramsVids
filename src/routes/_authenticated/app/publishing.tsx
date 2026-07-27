@@ -459,7 +459,29 @@ function ScheduleSection({
             )}
           </div>
 
+          {/* Beitragsarten */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2b</span>
+              Welche Beitragsarten posten? <span className="font-normal text-muted-foreground">(leer = alle)</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[...new Set(selPlatforms.flatMap((p) => PLATFORM_POST_TYPES[p] ?? []))].map((t) => (
+                <button
+                  key={t}
+                  onClick={() =>
+                    setSelPostTypes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
+                  }
+                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selPostTypes.includes(t) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                >
+                  {POST_TYPE_LABEL[t as PostType]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Schritt 3: Menge */}
+
           <div>
             <div className="mb-1.5 text-xs font-medium">
               <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">3</span>
