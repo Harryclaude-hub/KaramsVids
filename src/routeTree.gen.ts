@@ -27,6 +27,7 @@ import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authentic
 import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
 import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
 import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
+import { Route as ApiPublicHooksProcessAutomationsRouteImport } from './routes/api/public/hooks/process-automations'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
@@ -127,6 +128,12 @@ const ApiPublicHooksProcessGenerationQueueRoute =
     path: '/api/public/hooks/process-generation-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProcessAutomationsRoute =
+  ApiPublicHooksProcessAutomationsRouteImport.update({
+    id: '/api/public/hooks/process-automations',
+    path: '/api/public/hooks/process-automations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
   id: '/app/video/$id',
   path: '/app/video/$id',
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
@@ -189,6 +197,7 @@ export interface FileRoutesByTo {
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
@@ -214,6 +223,7 @@ export interface FileRoutesById {
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/_authenticated/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
@@ -285,6 +297,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/brand/$id'
     | '/_authenticated/app/job/$id'
     | '/_authenticated/app/video/$id'
+    | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
@@ -299,6 +312,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicHooksProcessAutomationsRoute: typeof ApiPublicHooksProcessAutomationsRoute
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
@@ -433,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessGenerationQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-automations': {
+      id: '/api/public/hooks/process-automations'
+      path: '/api/public/hooks/process-automations'
+      fullPath: '/api/public/hooks/process-automations'
+      preLoaderRoute: typeof ApiPublicHooksProcessAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/video/$id': {
       id: '/_authenticated/app/video/$id'
       path: '/app/video/$id'
@@ -511,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicHooksProcessAutomationsRoute: ApiPublicHooksProcessAutomationsRoute,
   ApiPublicHooksProcessGenerationQueueRoute:
     ApiPublicHooksProcessGenerationQueueRoute,
   ApiPublicHooksProcessPublishQueueRoute:

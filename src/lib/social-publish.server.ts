@@ -27,19 +27,30 @@ export async function publishClip(
     expires_at: string | null;
     meta: any;
   },
-  clip: { id: string; storage_path: string; title: string | null; caption_srt?: string | null },
+  clip: {
+    id: string;
+    storage_path: string;
+    title: string | null;
+    caption_srt?: string | null;
+    post_type?: string | null;
+    post_caption?: string | null;
+    hashtags?: string[] | null;
+  },
 ): Promise<PublishResult> {
   const token = await refreshIfNeeded(supabaseAdmin, account);
   const videoUrl = await signedClipUrl(supabaseAdmin, clip.storage_path);
   const title = clip.title?.slice(0, 95) || "Neuer Clip";
+  const tags = (clip.hashtags ?? []).map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ");
+  const caption = [clip.post_caption?.trim() || title, tags].filter(Boolean).join("\n\n").slice(0, 2100);
+  const postType = clip.post_type ?? null;
 
   switch (account.platform) {
     case "youtube":
-      return publishYouTube(token, videoUrl, title);
+      return publishYouTube(token, videoUrl, title, caption, postType);
     case "instagram":
-      return publishInstagram(token, account.meta?.ig_user_id, videoUrl, title);
+      return publishInstagram(token, account.meta?.ig_user_id, videoUrl, caption, postType);
     case "facebook":
-      return publishFacebook(token, account.meta?.page_id, videoUrl, title);
+      return publishFacebook(token, account.meta?.page_id, videoUrl, caption, postType);
     case "tiktok":
       return publishTikTok(token, videoUrl, title);
     case "x":
@@ -50,6 +61,7 @@ export async function publishClip(
       throw new Error("Unbekannte Plattform");
   }
 }
+
 
 // ---------- YouTube (Shorts) ----------
 async function publishYouTube(token: string, videoUrl: string, title: string): Promise<PublishResult> {
