@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { BrandAvatar } from "@/components/brand-avatar";
+import { BrandIdentity } from "@/components/brand-identity";
+import { BrandAutomations } from "@/components/brand-automations";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
