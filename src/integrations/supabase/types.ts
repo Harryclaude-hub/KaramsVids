@@ -62,11 +62,170 @@ export type Database = {
           },
         ]
       }
+      automation_events: {
+        Row: {
+          brand_id: string
+          created_at: string
+          error: string | null
+          id: string
+          message_sent: string | null
+          platform: string
+          rule_id: string | null
+          status: string
+          target_handle: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_sent?: string | null
+          platform: string
+          rule_id?: string | null
+          status?: string
+          target_handle?: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_sent?: string | null
+          platform?: string
+          rule_id?: string | null
+          status?: string
+          target_handle?: string | null
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_events_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          active: boolean
+          brand_id: string
+          created_at: string
+          delay_minutes: number
+          id: string
+          keyword: string | null
+          message_template: string
+          platform: string
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          brand_id: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword?: string | null
+          message_template: string
+          platform: string
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          brand_id?: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          keyword?: string | null
+          message_template?: string
+          platform?: string
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_credentials: {
+        Row: {
+          brand_id: string
+          created_at: string
+          email: string | null
+          id: string
+          login_url: string | null
+          notes: string | null
+          password_encrypted: string | null
+          platform: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          login_url?: string | null
+          notes?: string | null
+          password_encrypted?: string | null
+          platform: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          login_url?: string | null
+          notes?: string | null
+          password_encrypted?: string | null
+          platform?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_credentials_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brands: {
         Row: {
           avatar_path: string | null
+          bio: string | null
           color: string
           created_at: string
+          handle: string | null
           id: string
           name: string
           name_font: string
@@ -78,8 +237,10 @@ export type Database = {
         }
         Insert: {
           avatar_path?: string | null
+          bio?: string | null
           color?: string
           created_at?: string
+          handle?: string | null
           id?: string
           name: string
           name_font?: string
@@ -91,8 +252,10 @@ export type Database = {
         }
         Update: {
           avatar_path?: string | null
+          bio?: string | null
           color?: string
           created_at?: string
+          handle?: string | null
           id?: string
           name?: string
           name_font?: string
@@ -219,11 +382,14 @@ export type Database = {
           caption_srt: string | null
           created_at: string
           duration_s: number | null
+          hashtags: string | null
           id: string
           job_id: string
           meta: Json
           overlays: Json
           platform: string | null
+          post_caption: string | null
+          post_type: string
           publish_error: string | null
           published_at: string | null
           published_url: string | null
@@ -243,11 +409,14 @@ export type Database = {
           caption_srt?: string | null
           created_at?: string
           duration_s?: number | null
+          hashtags?: string | null
           id?: string
           job_id: string
           meta?: Json
           overlays?: Json
           platform?: string | null
+          post_caption?: string | null
+          post_type?: string
           publish_error?: string | null
           published_at?: string | null
           published_url?: string | null
@@ -267,11 +436,14 @@ export type Database = {
           caption_srt?: string | null
           created_at?: string
           duration_s?: number | null
+          hashtags?: string | null
           id?: string
           job_id?: string
           meta?: Json
           overlays?: Json
           platform?: string | null
+          post_caption?: string | null
+          post_type?: string
           publish_error?: string | null
           published_at?: string | null
           published_url?: string | null
@@ -347,9 +519,12 @@ export type Database = {
           cadence: string
           created_at: string
           id: string
+          interval_minutes: number | null
           last_run_at: string | null
           next_run_at: string
           platform: string
+          platforms: string[]
+          post_types: string[]
           time_of_day: string
           updated_at: string
           user_id: string
@@ -362,9 +537,12 @@ export type Database = {
           cadence?: string
           created_at?: string
           id?: string
+          interval_minutes?: number | null
           last_run_at?: string | null
           next_run_at?: string
           platform: string
+          platforms?: string[]
+          post_types?: string[]
           time_of_day?: string
           updated_at?: string
           user_id: string
@@ -377,9 +555,12 @@ export type Database = {
           cadence?: string
           created_at?: string
           id?: string
+          interval_minutes?: number | null
           last_run_at?: string | null
           next_run_at?: string
           platform?: string
+          platforms?: string[]
+          post_types?: string[]
           time_of_day?: string
           updated_at?: string
           user_id?: string
