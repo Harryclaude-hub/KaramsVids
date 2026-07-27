@@ -297,6 +297,8 @@ function ScheduleSection({
         ? { next_run_at: new Date(Date.now() + previewMinutes * 60_000).toISOString() }
         : {}),
       videos_per_slot: count,
+      post_types: selPostTypes,
+
       active: true,
     } as never);
     if (error) return toast.error(error.message);
