@@ -723,7 +723,26 @@ function QueueSection({
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs capitalize text-muted-foreground">{c.platform}</td>
+                  <td className="px-3 py-2 font-mono text-xs capitalize text-muted-foreground">
+                    <div>{c.platform}</div>
+                    <select
+                      value={normalizePostType(c.platform, (c as any).post_type)}
+                      onChange={async (e) => {
+                        const { error } = await supabase
+                          .from("generated_clips")
+                          .update({ post_type: e.target.value } as never)
+                          .eq("id", c.id);
+                        if (error) return toast.error(error.message);
+                        onChange();
+                      }}
+                      className="mt-1 rounded border border-border bg-input px-1 py-0.5 text-[10px] normal-case"
+                    >
+                      {(PLATFORM_POST_TYPES[c.platform] ?? ["video"]).map((t) => (
+                        <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>
+                      ))}
+                    </select>
+                  </td>
+
                   <td className="px-3 py-2">
                     <StatusPill s={c.status} />
                   </td>
