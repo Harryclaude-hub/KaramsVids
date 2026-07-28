@@ -55,14 +55,16 @@ export function useActiveBrandId(): [string | null, (id: string | null) => void]
 
 export function useCreateBrand(userId: string) {
   const qc = useQueryClient();
+  const [workspaceId] = useActiveWorkspaceId();
   return async (name: string, color = "#F26A1F") => {
     const { data, error } = await supabase
       .from("brands")
-      .insert({ user_id: userId, name, color })
+      .insert({ user_id: userId, name, color, workspace_id: workspaceId } as never)
       .select()
       .single();
     if (error) throw error;
-    qc.invalidateQueries({ queryKey: ["brands", userId] });
+    qc.invalidateQueries({ queryKey: ["brands"] });
     return data as Brand;
+
   };
 }
