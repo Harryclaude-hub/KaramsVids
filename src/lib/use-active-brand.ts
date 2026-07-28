@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useCallback } from "react";
+import { useActiveWorkspaceId } from "@/lib/use-workspace";
 
 const LS_KEY = "vc:activeBrandId";
 
@@ -10,22 +11,25 @@ export type Brand = {
   name: string;
   color: string;
   avatar_path?: string | null;
+  workspace_id?: string | null;
   created_at: string;
 };
 
+/** Brands des aktiven Profils (Profile sind strikt getrennt). */
 export function useBrands(userId: string) {
+  const [workspaceId] = useActiveWorkspaceId();
   return useQuery({
-    queryKey: ["brands", userId],
+    queryKey: ["brands", userId, workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("brands")
-        .select("*")
-        .order("created_at", { ascending: true });
+      let q = supabase.from("brands").select("*").order("created_at", { ascending: true });
+      if (workspaceId) q = q.eq("workspace_id", workspaceId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as Brand[];
     },
   });
 }
+
 
 export function useActiveBrandId(): [string | null, (id: string | null) => void] {
   const [id, setId] = useState<string | null>(() => {
