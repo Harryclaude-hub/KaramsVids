@@ -23,12 +23,15 @@ import {
   X,
   PanelLeft,
   PanelLeftClose,
+  Wallet,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBrands, useActiveBrandId, useCreateBrand } from "@/lib/use-active-brand";
+import { useEnsureWorkspace, createWorkspace } from "@/lib/use-workspace";
 import { BrandAvatar } from "@/components/brand-avatar";
 import { toast } from "sonner";
+
 
 const ADMIN_EMAIL = "saifokaram1@gmail.com";
 
