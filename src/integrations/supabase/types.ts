@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_programs: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          id: string
+          link: string
+          name: string
+          notes: string | null
+          payout_amount: number
+          payout_type: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          link: string
+          name: string
+          notes?: string | null
+          payout_amount?: number
+          payout_type?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          link?: string
+          name?: string
+          notes?: string | null
+          payout_amount?: number
+          payout_type?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_programs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_snapshots: {
         Row: {
           brand_id: string
@@ -234,6 +287,7 @@ export type Database = {
           watermark_enabled: boolean
           watermark_path: string | null
           watermark_position: string
+          workspace_id: string | null
         }
         Insert: {
           avatar_path?: string | null
@@ -249,6 +303,7 @@ export type Database = {
           watermark_enabled?: boolean
           watermark_path?: string | null
           watermark_position?: string
+          workspace_id?: string | null
         }
         Update: {
           avatar_path?: string | null
@@ -264,8 +319,96 @@ export type Database = {
           watermark_enabled?: boolean
           watermark_path?: string | null
           watermark_position?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "brands_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      earnings: {
+        Row: {
+          affiliate_program_id: string | null
+          amount: number
+          brand_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          note: string | null
+          period_end: string | null
+          period_start: string | null
+          platform: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+          views: number
+          workspace_id: string
+        }
+        Insert: {
+          affiliate_program_id?: string | null
+          amount?: number
+          brand_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          note?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          platform?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          views?: number
+          workspace_id: string
+        }
+        Update: {
+          affiliate_program_id?: string | null
+          amount?: number
+          brand_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          note?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          platform?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          views?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_affiliate_program_id_fkey"
+            columns: ["affiliate_program_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       edit_jobs: {
         Row: {
@@ -376,6 +519,7 @@ export type Database = {
       }
       generated_clips: {
         Row: {
+          affiliate_program_id: string | null
           aspect: string
           audio_tracks: Json
           brand_id: string | null
@@ -403,6 +547,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          affiliate_program_id?: string | null
           aspect?: string
           audio_tracks?: Json
           brand_id?: string | null
@@ -430,6 +575,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          affiliate_program_id?: string | null
           aspect?: string
           audio_tracks?: Json
           brand_id?: string | null
@@ -457,6 +603,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "generated_clips_affiliate_program_id_fkey"
+            columns: ["affiliate_program_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_programs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "generated_clips_brand_id_fkey"
             columns: ["brand_id"]
@@ -516,6 +669,7 @@ export type Database = {
         Row: {
           active: boolean
           brand_id: string
+          brand_ids: string[]
           cadence: string
           created_at: string
           id: string
@@ -525,15 +679,18 @@ export type Database = {
           platform: string
           platforms: string[]
           post_types: string[]
+          shuffle: boolean
           time_of_day: string
           updated_at: string
           user_id: string
           videos_per_slot: number
           weekdays: number[]
+          workspace_id: string | null
         }
         Insert: {
           active?: boolean
           brand_id: string
+          brand_ids?: string[]
           cadence?: string
           created_at?: string
           id?: string
@@ -543,15 +700,18 @@ export type Database = {
           platform: string
           platforms?: string[]
           post_types?: string[]
+          shuffle?: boolean
           time_of_day?: string
           updated_at?: string
           user_id: string
           videos_per_slot?: number
           weekdays?: number[]
+          workspace_id?: string | null
         }
         Update: {
           active?: boolean
           brand_id?: string
+          brand_ids?: string[]
           cadence?: string
           created_at?: string
           id?: string
@@ -561,11 +721,13 @@ export type Database = {
           platform?: string
           platforms?: string[]
           post_types?: string[]
+          shuffle?: boolean
           time_of_day?: string
           updated_at?: string
           user_id?: string
           videos_per_slot?: number
           weekdays?: number[]
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -573,6 +735,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publish_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -692,6 +861,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workspaces: {
+        Row: {
+          avatar_path: string | null
+          color: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          payout_details: Json
+          payout_provider: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          payout_details?: Json
+          payout_provider?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_path?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          payout_details?: Json
+          payout_provider?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
