@@ -23,12 +23,15 @@ import {
   X,
   PanelLeft,
   PanelLeftClose,
+  Wallet,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useBrands, useActiveBrandId, useCreateBrand } from "@/lib/use-active-brand";
+import { useEnsureWorkspace, createWorkspace } from "@/lib/use-workspace";
 import { BrandAvatar } from "@/components/brand-avatar";
 import { toast } from "sonner";
+
 
 const ADMIN_EMAIL = "saifokaram1@gmail.com";
 
@@ -68,12 +71,15 @@ function AppShell() {
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  const { workspaces, activeWorkspaceId, setActiveWorkspaceId, activeWorkspace } =
+    useEnsureWorkspace(user.id);
   const brandsQ = useBrands(user.id);
   const [activeBrandId, setActiveBrandId] = useActiveBrandId();
   const createBrand = useCreateBrand(user.id);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
+
   // Seitenleiste ausblendbar — Einstellung wird gemerkt
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -98,7 +104,8 @@ function AppShell() {
       | "/app/generate"
       | "/app/avatars"
       | "/app/publishing"
-      | "/app/connections";
+      | "/app/connections"
+      | "/app/profile";
     label: string;
     icon: typeof Scissors;
   }[] = [
@@ -108,6 +115,7 @@ function AppShell() {
     { to: "/app/avatars", label: "Avatare", icon: Users },
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
+    { to: "/app/profile", label: "Profil & Earnings", icon: Wallet },
   ];
 
   async function signOut() {
@@ -116,6 +124,21 @@ function AppShell() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  async function addWorkspace() {
+    const name = window.prompt("Name des neuen Profils?")?.trim();
+    if (!name) return;
+    try {
+      const ws = await createWorkspace(user.id, name);
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      setActiveWorkspaceId(ws.id);
+      setActiveBrandId(null);
+      toast.success(`Profil „${ws.name}" erstellt`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Konnte Profil nicht anlegen");
+    }
+  }
+
 
   async function submitNewBrand() {
     const name = newName.trim();
@@ -140,7 +163,7 @@ function AppShell() {
       <aside
         className={`${sidebarOpen ? "md:flex" : "md:hidden"} hidden w-64 flex-col border-r border-border bg-card/40 p-4`}
       >
-        <Link to="/app" className="mb-6 flex items-center gap-2">
+        <Link to="/app" className="mb-4 flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
             <Scissors className="h-4 w-4" />
           </div>
@@ -148,6 +171,44 @@ function AppShell() {
             VideoCraft <span className="text-primary">AI</span>
           </span>
         </Link>
+
+        {/* Profil-Wechsler — Profile sind komplett voneinander getrennt */}
+        <div className="mb-5 rounded-lg border border-border bg-background/60 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+              Profil
+            </span>
+            <button
+              onClick={addWorkspace}
+              className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              title="Neues Profil"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <select
+            value={activeWorkspaceId ?? ""}
+            onChange={(e) => {
+              setActiveWorkspaceId(e.target.value || null);
+              setActiveBrandId(null);
+            }}
+            className="w-full rounded border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            {workspaces.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+          <Link
+            to="/app/profile"
+            className="mt-1.5 block text-[10px] text-muted-foreground hover:text-primary"
+          >
+            Earnings & Affiliate verwalten →
+          </Link>
+        </div>
+
+
 
         <nav className="space-y-1">
           {nav.map((n) => {
@@ -329,6 +390,15 @@ function AppShell() {
           >
             {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
           </button>
+          <Link
+            to="/app/profile"
+            className="hidden shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground sm:inline-flex"
+            title="Profil öffnen"
+          >
+            <Wallet className="h-3 w-3" />
+            {activeWorkspace?.name ?? "Profil"}
+          </Link>
+
           {activeBrand ? (
             <>
               <BrandAvatar brand={activeBrand} className="h-7 w-7 rounded-lg text-xs" />

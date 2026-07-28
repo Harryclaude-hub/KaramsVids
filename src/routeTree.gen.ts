@@ -20,6 +20,7 @@ import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
 import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
 import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
 import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
@@ -88,6 +89,11 @@ const AuthenticatedAppPublishingRoute =
     path: '/app/publishing',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/app/profile',
+  path: '/app/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAppGenerateRoute =
   AuthenticatedAppGenerateRouteImport.update({
     id: '/app/generate',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -191,6 +198,7 @@ export interface FileRoutesByTo {
   '/app/clip': typeof AuthenticatedAppClipRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/_authenticated/app/clip': typeof AuthenticatedAppClipRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/app/clip'
     | '/app/connections'
     | '/app/generate'
+    | '/app/profile'
     | '/app/publishing'
     | '/app/upload'
     | '/app/'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/app/clip'
     | '/app/connections'
     | '/app/generate'
+    | '/app/profile'
     | '/app/publishing'
     | '/app/upload'
     | '/app'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/clip'
     | '/_authenticated/app/connections'
     | '/_authenticated/app/generate'
+    | '/_authenticated/app/profile'
     | '/_authenticated/app/publishing'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
@@ -398,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/app/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/generate': {
       id: '/_authenticated/app/generate'
       path: '/app/generate'
@@ -490,6 +509,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppClipRoute: typeof AuthenticatedAppClipRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
   AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
@@ -503,6 +523,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppClipRoute: AuthenticatedAppClipRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
   AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
@@ -543,13 +564,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

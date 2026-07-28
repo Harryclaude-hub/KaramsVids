@@ -111,10 +111,12 @@ function PublishingPage() {
       <ScheduleSection
         brandId={brand.id}
         userId={user.id}
+        brands={(brandsQ.data ?? []).map((b) => ({ id: b.id, name: b.name }))}
         schedules={schedules}
         onChange={() => qc.invalidateQueries({ queryKey: ["publish_schedules", user.id, activeBrandId] })}
         queuedByPlatform={queuedByPlatform}
       />
+
 
       <QueueSection
         clips={clips as ClipRow[]}
@@ -150,6 +152,8 @@ type ClipRow = {
 type Schedule = {
   id: string;
   brand_id: string;
+  brand_ids?: string[] | null;
+  shuffle?: boolean | null;
   platform: string;
   cadence: string;
   weekdays: number[] | null;
@@ -163,6 +167,7 @@ type Schedule = {
   next_run_at: string;
   last_run_at: string | null;
 };
+
 
 /** Plattform-Liste eines Plans (neues Array-Feld mit Fallback aufs Altfeld) */
 function schedulePlatforms(s: Schedule): string[] {
@@ -242,18 +247,22 @@ function IntervalEditor({ schedule, onSaved }: { schedule: Schedule; onSaved: ()
 }
 
 function ScheduleSection({
-  brandId, userId, schedules, onChange, queuedByPlatform,
+  brandId, userId, brands, schedules, onChange, queuedByPlatform,
 }: {
-  brandId: string; userId: string; schedules: Schedule[]; onChange: () => void;
+  brandId: string; userId: string; brands: { id: string; name: string }[];
+  schedules: Schedule[]; onChange: () => void;
   queuedByPlatform: Record<string, number>;
 }) {
   const [creating, setCreating] = useState(false);
   const [selPlatforms, setSelPlatforms] = useState<string[]>(PLATFORMS.map((p) => p.id));
+  const [selBrands, setSelBrands] = useState<string[]>([brandId]);
+  const [shuffle, setShuffle] = useState(false);
   const [mode, setMode] = useState<"week" | "interval">("week");
   const [time, setTime] = useState("18:00");
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // ganze Woche
   const [count, setCount] = useState(1);
   const [selPostTypes, setSelPostTypes] = useState<string[]>([]); // leer = alle Beitragsarten
+
 
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
@@ -282,11 +291,14 @@ function ScheduleSection({
 
   async function add() {
     if (selPlatforms.length === 0) return toast.error("Bitte mindestens eine Plattform wählen");
+    if (selBrands.length === 0) return toast.error("Bitte mindestens einen Brand wählen");
     if (mode === "week" && days.length === 0)
       return toast.error("Bitte mindestens einen Wochentag wählen");
     const cadence = mode === "interval" ? "interval" : days.length === 7 ? "daily" : "weekly";
     const { error } = await supabase.from("publish_schedules").insert({
-      user_id: userId, brand_id: brandId,
+      user_id: userId, brand_id: selBrands[0],
+      brand_ids: selBrands,
+      shuffle,
       platform: selPlatforms[0], // Altfeld (Kompatibilität)
       platforms: selPlatforms,
       cadence,
@@ -302,6 +314,7 @@ function ScheduleSection({
 
       active: true,
     } as never);
+
     if (error) return toast.error(error.message);
     setCreating(false);
     toast.success(
@@ -350,6 +363,41 @@ function ScheduleSection({
             automatisch die nächsten Clips aus der Warteschlange und postet sie zum eingestellten
             Zeitpunkt auf die gewählten Plattformen — pro Plattform ihre eigene Warteschlange.
           </div>
+
+          {/* Schritt 0: Brands */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">0</span>
+              Für welche Brands gilt dieser Slot?
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() =>
+                  setSelBrands(selBrands.length === brands.length ? [brandId] : brands.map((b) => b.id))
+                }
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${selBrands.length === brands.length ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
+              >
+                Alle Brands
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() =>
+                    setSelBrands((cur) => (cur.includes(b.id) ? cur.filter((x) => x !== b.id) : [...cur, b.id]))
+                  }
+                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selBrands.includes(b.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+            <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+              <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
+              Reihenfolge mischen — jeder Brand postet eine andere zufällige Auswahl aus seiner Warteschlange
+            </label>
+          </div>
+
+
 
           {/* Schritt 1: Plattformen */}
           <div>

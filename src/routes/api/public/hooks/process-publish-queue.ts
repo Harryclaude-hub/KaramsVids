@@ -36,85 +36,126 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
                 : [s.platform]
             ).filter(Boolean);
 
+            // Ein Plan kann mehrere Brands bedienen (brand_ids[]).
+            const brandList: string[] = (
+              Array.isArray((s as { brand_ids?: string[] }).brand_ids) &&
+              ((s as { brand_ids?: string[] }).brand_ids?.length ?? 0) > 0
+                ? ((s as { brand_ids?: string[] }).brand_ids as string[])
+                : [s.brand_id]
+            ).filter(Boolean);
+
+            const shuffle = Boolean((s as { shuffle?: boolean }).shuffle);
+
             let pickedTotal = 0;
-            for (const platform of platformList) {
-            const wantedTypes: string[] = Array.isArray((s as { post_types?: string[] }).post_types)
-              ? ((s as { post_types?: string[] }).post_types as string[])
-              : [];
+            for (const brandId of brandList) {
+              for (const platform of platformList) {
+                const wantedTypes: string[] = Array.isArray(
+                  (s as { post_types?: string[] }).post_types,
+                )
+                  ? ((s as { post_types?: string[] }).post_types as string[])
+                  : [];
 
-            let clipQuery = supabaseAdmin
-              .from("generated_clips")
-              .select("*")
-              .eq("brand_id", s.brand_id)
-              .eq("platform", platform)
-              .eq("status", "queued");
-            if (wantedTypes.length > 0) clipQuery = clipQuery.in("post_type", wantedTypes);
-
-            const { data: clips, error: clipErr } = await clipQuery
-              .order("queue_position", { ascending: true })
-              .limit(s.videos_per_slot);
-            if (clipErr) throw new Error(clipErr.message);
-
-            const { data: acc } = await supabaseAdmin
-              .from("social_accounts")
-              .select(
-                "id,status,handle,platform,access_token_encrypted,refresh_token_encrypted,expires_at,meta",
-              )
-              .eq("brand_id", s.brand_id)
-              .eq("platform", platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
-              .neq("status", "disconnected")
-              .maybeSingle();
-
-            for (const c of clips ?? []) {
-              const publishedAt = new Date().toISOString();
-              if (!acc) {
-                await supabaseAdmin
+                let clipQuery = supabaseAdmin
                   .from("generated_clips")
-                  .update({
-                    status: "failed",
-                    scheduled_for: publishedAt,
-                    publish_error: `Kein verbundener ${platform}-Account für diesen Brand`,
-                  })
-                  .eq("id", c.id);
-                continue;
-              }
-              try {
-                const { publishClip } = await import("@/lib/social-publish.server");
-                const result = await publishClip(supabaseAdmin, acc as never, {
-                  id: c.id,
-                  storage_path: c.storage_path,
-                  title: c.title,
-                  caption_srt: c.caption_srt,
-                  post_type: (c as { post_type?: string | null }).post_type ?? null,
-                  post_caption: (c as { post_caption?: string | null }).post_caption ?? null,
-                  hashtags: (c as { hashtags?: string[] | null }).hashtags ?? null,
-                });
+                  .select("*")
+                  .eq("brand_id", brandId)
+                  .eq("platform", platform)
+                  .eq("status", "queued");
+                if (wantedTypes.length > 0) clipQuery = clipQuery.in("post_type", wantedTypes);
 
-                await supabaseAdmin
-                  .from("generated_clips")
-                  .update({
-                    status: "published",
-                    scheduled_for: publishedAt,
-                    published_at: publishedAt,
-                    published_url: result.url,
-                    publish_error: result.note ?? null,
-                  })
-                  .eq("id", c.id);
-                published++;
-              } catch (e) {
-                await supabaseAdmin
-                  .from("generated_clips")
-                  .update({
-                    status: "failed",
-                    scheduled_for: publishedAt,
-                    publish_error: e instanceof Error ? e.message : String(e),
-                  })
-                  .eq("id", c.id);
-              }
-            }
+                // Beim Mischen einen größeren Pool holen und daraus deterministisch
+                // pro Brand+Tag zufällig wählen — so postet nicht jede Brand identisch.
+                const poolSize = shuffle ? Math.max(s.videos_per_slot * 8, 20) : s.videos_per_slot;
+                const { data: pool, error: clipErr } = await clipQuery
+                  .order("queue_position", { ascending: true })
+                  .limit(poolSize);
+                if (clipErr) throw new Error(clipErr.message);
 
-            pickedTotal += (clips ?? []).length;
-            } // Ende Plattform-Schleife
+                const clips = shuffle
+                  ? seededShuffle(pool ?? [], `${brandId}|${platform}|${dayKey(now)}`).slice(
+                      0,
+                      s.videos_per_slot,
+                    )
+                  : (pool ?? []);
+
+                const { data: acc } = await supabaseAdmin
+                  .from("social_accounts")
+                  .select(
+                    "id,status,handle,platform,access_token_encrypted,refresh_token_encrypted,expires_at,meta",
+                  )
+                  .eq("brand_id", brandId)
+                  .eq("platform", platform as "tiktok" | "youtube" | "instagram" | "facebook" | "x")
+                  .neq("status", "disconnected")
+                  .maybeSingle();
+
+                for (const c of clips) {
+                  const publishedAt = new Date().toISOString();
+                  if (!acc) {
+                    await supabaseAdmin
+                      .from("generated_clips")
+                      .update({
+                        status: "failed",
+                        scheduled_for: publishedAt,
+                        publish_error: `Kein verbundener ${platform}-Account für diesen Brand`,
+                      })
+                      .eq("id", c.id);
+                    continue;
+                  }
+
+                  // Affiliate-Link (falls am Clip hinterlegt) an die Caption hängen
+                  let caption = (c as { post_caption?: string | null }).post_caption ?? null;
+                  const affId = (c as { affiliate_program_id?: string | null })
+                    .affiliate_program_id;
+                  if (affId) {
+                    const { data: prog } = await supabaseAdmin
+                      .from("affiliate_programs")
+                      .select("link")
+                      .eq("id", affId)
+                      .maybeSingle();
+                    const link = (prog as { link?: string } | null)?.link;
+                    if (link && !(caption ?? "").includes(link)) {
+                      caption = [caption ?? "", link].filter(Boolean).join("\n\n");
+                    }
+                  }
+
+                  try {
+                    const { publishClip } = await import("@/lib/social-publish.server");
+                    const result = await publishClip(supabaseAdmin, acc as never, {
+                      id: c.id,
+                      storage_path: c.storage_path,
+                      title: c.title,
+                      caption_srt: c.caption_srt,
+                      post_type: (c as { post_type?: string | null }).post_type ?? null,
+                      post_caption: caption,
+                      hashtags: (c as { hashtags?: string[] | null }).hashtags ?? null,
+                    });
+
+                    await supabaseAdmin
+                      .from("generated_clips")
+                      .update({
+                        status: "published",
+                        scheduled_for: publishedAt,
+                        published_at: publishedAt,
+                        published_url: result.url,
+                        publish_error: result.note ?? null,
+                      })
+                      .eq("id", c.id);
+                    published++;
+                  } catch (e) {
+                    await supabaseAdmin
+                      .from("generated_clips")
+                      .update({
+                        status: "failed",
+                        scheduled_for: publishedAt,
+                        publish_error: e instanceof Error ? e.message : String(e),
+                      })
+                      .eq("id", c.id);
+                  }
+                }
+
+                pickedTotal += clips.length;
+              } // Ende Plattform-Schleife
+            } // Ende Brand-Schleife
 
             const nextRun = computeNextRun(s, now);
             await supabaseAdmin
@@ -127,8 +168,9 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
 
             details.push({
               schedule_id: s.id,
-              brand_id: s.brand_id,
+              brands: brandList,
               platforms: platformList,
+              shuffle,
               picked: pickedTotal,
               next_run_at: nextRun.toISOString(),
             });
@@ -136,6 +178,7 @@ export const Route = createFileRoute("/api/public/hooks/process-publish-queue")(
             details.push({ schedule_id: s.id, error: e instanceof Error ? e.message : String(e) });
           }
         }
+
 
         return json({ ok: true, published, schedules_processed: schedules?.length ?? 0, details });
       },
@@ -190,4 +233,31 @@ function computeNextRun(s: Schedule, from: Date): Date {
   const tmr = new Date(today);
   tmr.setDate(tmr.getDate() + 1);
   return tmr;
+}
+
+/** Tages-Schlüssel (lokal) — sorgt dafür, dass die Mischung pro Tag stabil bleibt. */
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/** Deterministisches Mischen anhand eines Seeds (gleicher Seed = gleiche Reihenfolge). */
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const rand = () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
