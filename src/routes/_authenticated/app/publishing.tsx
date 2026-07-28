@@ -364,6 +364,41 @@ function ScheduleSection({
             Zeitpunkt auf die gewählten Plattformen — pro Plattform ihre eigene Warteschlange.
           </div>
 
+          {/* Schritt 0: Brands */}
+          <div>
+            <div className="mb-1.5 text-xs font-medium">
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">0</span>
+              Für welche Brands gilt dieser Slot?
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() =>
+                  setSelBrands(selBrands.length === brands.length ? [brandId] : brands.map((b) => b.id))
+                }
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${selBrands.length === brands.length ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
+              >
+                Alle Brands
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() =>
+                    setSelBrands((cur) => (cur.includes(b.id) ? cur.filter((x) => x !== b.id) : [...cur, b.id]))
+                  }
+                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selBrands.includes(b.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+            <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+              <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
+              Reihenfolge mischen — jeder Brand postet eine andere zufällige Auswahl aus seiner Warteschlange
+            </label>
+          </div>
+
+
+
           {/* Schritt 1: Plattformen */}
           <div>
             <div className="mb-1.5 text-xs font-medium">
