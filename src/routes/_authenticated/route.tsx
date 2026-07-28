@@ -71,12 +71,15 @@ function AppShell() {
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  const { workspaces, activeWorkspaceId, setActiveWorkspaceId, activeWorkspace } =
+    useEnsureWorkspace(user.id);
   const brandsQ = useBrands(user.id);
   const [activeBrandId, setActiveBrandId] = useActiveBrandId();
   const createBrand = useCreateBrand(user.id);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [mobileNav, setMobileNav] = useState(false);
+
   // Seitenleiste ausblendbar — Einstellung wird gemerkt
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === "undefined") return true;
