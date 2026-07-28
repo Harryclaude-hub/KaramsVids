@@ -104,7 +104,8 @@ function AppShell() {
       | "/app/generate"
       | "/app/avatars"
       | "/app/publishing"
-      | "/app/connections";
+      | "/app/connections"
+      | "/app/profile";
     label: string;
     icon: typeof Scissors;
   }[] = [
@@ -114,6 +115,7 @@ function AppShell() {
     { to: "/app/avatars", label: "Avatare", icon: Users },
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
+    { to: "/app/profile", label: "Profil & Earnings", icon: Wallet },
   ];
 
   async function signOut() {
@@ -122,6 +124,21 @@ function AppShell() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  async function addWorkspace() {
+    const name = window.prompt("Name des neuen Profils?")?.trim();
+    if (!name) return;
+    try {
+      const ws = await createWorkspace(user.id, name);
+      qc.invalidateQueries({ queryKey: ["workspaces"] });
+      setActiveWorkspaceId(ws.id);
+      setActiveBrandId(null);
+      toast.success(`Profil „${ws.name}" erstellt`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Konnte Profil nicht anlegen");
+    }
+  }
+
 
   async function submitNewBrand() {
     const name = newName.trim();
