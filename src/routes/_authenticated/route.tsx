@@ -163,7 +163,7 @@ function AppShell() {
       <aside
         className={`${sidebarOpen ? "md:flex" : "md:hidden"} hidden w-64 flex-col border-r border-border bg-card/40 p-4`}
       >
-        <Link to="/app" className="mb-6 flex items-center gap-2">
+        <Link to="/app" className="mb-4 flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
             <Scissors className="h-4 w-4" />
           </div>
@@ -171,6 +171,44 @@ function AppShell() {
             VideoCraft <span className="text-primary">AI</span>
           </span>
         </Link>
+
+        {/* Profil-Wechsler — Profile sind komplett voneinander getrennt */}
+        <div className="mb-5 rounded-lg border border-border bg-background/60 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+              Profil
+            </span>
+            <button
+              onClick={addWorkspace}
+              className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              title="Neues Profil"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <select
+            value={activeWorkspaceId ?? ""}
+            onChange={(e) => {
+              setActiveWorkspaceId(e.target.value || null);
+              setActiveBrandId(null);
+            }}
+            className="w-full rounded border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            {workspaces.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+          <Link
+            to="/app/profile"
+            className="mt-1.5 block text-[10px] text-muted-foreground hover:text-primary"
+          >
+            Earnings & Affiliate verwalten →
+          </Link>
+        </div>
+
+
 
         <nav className="space-y-1">
           {nav.map((n) => {
