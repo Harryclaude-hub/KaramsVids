@@ -234,3 +234,30 @@ function computeNextRun(s: Schedule, from: Date): Date {
   tmr.setDate(tmr.getDate() + 1);
   return tmr;
 }
+
+/** Tages-Schlüssel (lokal) — sorgt dafür, dass die Mischung pro Tag stabil bleibt. */
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/** Deterministisches Mischen anhand eines Seeds (gleicher Seed = gleiche Reihenfolge). */
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const rand = () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
