@@ -390,6 +390,15 @@ function AppShell() {
           >
             {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
           </button>
+          <Link
+            to="/app/profile"
+            className="hidden shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground sm:inline-flex"
+            title="Profil öffnen"
+          >
+            <Wallet className="h-3 w-3" />
+            {activeWorkspace?.name ?? "Profil"}
+          </Link>
+
           {activeBrand ? (
             <>
               <BrandAvatar brand={activeBrand} className="h-7 w-7 rounded-lg text-xs" />
