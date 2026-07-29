@@ -42,6 +42,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorChat } from "@/components/editor-chat";
+import { BulkRenderPanel } from "@/components/bulk-render-panel";
+
 import type { UIMessage } from "ai";
 import type {
   Segment,
