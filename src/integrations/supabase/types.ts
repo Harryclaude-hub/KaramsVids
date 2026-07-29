@@ -806,6 +806,93 @@ export type Database = {
           },
         ]
       }
+      render_jobs: {
+        Row: {
+          aspect: string
+          attempts: number
+          brand_id: string | null
+          captions_srt: string | null
+          clip_id: string | null
+          clip_index: number
+          created_at: string
+          end_s: number
+          error: string | null
+          id: string
+          job_id: string
+          music_url: string | null
+          music_volume: number
+          output_url: string | null
+          progress: number
+          provider: string
+          provider_render_id: string | null
+          source_url: string | null
+          start_s: number
+          status: string
+          storage_path: string | null
+          template_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          aspect?: string
+          attempts?: number
+          brand_id?: string | null
+          captions_srt?: string | null
+          clip_id?: string | null
+          clip_index?: number
+          created_at?: string
+          end_s?: number
+          error?: string | null
+          id?: string
+          job_id: string
+          music_url?: string | null
+          music_volume?: number
+          output_url?: string | null
+          progress?: number
+          provider?: string
+          provider_render_id?: string | null
+          source_url?: string | null
+          start_s?: number
+          status?: string
+          storage_path?: string | null
+          template_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          aspect?: string
+          attempts?: number
+          brand_id?: string | null
+          captions_srt?: string | null
+          clip_id?: string | null
+          clip_index?: number
+          created_at?: string
+          end_s?: number
+          error?: string | null
+          id?: string
+          job_id?: string
+          music_url?: string | null
+          music_volume?: number
+          output_url?: string | null
+          progress?: number
+          provider?: string
+          provider_render_id?: string | null
+          source_url?: string | null
+          start_s?: number
+          status?: string
+          storage_path?: string | null
+          template_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       social_accounts: {
         Row: {
           access_token_encrypted: string | null
