@@ -1870,7 +1870,13 @@ function JobEditor() {
         <aside
           className={`${showRight ? "w-[330px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
         >
+          {/* Massen-Rendering (Creatomate) */}
+          <div className="border-b border-border p-3">
+            <BulkRenderPanel jobId={id} clipCount={segments.length} />
+          </div>
+
           {/* Inspector */}
+
           <div className={`${panels.inspector ? "" : "hidden"} border-b border-border p-3`}>
             <div className="mb-2 text-xs font-medium text-muted-foreground">
               Inspector — Clip {selectedClip + 1}
