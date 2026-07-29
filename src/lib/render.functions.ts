@@ -47,15 +47,16 @@ export const retryFailedRenders = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => RetryInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error, count } = await supabase
+    const { data: rows, error } = await supabase
       .from("render_jobs")
       .update({ status: "queued", attempts: 0, error: null, provider_render_id: null, progress: 0 })
       .eq("job_id", data.jobId)
       .eq("user_id", userId)
       .eq("status", "failed")
-      .select("id", { count: "exact" });
+      .select("id");
     if (error) throw new Error(error.message);
     const { processRenderQueue } = await import("@/lib/bulk-render.server");
     const run = await processRenderQueue(supabase, { userId });
-    return { requeued: count ?? 0, ...run };
+    return { requeued: rows?.length ?? 0, ...run };
+
   });
