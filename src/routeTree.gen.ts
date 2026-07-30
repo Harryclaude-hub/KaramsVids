@@ -19,6 +19,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
+import { Route as AuthenticatedAppTemplatesRouteImport } from './routes/_authenticated/app/templates'
 import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
@@ -84,6 +85,12 @@ const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
   path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppTemplatesRoute =
+  AuthenticatedAppTemplatesRouteImport.update({
+    id: '/app/templates',
+    path: '/app/templates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppPublishingRoute =
   AuthenticatedAppPublishingRouteImport.update({
     id: '/app/publishing',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -208,6 +216,7 @@ export interface FileRoutesByTo {
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -236,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/_authenticated/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
+    | '/app/templates'
     | '/app/upload'
     | '/app/'
     | '/app/brand/$id'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
+    | '/app/templates'
     | '/app/upload'
     | '/app'
     | '/app/brand/$id'
@@ -316,6 +328,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/generate'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/publishing'
+    | '/_authenticated/app/templates'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
     | '/_authenticated/app/brand/$id'
@@ -415,6 +428,13 @@ declare module '@tanstack/react-router' {
       path: '/app/upload'
       fullPath: '/app/upload'
       preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/templates': {
+      id: '/_authenticated/app/templates'
+      path: '/app/templates'
+      fullPath: '/app/templates'
+      preLoaderRoute: typeof AuthenticatedAppTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/publishing': {
@@ -532,6 +552,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
+  AuthenticatedAppTemplatesRoute: typeof AuthenticatedAppTemplatesRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBrandIdRoute: typeof AuthenticatedAppBrandIdRoute
@@ -546,6 +567,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
+  AuthenticatedAppTemplatesRoute: AuthenticatedAppTemplatesRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBrandIdRoute: AuthenticatedAppBrandIdRoute,
