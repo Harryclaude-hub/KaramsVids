@@ -3,10 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getBulkRenderStats,
+  getJobExportAssets,
   getRenderProviderStatus,
   pollBulkRender,
   retryFailedRenders,
   startBulkRender,
+  testRenderProvider,
 } from "@/lib/render.functions";
 import { toast } from "sonner";
 import {
@@ -15,9 +18,13 @@ import {
   Cloud,
   Download,
   Loader2,
+  FolderDown,
   Play,
+  PlugZap,
   RefreshCw,
   Server,
+  Timer,
+  Wallet,
 } from "lucide-react";
 
 type RenderRow = {
@@ -49,7 +56,11 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
   const start = useServerFn(startBulkRender);
   const poll = useServerFn(pollBulkRender);
   const retry = useServerFn(retryFailedRenders);
+  const testConn = useServerFn(testRenderProvider);
+  const loadAssets = useServerFn(getJobExportAssets);
+  const loadStats = useServerFn(getBulkRenderStats);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const providerQ = useQuery({
     queryKey: ["render-provider"],
@@ -68,7 +79,13 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       if (error) throw new Error(error.message);
       return (data ?? []) as RenderRow[];
     },
-    refetchInterval: 5000,
+    refetchInterval: providerQ.data?.webhook ? 15000 : 5000,
+  });
+
+  const costQ = useQuery({
+    queryKey: ["render-stats", jobId],
+    queryFn: () => loadStats({ data: { jobId } }),
+    refetchInterval: 15000,
   });
 
   const rows = rowsQ.data ?? [];
@@ -96,14 +113,15 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         /* stiller Fehlschlag — nächster Tick versucht es erneut */
       }
       if (!cancelled) qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
+      qc.invalidateQueries({ queryKey: ["render-stats", jobId] });
     };
-    const t = setInterval(tick, 8000);
+    const t = setInterval(tick, providerQ.data?.webhook ? 45000 : 8000);
     void tick();
     return () => {
       cancelled = true;
       clearInterval(t);
     };
-  }, [pending, jobId, poll, qc]);
+  }, [pending, jobId, poll, qc, providerQ.data?.webhook]);
 
   async function onStart() {
     setBusy(true);
@@ -115,6 +133,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         toast.success(`${res.queued} Clips gestartet — läuft im Hintergrund weiter.`);
       }
       qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
+      qc.invalidateQueries({ queryKey: ["render-stats", jobId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Render-Start fehlgeschlagen");
     } finally {
@@ -128,6 +147,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       const res = await retry({ data: { jobId } });
       toast.success(`${res.queued} Renders wieder in der Warteschlange.`);
       qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
+      qc.invalidateQueries({ queryKey: ["render-stats", jobId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Neustart fehlgeschlagen");
     } finally {
@@ -147,7 +167,39 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
     window.open(data.signedUrl, "_blank", "noopener");
   }
 
+  async function onTest() {
+    setTesting(true);
+    try {
+      const res = await testConn({});
+      if (res.ok) toast.success(res.message);
+      else toast.error(res.message);
+      void providerQ.refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Verbindungstest fehlgeschlagen");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function onBulkDownload() {
+    try {
+      const { assets } = await loadAssets({ data: { jobId } });
+      const links = assets.filter((a) => a.video);
+      if (!links.length) {
+        toast.info("Noch keine fertigen Clips zum Herunterladen.");
+        return;
+      }
+      links.forEach((a, i) => {
+        setTimeout(() => window.open(a.video as string, "_blank", "noopener"), i * 400);
+      });
+      toast.success(`${links.length} Clips werden heruntergeladen.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Bulk-Download fehlgeschlagen");
+    }
+  }
+
   const configured = providerQ.data?.creatomate;
+  const cost = costQ.data;
 
   return (
     <div className="space-y-3">
@@ -158,7 +210,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         </div>
         {providerQ.data && (
           <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            {configured ? `${providerQ.data.concurrency} parallel` : "Key fehlt"}
+            {configured ? `${providerQ.data.concurrency} parallel · ${providerQ.data.webhook ? "Webhook" : "Polling"}` : "Key fehlt"}
           </span>
         )}
       </div>
@@ -191,6 +243,46 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         ))}
       </div>
 
+      {cost && cost.total > 0 && (
+        <div className="grid grid-cols-3 gap-1.5 rounded-md border border-border bg-background/40 p-2 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-sm font-semibold tabular-nums">
+              <Wallet className="h-3 w-3 text-primary" />${cost.costSpentUsd.toFixed(2)}
+            </div>
+            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+              von ~${cost.costEstimateUsd.toFixed(2)}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-sm font-semibold tabular-nums">
+              <Timer className="h-3 w-3 text-primary" />
+              {cost.avgRenderSeconds ? `${cost.avgRenderSeconds}s` : "—"}
+            </div>
+            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+              ø pro Clip
+            </div>
+          </div>
+          <div>
+            <div className="text-sm font-semibold tabular-nums">
+              {cost.wallClockSeconds != null ? `${Math.round(cost.wallClockSeconds / 60)}m` : "—"}
+            </div>
+            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+              Gesamtdauer
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cost && cost.errors.length > 0 && (
+        <div className="max-h-24 space-y-1 overflow-y-auto rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[10px] text-destructive">
+          {cost.errors.map((e) => (
+            <div key={e.clipIndex} className="line-clamp-2">
+              Clip {e.clipIndex + 1}: {e.error ?? "unbekannter Fehler"}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-1.5">
         <button
           onClick={onStart}
@@ -210,6 +302,25 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
             Wiederholen
           </button>
         )}
+      </div>
+
+      <div className="flex gap-1.5">
+        <button
+          onClick={onTest}
+          disabled={testing}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] hover:border-primary/50 disabled:opacity-40"
+        >
+          {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+          Verbindung testen
+        </button>
+        <button
+          onClick={onBulkDownload}
+          disabled={stats.done === 0}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] hover:border-primary/50 disabled:opacity-40"
+        >
+          <FolderDown className="h-3.5 w-3.5" />
+          Alle laden ({stats.done})
+        </button>
       </div>
 
       <div className="max-h-64 space-y-1 overflow-y-auto">
