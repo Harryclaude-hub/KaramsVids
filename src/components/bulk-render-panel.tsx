@@ -126,7 +126,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
     setBusy(true);
     try {
       const res = await retry({ data: { jobId } });
-      toast.success(`${res.requeued} fehlgeschlagene Renders neu gestartet.`);
+      toast.success(`${res.queued} Renders wieder in der Warteschlange.`);
       qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Neustart fehlgeschlagen");
