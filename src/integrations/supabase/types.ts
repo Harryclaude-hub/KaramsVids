@@ -810,13 +810,16 @@ export type Database = {
         Row: {
           aspect: string
           attempts: number
+          audio_path: string | null
           brand_id: string | null
           captions_srt: string | null
           clip_id: string | null
           clip_index: number
+          cost_usd: number
           created_at: string
           end_s: number
           error: string | null
+          finished_at: string | null
           id: string
           job_id: string
           music_url: string | null
@@ -825,26 +828,33 @@ export type Database = {
           progress: number
           provider: string
           provider_render_id: string | null
+          render_seconds: number | null
           source_url: string | null
           start_s: number
           status: string
           storage_path: string | null
+          submitted_at: string | null
           template_id: string
+          thumbnail_path: string | null
           title: string | null
           updated_at: string
           user_id: string
+          webhook_received_at: string | null
           workspace_id: string | null
         }
         Insert: {
           aspect?: string
           attempts?: number
+          audio_path?: string | null
           brand_id?: string | null
           captions_srt?: string | null
           clip_id?: string | null
           clip_index?: number
+          cost_usd?: number
           created_at?: string
           end_s?: number
           error?: string | null
+          finished_at?: string | null
           id?: string
           job_id: string
           music_url?: string | null
@@ -853,26 +863,33 @@ export type Database = {
           progress?: number
           provider?: string
           provider_render_id?: string | null
+          render_seconds?: number | null
           source_url?: string | null
           start_s?: number
           status?: string
           storage_path?: string | null
+          submitted_at?: string | null
           template_id?: string
+          thumbnail_path?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
+          webhook_received_at?: string | null
           workspace_id?: string | null
         }
         Update: {
           aspect?: string
           attempts?: number
+          audio_path?: string | null
           brand_id?: string | null
           captions_srt?: string | null
           clip_id?: string | null
           clip_index?: number
+          cost_usd?: number
           created_at?: string
           end_s?: number
           error?: string | null
+          finished_at?: string | null
           id?: string
           job_id?: string
           music_url?: string | null
@@ -881,12 +898,49 @@ export type Database = {
           progress?: number
           provider?: string
           provider_render_id?: string | null
+          render_seconds?: number | null
           source_url?: string | null
           start_s?: number
           status?: string
           storage_path?: string | null
+          submitted_at?: string | null
           template_id?: string
+          thumbnail_path?: string | null
           title?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_received_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      render_template_presets: {
+        Row: {
+          base_template_id: string
+          config: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          base_template_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          base_template_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          name?: string
           updated_at?: string
           user_id?: string
           workspace_id?: string | null
