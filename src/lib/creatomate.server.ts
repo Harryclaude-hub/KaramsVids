@@ -35,16 +35,17 @@ export function estimateCostUsd(outputSeconds: number) {
   return Number(((Math.max(0, outputSeconds) / 60) * costPerOutputMinute()).toFixed(4));
 }
 
-/** Öffentliche Callback-URL — nur aktiv, wenn Basis-URL + Secret gesetzt sind. */
+/** Stabile Produktions-URL dieses Projekts (überschreibbar per Secret). */
+const DEFAULT_APP_URL = "https://project--110c9ea8-91da-4cb4-8c6a-4aa4858912b8.lovable.app";
+
+/** Öffentliche Callback-URL — Creatomate meldet fertige Renders direkt hierher. */
 export function webhookUrl(): string | null {
   const secret = process.env.CREATOMATE_WEBHOOK_SECRET;
-  const base =
-    process.env.PUBLIC_APP_URL ??
-    process.env.APP_BASE_URL ??
-    (process.env.SUPABASE_URL ? null : null);
-  if (!secret || !base) return null;
-  return `${base.replace(/\/$/, "")}/api/public/hooks/creatomate-webhook?token=${encodeURIComponent(secret)}`;
+  if (!secret) return null;
+  const base = (process.env.PUBLIC_APP_URL ?? DEFAULT_APP_URL).replace(/\/$/, "");
+  return `${base}/api/public/hooks/creatomate-webhook?token=${encodeURIComponent(secret)}`;
 }
+
 
 export function webhookConfigured() {
   return !!webhookUrl();
