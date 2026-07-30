@@ -167,6 +167,71 @@ export function renderTemplateFor(id?: string | null): RenderTemplate {
   return RENDER_TEMPLATES[(id ?? "ugc_hook") as ClipTemplateId] ?? RENDER_TEMPLATES.ugc_hook;
 }
 
+/** Visuell einstellbare Felder des Template-Editors. */
+export type TemplateOverrides = {
+  captionStyle?: RenderTemplate["caption"]["style"];
+  captionY?: string;
+  captionSizePct?: number;
+  captionActiveColor?: string;
+  musicVolumePct?: number;
+  musicDuck?: boolean;
+  transitionIn?: RenderTemplate["transition"]["in"];
+  transitionOut?: RenderTemplate["transition"]["out"];
+  transitionDurationS?: number;
+  motionKind?: RenderTemplate["motion"]["kind"];
+  motionAmountPct?: number;
+};
+
+/** Basis-Vorlage + individuelle Einstellungen zusammenführen. */
+export function mergeTemplate(
+  base: RenderTemplate,
+  o?: TemplateOverrides | null,
+): RenderTemplate {
+  if (!o) return base;
+  return {
+    ...base,
+    caption: {
+      ...base.caption,
+      style: o.captionStyle ?? base.caption.style,
+      y: o.captionY ?? base.caption.y,
+      fontSizePct: o.captionSizePct ?? base.caption.fontSizePct,
+      activeColor: o.captionActiveColor ?? base.caption.activeColor,
+    },
+    music: {
+      ...base.music,
+      volumePct: o.musicVolumePct ?? base.music.volumePct,
+      duck: o.musicDuck ?? base.music.duck,
+    },
+    transition: {
+      in: o.transitionIn ?? base.transition.in,
+      out: o.transitionOut ?? base.transition.out,
+      durationS: o.transitionDurationS ?? base.transition.durationS,
+    },
+    motion: {
+      kind: o.motionKind ?? base.motion.kind,
+      amountPct: o.motionAmountPct ?? base.motion.amountPct,
+    },
+  };
+}
+
+/** Overrides aus einer bestehenden Vorlage ableiten (Editor-Startwerte). */
+export function overridesFromTemplate(t: RenderTemplate): Required<TemplateOverrides> {
+  return {
+    captionStyle: t.caption.style,
+    captionY: t.caption.y,
+    captionSizePct: t.caption.fontSizePct,
+    captionActiveColor: t.caption.activeColor,
+    musicVolumePct: t.music.volumePct,
+    musicDuck: t.music.duck,
+    transitionIn: t.transition.in,
+    transitionOut: t.transition.out,
+    transitionDurationS: t.transition.durationS,
+    motionKind: t.motion.kind,
+    motionAmountPct: t.motion.amountPct,
+  };
+}
+
+
 // ---------- Creatomate-Source-Builder ----------
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -286,6 +351,7 @@ export function srtToPlain(srt: string): string {
 
 export type BuildSourceInput = {
   templateId?: string | null;
+  overrides?: TemplateOverrides | null;
   aspect: Aspect;
   videoUrl: string;
   startS: number;
@@ -301,7 +367,7 @@ export type BuildSourceInput = {
 
 /** Baut die vollständige Creatomate-Source-JSON für einen Clip. */
 export function buildCreatomateSource(input: BuildSourceInput): Record<string, unknown> {
-  const t = renderTemplateFor(input.templateId);
+  const t = mergeTemplate(renderTemplateFor(input.templateId), input.overrides);
   const { width, height } = ASPECT_SIZE[input.aspect];
   const clipDur = Math.max(1, Number((input.endS - input.startS).toFixed(2)));
   const videoName = "Hauptvideo";

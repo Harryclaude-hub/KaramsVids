@@ -19,6 +19,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
+import { Route as AuthenticatedAppTemplatesRouteImport } from './routes/_authenticated/app/templates'
 import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
@@ -29,6 +30,7 @@ import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
 import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
 import { Route as ApiPublicHooksProcessAutomationsRouteImport } from './routes/api/public/hooks/process-automations'
+import { Route as ApiPublicHooksCreatomateWebhookRouteImport } from './routes/api/public/hooks/creatomate-webhook'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
@@ -83,6 +85,12 @@ const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
   path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppTemplatesRoute =
+  AuthenticatedAppTemplatesRouteImport.update({
+    id: '/app/templates',
+    path: '/app/templates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppPublishingRoute =
   AuthenticatedAppPublishingRouteImport.update({
     id: '/app/publishing',
@@ -140,6 +148,12 @@ const ApiPublicHooksProcessAutomationsRoute =
     path: '/api/public/hooks/process-automations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCreatomateWebhookRoute =
+  ApiPublicHooksCreatomateWebhookRouteImport.update({
+    id: '/api/public/hooks/creatomate-webhook',
+    path: '/api/public/hooks/creatomate-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
   id: '/app/video/$id',
   path: '/app/video/$id',
@@ -176,11 +190,13 @@ export interface FileRoutesByFullPath {
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/creatomate-webhook': typeof ApiPublicHooksCreatomateWebhookRoute
   '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
@@ -200,11 +216,13 @@ export interface FileRoutesByTo {
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/creatomate-webhook': typeof ApiPublicHooksCreatomateWebhookRoute
   '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
@@ -227,11 +245,13 @@ export interface FileRoutesById {
   '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
+  '/_authenticated/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
   '/_authenticated/app/video/$id': typeof AuthenticatedAppVideoIdRoute
+  '/api/public/hooks/creatomate-webhook': typeof ApiPublicHooksCreatomateWebhookRoute
   '/api/public/hooks/process-automations': typeof ApiPublicHooksProcessAutomationsRoute
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
@@ -254,11 +274,13 @@ export interface FileRouteTypes {
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
+    | '/app/templates'
     | '/app/upload'
     | '/app/'
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/creatomate-webhook'
     | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
@@ -278,11 +300,13 @@ export interface FileRouteTypes {
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
+    | '/app/templates'
     | '/app/upload'
     | '/app'
     | '/app/brand/$id'
     | '/app/job/$id'
     | '/app/video/$id'
+    | '/api/public/hooks/creatomate-webhook'
     | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
@@ -304,11 +328,13 @@ export interface FileRouteTypes {
     | '/_authenticated/app/generate'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/publishing'
+    | '/_authenticated/app/templates'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
     | '/_authenticated/app/brand/$id'
     | '/_authenticated/app/job/$id'
     | '/_authenticated/app/video/$id'
+    | '/api/public/hooks/creatomate-webhook'
     | '/api/public/hooks/process-automations'
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
@@ -324,6 +350,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiPublicHooksCreatomateWebhookRoute: typeof ApiPublicHooksCreatomateWebhookRoute
   ApiPublicHooksProcessAutomationsRoute: typeof ApiPublicHooksProcessAutomationsRoute
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
@@ -403,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/templates': {
+      id: '/_authenticated/app/templates'
+      path: '/app/templates'
+      fullPath: '/app/templates'
+      preLoaderRoute: typeof AuthenticatedAppTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/publishing': {
       id: '/_authenticated/app/publishing'
       path: '/app/publishing'
@@ -473,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProcessAutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/creatomate-webhook': {
+      id: '/api/public/hooks/creatomate-webhook'
+      path: '/api/public/hooks/creatomate-webhook'
+      fullPath: '/api/public/hooks/creatomate-webhook'
+      preLoaderRoute: typeof ApiPublicHooksCreatomateWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/video/$id': {
       id: '/_authenticated/app/video/$id'
       path: '/app/video/$id'
@@ -511,6 +552,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
+  AuthenticatedAppTemplatesRoute: typeof AuthenticatedAppTemplatesRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBrandIdRoute: typeof AuthenticatedAppBrandIdRoute
@@ -525,6 +567,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
+  AuthenticatedAppTemplatesRoute: AuthenticatedAppTemplatesRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBrandIdRoute: AuthenticatedAppBrandIdRoute,
@@ -553,6 +596,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiPublicHooksCreatomateWebhookRoute: ApiPublicHooksCreatomateWebhookRoute,
   ApiPublicHooksProcessAutomationsRoute: ApiPublicHooksProcessAutomationsRoute,
   ApiPublicHooksProcessGenerationQueueRoute:
     ApiPublicHooksProcessGenerationQueueRoute,

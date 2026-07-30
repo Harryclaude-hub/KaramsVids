@@ -101,6 +101,7 @@ function AppShell() {
     to:
       | "/app"
       | "/app/clip"
+      | "/app/templates"
       | "/app/generate"
       | "/app/avatars"
       | "/app/publishing"
@@ -110,6 +111,7 @@ function AppShell() {
     icon: typeof Scissors;
   }[] = [
     { to: "/app", label: "Editor", icon: Scissors },
+    { to: "/app/templates", label: "Vorlagen", icon: Wand2 },
     { to: "/app/clip", label: "Massen-Clipping", icon: Wand2 },
     { to: "/app/generate", label: "KI-Studio", icon: Clapperboard },
     { to: "/app/avatars", label: "Avatare", icon: Users },
