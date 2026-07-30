@@ -834,6 +834,7 @@ export type Database = {
           status: string
           storage_path: string | null
           submitted_at: string | null
+          template_config: Json
           template_id: string
           thumbnail_path: string | null
           title: string | null
@@ -869,6 +870,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           submitted_at?: string | null
+          template_config?: Json
           template_id?: string
           thumbnail_path?: string | null
           title?: string | null
@@ -904,6 +906,7 @@ export type Database = {
           status?: string
           storage_path?: string | null
           submitted_at?: string | null
+          template_config?: Json
           template_id?: string
           thumbnail_path?: string | null
           title?: string | null

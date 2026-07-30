@@ -1,0 +1,1 @@
+ALTER TABLE public.render_jobs ADD COLUMN IF NOT EXISTS template_config jsonb NOT NULL DEFAULT '{}'::jsonb;
