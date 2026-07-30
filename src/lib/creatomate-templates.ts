@@ -351,6 +351,7 @@ export function srtToPlain(srt: string): string {
 
 export type BuildSourceInput = {
   templateId?: string | null;
+  overrides?: TemplateOverrides | null;
   aspect: Aspect;
   videoUrl: string;
   startS: number;
@@ -366,7 +367,7 @@ export type BuildSourceInput = {
 
 /** Baut die vollständige Creatomate-Source-JSON für einen Clip. */
 export function buildCreatomateSource(input: BuildSourceInput): Record<string, unknown> {
-  const t = renderTemplateFor(input.templateId);
+  const t = mergeTemplate(renderTemplateFor(input.templateId), input.overrides);
   const { width, height } = ASPECT_SIZE[input.aspect];
   const clipDur = Math.max(1, Number((input.endS - input.startS).toFixed(2)));
   const videoName = "Hauptvideo";
