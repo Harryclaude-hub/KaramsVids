@@ -16,7 +16,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
-  buildCreatomateSource,
   mergeTemplate,
   renderTemplateFor,
   type Aspect,

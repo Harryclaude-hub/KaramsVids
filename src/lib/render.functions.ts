@@ -8,7 +8,9 @@ export const getRenderProviderStatus = createServerFn({ method: "GET" })
   .handler(async () => {
     const { creatomateConfigured, renderConcurrency, webhookConfigured, webhookUrl, costPerOutputMinute } =
       await import("@/lib/creatomate.server");
+    const { renderProviderCatalog } = await import("@/lib/render-providers.server");
     return {
+      providers: renderProviderCatalog(),
       creatomate: creatomateConfigured(),
       concurrency: renderConcurrency(),
       webhook: webhookConfigured(),
@@ -17,17 +19,43 @@ export const getRenderProviderStatus = createServerFn({ method: "GET" })
     };
   });
 
-/** Verbindungstest gegen die Creatomate-API. */
+const ProviderId = z.enum(["creatomate", "shotstack", "json2video"]);
+
+/** Verbindungstest gegen den gewählten Render-Provider. */
 export const testRenderProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
-    const { pingCreatomate } = await import("@/lib/creatomate.server");
-    return pingCreatomate();
+  .inputValidator((input: unknown) =>
+    z.object({ provider: ProviderId.optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const { renderProvider } = await import("@/lib/render-providers.server");
+    const p = renderProvider(data.provider ?? "creatomate");
+    const res = await p.ping();
+    return { ...res, provider: p.id, label: p.label };
+  });
+
+/** Wechselt den Provider aller noch nicht gestarteten Renders eines Jobs. */
+export const setQueueRenderProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ jobId: z.string().uuid(), provider: ProviderId }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("render_jobs")
+      .update({ provider: data.provider, provider_render_id: null, error: null })
+      .eq("job_id", data.jobId)
+      .eq("user_id", context.userId)
+      .in("status", ["queued", "failed"])
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { updated: rows?.length ?? 0, provider: data.provider };
   });
 
 const StartInput = z.object({
   jobId: z.string().uuid(),
   clipIndexes: z.array(z.number().int().min(0)).max(500).nullable().optional(),
+  provider: ProviderId.optional(),
 });
 
 /** Legt für alle (oder ausgewählte) Clips des Jobs Render-Aufträge an und startet die erste Welle. */
@@ -41,6 +69,7 @@ export const startBulkRender = createServerFn({ method: "POST" })
       jobId: data.jobId,
       userId,
       clipIndexes: data.clipIndexes ?? null,
+      provider: data.provider ?? null,
     });
     const run = await processRenderQueue(supabase, { userId });
     return { ...queued, ...run };
