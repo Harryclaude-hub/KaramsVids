@@ -24,16 +24,19 @@ import {
 } from "@/lib/creatomate-templates";
 import { MUSIC_LIBRARY, type MusicMood } from "@/lib/music-library";
 import {
-  creatomateConfigured,
   estimateCostUsd,
-  fetchRender,
   renderConcurrency,
   storeRemoteFile,
   storeRenderedFile,
-  submitRender,
   webhookConfigured,
   type CreatomateRender,
 } from "@/lib/creatomate.server";
+import {
+  isRenderProviderId,
+  renderProvider,
+  renderProviderCatalog,
+  type RenderProviderId,
+} from "@/lib/render-providers.server";
 
 const SIGNED_URL_TTL = 60 * 60 * 12; // 12h — reicht für lange Render-Queues
 
@@ -76,7 +79,12 @@ export function jobFolder(userId: string, jobId: string) {
 /** Legt für jeden Clip des Jobs eine Render-Zeile an. */
 export async function enqueueBulkRender(
   supabase: any,
-  opts: { jobId: string; userId: string; clipIndexes?: number[] | null },
+  opts: {
+    jobId: string;
+    userId: string;
+    clipIndexes?: number[] | null;
+    provider?: RenderProviderId | null;
+  },
 ): Promise<{ queued: number; skipped: number }> {
   const { data: job, error } = await supabase
     .from("edit_jobs")
@@ -99,10 +107,16 @@ export async function enqueueBulkRender(
     template_id?: string;
     template_preset_id?: string;
     music_mood?: MusicMood;
+    render_provider?: string;
   };
   const templateId = options.template_id ?? "ugc_hook";
   const aspect: Aspect = options.aspect ?? "9:16";
   const mood: MusicMood = options.music_mood ?? "hype";
+  const provider: RenderProviderId = isRenderProviderId(opts.provider)
+    ? opts.provider
+    : isRenderProviderId(options.render_provider)
+      ? options.render_provider
+      : "creatomate";
 
   // Eigene Vorlage (Template-Editor) laden, falls im Job hinterlegt —
   // sonst wird die zuletzt gespeicherte Vorlage zur Basis-Vorlage genutzt.
@@ -144,7 +158,7 @@ export async function enqueueBulkRender(
         clip_index: i,
         template_id: templateId,
         template_config: overrides as any,
-        provider: "creatomate",
+        provider,
         status: "queued",
         source_url: videoUrl,
         start_s: Math.max(0, Number(s.start_s) || 0),
@@ -233,7 +247,7 @@ export async function finalizeRender(
       caption_srt: row.captions_srt,
       status: "draft",
       meta: {
-        renderer: "creatomate",
+        renderer: row.provider ?? "creatomate",
         template_id: row.template_id,
         music_url: row.music_url,
         render_job_id: row.id,
@@ -277,7 +291,8 @@ export async function processRenderQueue(
   active: number;
   queued: number;
 }> {
-  const configured = creatomateConfigured();
+  const catalog = renderProviderCatalog();
+  const configured = catalog.some((p) => p.configured);
   const webhook = webhookConfigured();
   const base = () => {
     let q = supabase.from("render_jobs").select("*");
@@ -292,17 +307,27 @@ export async function processRenderQueue(
   let failed = 0;
 
   if (configured) {
-    let activeQ = base().in("status", ACTIVE).limit(renderConcurrency() * 3);
-    if (webhook && !scope.force) {
-      activeQ = activeQ.lt("submitted_at", new Date(Date.now() - 5 * 60_000).toISOString());
-    }
+    const activeQ = base().in("status", ACTIVE).limit(renderConcurrency() * 3);
     const { data: active } = await activeQ;
+    const graceCutoff = Date.now() - 5 * 60_000;
 
     await Promise.all(
       ((active as any[]) ?? []).map(async (row) => {
         if (!row.provider_render_id) return;
+        const p = renderProvider(row.provider);
+        // Provider mit aktivem Webhook nur als Sicherheitsnetz nachfragen.
+        if (
+          p.supportsWebhook &&
+          webhook &&
+          !scope.force &&
+          row.submitted_at &&
+          new Date(row.submitted_at).getTime() > graceCutoff
+        ) {
+          return;
+        }
+        if (!p.configured()) return;
         try {
-          const r = await fetchRender(row.provider_render_id);
+          const r = await p.fetch(row.provider_render_id);
           const res = await finalizeRender(supabase, row, r, "poll");
           if (res === "done") completed++;
           if (res === "failed") failed++;
@@ -335,7 +360,14 @@ export async function processRenderQueue(
     await Promise.all(
       ((queued as any[]) ?? []).map(async (row) => {
         try {
-          const source = buildCreatomateSource({
+          const p = renderProvider(row.provider);
+          if (!p.configured()) {
+            throw new Error(
+              `Render-Provider ${p.label} ist nicht verbunden — Secret ${p.keyName} fehlt.`,
+            );
+          }
+          const r = await p.submit({
+            rowId: row.id,
             templateId: row.template_id,
             overrides: (row.template_config ?? {}) as TemplateOverrides,
             aspect: row.aspect as Aspect,
@@ -343,11 +375,10 @@ export async function processRenderQueue(
             startS: Number(row.start_s),
             endS: Number(row.end_s),
             captionsSrt: row.captions_srt,
-            captionsEnabled: true,
             musicUrl: row.music_url,
-            hookText: null,
+            musicVolume: Number(row.music_volume ?? 0.3),
+            title: row.title ?? null,
           });
-          const r = await submitRender(source, { metadata: row.id });
           await supabase
             .from("render_jobs")
             .update({
