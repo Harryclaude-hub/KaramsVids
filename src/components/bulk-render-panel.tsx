@@ -8,6 +8,7 @@ import {
   getRenderProviderStatus,
   pollBulkRender,
   retryFailedRenders,
+  setQueueRenderProvider,
   startBulkRender,
   testRenderProvider,
 } from "@/lib/render.functions";
@@ -26,6 +27,8 @@ import {
   Timer,
   Wallet,
 } from "lucide-react";
+
+type ProviderId = "creatomate" | "shotstack" | "json2video";
 
 type RenderRow = {
   id: string;
@@ -59,6 +62,8 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
   const testConn = useServerFn(testRenderProvider);
   const loadAssets = useServerFn(getJobExportAssets);
   const loadStats = useServerFn(getBulkRenderStats);
+  const switchProvider = useServerFn(setQueueRenderProvider);
+  const [provider, setProvider] = useState<ProviderId>("creatomate");
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
 
@@ -126,7 +131,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
   async function onStart() {
     setBusy(true);
     try {
-      const res = await start({ data: { jobId, clipIndexes: null } });
+      const res = await start({ data: { jobId, clipIndexes: null, provider } });
       if (res.queued === 0) {
         toast.info("Alle Clips sind bereits in der Render-Queue.");
       } else {
@@ -170,7 +175,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
   async function onTest() {
     setTesting(true);
     try {
-      const res = await testConn({});
+      const res = await testConn({ data: { provider } });
       if (res.ok) toast.success(res.message);
       else toast.error(res.message);
       void providerQ.refetch();
@@ -198,7 +203,24 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
     }
   }
 
-  const configured = providerQ.data?.creatomate;
+  const providers = providerQ.data?.providers ?? [];
+  const activeProvider = providers.find((p) => p.id === provider);
+  const configured = activeProvider ? activeProvider.configured : providerQ.data?.creatomate;
+
+  async function onProviderChange(next: ProviderId) {
+    setProvider(next);
+    if (rows.length === 0) return;
+    try {
+      const res = await switchProvider({ data: { jobId, provider: next } });
+      if (res.updated > 0) {
+        toast.success(`${res.updated} offene Renders laufen jetzt über ${next}.`);
+        qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Provider-Wechsel fehlgeschlagen");
+    }
+  }
+
   const cost = costQ.data;
 
   return (
@@ -219,13 +241,37 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-200">
           <Cloud className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            Der Render-Dienst ist noch nicht verbunden. Hinterlege den Creatomate-API-Key
-            (creatomate.com → Project Settings → API Key) als Secret{" "}
-            <code className="font-mono">CREATOMATE_API_KEY</code>. Aufträge kannst du jetzt schon
+            {activeProvider?.label ?? "Der Render-Dienst"} ist noch nicht verbunden. Hinterlege den
+            API-Key als Secret{" "}
+            <code className="font-mono">{activeProvider?.keyName ?? "CREATOMATE_API_KEY"}</code>.
+            Aufträge kannst du jetzt schon
             anlegen — sie starten automatisch, sobald der Key da ist.
           </span>
         </div>
       )}
+
+      <div className="space-y-1">
+        <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+          Render-Provider
+        </label>
+        <select
+          value={provider}
+          onChange={(e) => void onProviderChange(e.target.value as ProviderId)}
+          className="w-full rounded-md border border-border bg-background/60 px-2 py-1.5 text-xs"
+        >
+          {(providers.length
+            ? providers
+            : [{ id: "creatomate", label: "Creatomate", configured: true, note: "" }]
+          ).map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label} {p.configured ? "" : "· Key fehlt"}
+            </option>
+          ))}
+        </select>
+        {activeProvider && (
+          <p className="text-[10px] leading-snug text-muted-foreground">{activeProvider.note}</p>
+        )}
+      </div>
 
       <div className="grid grid-cols-4 gap-1.5 text-center">
         {[
