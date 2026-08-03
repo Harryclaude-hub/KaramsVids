@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AtSign, CheckCircle2, ExternalLink, Eye, HelpCircle, KeyRound, Loader2, Search, XCircle } from "lucide-react";
+import { AtSign, CheckCircle2, Circle, Copy, ExternalLink, Eye, HelpCircle, KeyRound, Loader2, Search, Wand2, XCircle } from "lucide-react";
 
 const PLATFORMS = [
   { id: "instagram", name: "Instagram" },
