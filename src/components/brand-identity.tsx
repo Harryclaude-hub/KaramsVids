@@ -25,7 +25,7 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_credentials")
-        .select("id, platform, username, email, login_url, notes, password_encrypted")
+        .select("*")
         .eq("brand_id", brandId);
       if (error) throw error;
       return data ?? [];
