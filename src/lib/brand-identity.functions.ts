@@ -78,3 +78,62 @@ export const revealBrandCredential = createServerFn({ method: "POST" })
     const { decryptPassword } = await import("@/lib/brand-identity.server");
     return { password: decryptPassword(row.password_encrypted) };
   });
+
+const SuggestInput = z.object({ name: z.string().min(1).max(60) });
+
+/**
+ * Setup-Assistent: erzeugt Handle-Varianten, prüft sie auf allen Plattformen
+ * und liefert ein starkes Passwort für die Account-Anlage.
+ */
+export const suggestBrandSetup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SuggestInput.parse(i))
+  .handler(async ({ data }) => {
+    const { suggestHandleVariants, generateStrongPassword, checkHandle } = await import(
+      "@/lib/brand-identity.server"
+    );
+    const variants = suggestHandleVariants(data.name).slice(0, 5);
+    const platforms = ["instagram", "tiktok", "youtube", "facebook", "x"];
+    const checked = await Promise.all(
+      variants.map(async (handle) => {
+        const results = await checkHandle(handle, platforms);
+        const free = results.filter((r) => r.state === "free").length;
+        const taken = results.filter((r) => r.state === "taken").length;
+        return { handle, results, free, taken };
+      }),
+    );
+    checked.sort((a, b) => b.free - a.free || a.taken - b.taken);
+    return { suggestions: checked, password: generateStrongPassword() };
+  });
+
+const StatusInput = z.object({
+  brandId: z.string().uuid(),
+  platform: z.enum(["instagram", "tiktok", "youtube", "facebook", "x"]),
+  status: z.enum(["todo", "in_progress", "done"]),
+});
+
+/** Merkt sich, wie weit die Account-Anlage je Plattform ist. */
+export const setCredentialSetupStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => StatusInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const patch = {
+      user_id: context.userId,
+      brand_id: data.brandId,
+      platform: data.platform,
+      setup_status: data.status,
+      setup_updated_at: new Date().toISOString(),
+    };
+    const { data: existing } = await context.supabase
+      .from("brand_credentials")
+      .select("id")
+      .eq("brand_id", data.brandId)
+      .eq("platform", data.platform)
+      .maybeSingle();
+    const q = existing
+      ? context.supabase.from("brand_credentials").update(patch as never).eq("id", existing.id)
+      : context.supabase.from("brand_credentials").insert(patch as never);
+    const { error } = await q;
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

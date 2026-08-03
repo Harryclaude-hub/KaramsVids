@@ -79,3 +79,46 @@ export function encryptPassword(plain: string): string {
 export function decryptPassword(stored: string): string {
   return decryptToken(stored);
 }
+
+// ---------- Setup-Assistent (Account-Anlage ohne Plattform-API) ----------
+
+/** Erzeugt freie, plattformkonforme Handle-Varianten aus einem Brand-Namen. */
+export function suggestHandleVariants(raw: string): string[] {
+  const base = sanitizeHandle(raw);
+  if (!base) return [];
+  const out = new Set<string>([
+    base,
+    `${base}.official`,
+    `${base}_hq`,
+    `the.${base}`,
+    `${base}.daily`,
+    `${base}${new Date().getFullYear() % 100}`,
+    `real.${base}`,
+    `${base}.studio`,
+  ]);
+  return [...out].map((h) => h.slice(0, 30)).filter(Boolean);
+}
+
+/** Starkes, aber überall zulässiges Passwort (keine exotischen Sonderzeichen). */
+export function generateStrongPassword(len = 18): string {
+  const sets = [
+    "abcdefghijkmnopqrstuvwxyz",
+    "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    "23456789",
+    "!@#$%*?-_",
+  ];
+  const all = sets.join("");
+  const bytes = new Uint8Array(Math.max(len, 12));
+  crypto.getRandomValues(bytes);
+  const pick = (pool: string, i: number) => pool[bytes[i]! % pool.length]!;
+  const chars = sets.map((s, i) => pick(s, i));
+  for (let i = sets.length; i < bytes.length; i++) chars.push(pick(all, i));
+  // deterministisch mischen mit weiteren Zufallsbytes
+  const mix = new Uint8Array(chars.length);
+  crypto.getRandomValues(mix);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = mix[i]! % (i + 1);
+    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
+  }
+  return chars.join("");
+}

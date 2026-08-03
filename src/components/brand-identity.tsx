@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AtSign, CheckCircle2, ExternalLink, Eye, HelpCircle, KeyRound, Loader2, Search, XCircle } from "lucide-react";
+import { AtSign, CheckCircle2, Circle, Copy, ExternalLink, Eye, HelpCircle, KeyRound, Loader2, Search, Wand2, XCircle } from "lucide-react";
 
 const PLATFORMS = [
   { id: "instagram", name: "Instagram" },
@@ -25,7 +25,7 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_credentials")
-        .select("id, platform, username, email, login_url, notes, password_encrypted")
+        .select("*")
         .eq("brand_id", brandId);
       if (error) throw error;
       return data ?? [];
@@ -124,6 +124,13 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
         </div>
       )}
 
+      <SetupWizard
+        brandId={brandId}
+        brandName={brandName}
+        creds={credsQ.data ?? []}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["brand_credentials", brandId] })}
+      />
+
       <div className="space-y-2 border-t border-border pt-4">
         <div className="flex items-center gap-2 text-xs font-medium">
           <KeyRound className="h-3.5 w-3.5 text-accent" /> Zugangsdaten (verschlüsselt gespeichert)
@@ -144,6 +151,173 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
     </section>
   );
 }
+
+// ---------------------------------------------------------------
+// Setup-Assistent: führt Schritt für Schritt durch die Account-Anlage
+// (Plattformen erlauben keine API-Registrierung — hier wird alles
+// vorbereitet, kopierbar gemacht und der Fortschritt getrackt).
+// ---------------------------------------------------------------
+
+type Suggestion = { handle: string; results: Check[]; free: number; taken: number };
+
+function SetupWizard({
+  brandId, brandName, creds, onChanged,
+}: {
+  brandId: string; brandName: string; creds: any[]; onChanged: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [chosen, setChosen] = useState<string>("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true);
+    try {
+      const { suggestBrandSetup } = await import("@/lib/brand-identity.functions");
+      const res = await suggestBrandSetup({ data: { name: brandName } });
+      setSuggestions(res.suggestions as Suggestion[]);
+      setChosen(res.suggestions[0]?.handle ?? "");
+      setPassword(res.password);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Assistent fehlgeschlagen");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copy(value: string, label: string) {
+    navigator.clipboard.writeText(value).then(
+      () => toast.success(`${label} kopiert`),
+      () => toast.error("Kopieren nicht möglich"),
+    );
+  }
+
+  async function mark(platform: string, status: "in_progress" | "done") {
+    setBusy(platform);
+    try {
+      const { setCredentialSetupStatus, saveBrandCredential } = await import(
+        "@/lib/brand-identity.functions"
+      );
+      if (status === "done" && chosen) {
+        await saveBrandCredential({
+          data: { brandId, platform: platform as never, username: chosen, password: password || null },
+        });
+      }
+      await setCredentialSetupStatus({ data: { brandId, platform: platform as never, status } });
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Status konnte nicht gespeichert werden");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const done = PLATFORMS.filter(
+    (p) => creds.find((c) => c.platform === p.id)?.setup_status === "done",
+  ).length;
+
+  return (
+    <div className="space-y-3 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-medium">
+          <Wand2 className="h-3.5 w-3.5 text-primary" /> Account-Setup-Assistent
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+            {done}/{PLATFORMS.length} fertig
+          </span>
+        </div>
+        <button
+          onClick={run}
+          disabled={loading}
+          className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+          Setup vorbereiten
+        </button>
+      </div>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Plattformen erlauben keine Account-Erstellung per API (Captcha/SMS-Pflicht, Sperrgefahr).
+        Der Assistent macht alles Übrige automatisch: freie Handle-Varianten finden, Passwort
+        erzeugen, Daten kopierfertig bereitstellen, Registrierung öffnen und den Fortschritt je
+        Plattform tracken. Danach genügt „Verbinden" per OAuth.
+      </p>
+
+      {suggestions && (
+        <div className="space-y-3">
+          <div className="grid gap-1.5">
+            {suggestions.map((s) => (
+              <button
+                key={s.handle}
+                onClick={() => setChosen(s.handle)}
+                className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left ${
+                  chosen === s.handle ? "border-primary bg-primary/5" : "border-border bg-background/50"
+                }`}
+              >
+                <span className="font-mono text-xs">@{s.handle}</span>
+                <span className="flex items-center gap-2 text-[10px]">
+                  <span className="text-primary">{s.free} frei</span>
+                  <span className="text-destructive">{s.taken} vergeben</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+            <span className="text-[10px] text-muted-foreground">Passwort</span>
+            <code className="font-mono text-[11px]">{password}</code>
+            <button onClick={() => copy(password, "Passwort")}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+              <Copy className="h-3 w-3" /> Kopieren
+            </button>
+            <button onClick={() => copy(chosen, "Username")}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+              <Copy className="h-3 w-3" /> Username
+            </button>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PLATFORMS.map((p) => {
+              const cred = creds.find((c) => c.platform === p.id);
+              const status = cred?.setup_status ?? "todo";
+              const check = suggestions.find((s) => s.handle === chosen)?.results.find((r) => r.platform === p.id);
+              return (
+                <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-medium">
+                      {status === "done" ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <Circle className="h-3 w-3 text-muted-foreground" />}
+                      {p.name}
+                    </div>
+                    <div className="truncate font-mono text-[10px] text-muted-foreground">
+                      @{chosen} · {check?.state === "free" ? "frei" : check?.state === "taken" ? "vergeben" : "unklar"}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <a
+                      href={check?.signupUrl || "#"}
+                      target="_blank" rel="noreferrer"
+                      onClick={() => mark(p.id, "in_progress")}
+                      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+                    >
+                      Anlegen <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      onClick={() => mark(p.id, "done")}
+                      disabled={busy === p.id}
+                      className="rounded bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground disabled:opacity-60"
+                    >
+                      {busy === p.id ? "…" : "Fertig"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function CredentialRow({
   brandId, platform, label, row, onSaved,
