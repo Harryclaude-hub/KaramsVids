@@ -28,7 +28,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-type ProviderId = "creatomate" | "shotstack" | "json2video";
+type ProviderId = "creatomate" | "shotstack" | "json2video" | "custom";
 
 type RenderRow = {
   id: string;

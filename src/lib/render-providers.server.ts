@@ -28,7 +28,7 @@ import {
   type CreatomateRender,
 } from "@/lib/creatomate.server";
 
-export const RENDER_PROVIDER_IDS = ["creatomate", "shotstack", "json2video"] as const;
+export const RENDER_PROVIDER_IDS = ["creatomate", "shotstack", "json2video", "custom"] as const;
 export type RenderProviderId = (typeof RENDER_PROVIDER_IDS)[number];
 
 export function isRenderProviderId(v: unknown): v is RenderProviderId {
@@ -304,7 +304,90 @@ const json2video: RenderProvider = {
   },
 };
 
-const REGISTRY: Record<RenderProviderId, RenderProvider> = { creatomate, shotstack, json2video };
+
+// ---------------- Eigene Render-Maschine ("custom") ----------------
+// Vertrag (siehe docs/CUSTOM-RENDER-API.md):
+//   POST   {CUSTOM_RENDER_API_URL}/renders      -> { id }
+//   GET    {CUSTOM_RENDER_API_URL}/renders/{id} -> { status, url?, thumbnail?, error? }
+// Auth: Authorization: Bearer {CUSTOM_RENDER_API_KEY} (optional)
+
+function customBase() {
+  const u = process.env.CUSTOM_RENDER_API_URL;
+  if (!u) throw new Error("CUSTOM_RENDER_API_URL fehlt — Basis-URL deiner eigenen Render-Maschine hinterlegen.");
+  return u.replace(/\/$/, "");
+}
+function customHeaders() {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (process.env.CUSTOM_RENDER_API_KEY) h.Authorization = `Bearer ${process.env.CUSTOM_RENDER_API_KEY}`;
+  return h;
+}
+
+const custom: RenderProvider = {
+  id: "custom",
+  label: "Eigene Render-Maschine",
+  supportsWebhook: false,
+  keyName: "CUSTOM_RENDER_API_URL",
+  docsUrl: "/docs/CUSTOM-RENDER-API.md",
+  note: "Selbst gebaute Video-Engine (z. B. ffmpeg-Worker) über einen einfachen JSON-Vertrag.",
+  configured: () => !!process.env.CUSTOM_RENDER_API_URL,
+  async ping() {
+    if (!process.env.CUSTOM_RENDER_API_URL) return { ok: false, message: "Keine CUSTOM_RENDER_API_URL hinterlegt." };
+    try {
+      const res = await fetch(`${customBase()}/health`, { headers: customHeaders() });
+      if (!res.ok) return { ok: false, message: `Eigene Engine antwortete mit HTTP ${res.status}.` };
+      return { ok: true, message: "Eigene Render-Maschine erreichbar." };
+    } catch (e) {
+      return { ok: false, message: e instanceof Error ? e.message : "Netzwerkfehler" };
+    }
+  },
+  async submit(req) {
+    const { width, height } = aspectSize(req.aspect);
+    const res = await fetch(`${customBase()}/renders`, {
+      method: "POST",
+      headers: customHeaders(),
+      body: JSON.stringify({
+        reference: req.rowId,
+        template_id: req.templateId,
+        overrides: req.overrides,
+        output: { width, height, fps: 30, format: "mp4" },
+        source: { url: req.videoUrl, start_s: req.startS, end_s: req.endS },
+        captions_srt: req.captionsSrt,
+        music: req.musicUrl ? { url: req.musicUrl, volume: req.musicVolume } : null,
+        title: req.title,
+      }),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Eigene Engine ${res.status}: ${text.slice(0, 400)}`);
+    const id = JSON.parse(text)?.id;
+    if (!id) throw new Error("Eigene Engine lieferte keine Render-ID (Feld 'id').");
+    return { id: String(id) };
+  },
+  async fetch(id) {
+    const res = await fetch(`${customBase()}/renders/${encodeURIComponent(id)}`, { headers: customHeaders() });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Eigene Engine Status ${res.status}: ${text.slice(0, 300)}`);
+    const r = JSON.parse(text) ?? {};
+    const map: Record<string, CreatomateRender["status"]> = {
+      queued: "waiting",
+      waiting: "waiting",
+      processing: "rendering",
+      rendering: "rendering",
+      done: "succeeded",
+      succeeded: "succeeded",
+      failed: "failed",
+      error: "failed",
+    };
+    return {
+      id,
+      status: map[String(r.status)] ?? "rendering",
+      url: r.url,
+      snapshot_url: r.thumbnail,
+      error_message: r.error,
+    };
+  },
+};
+
+const REGISTRY: Record<RenderProviderId, RenderProvider> = { creatomate, shotstack, json2video, custom };
 
 export function renderProvider(id: string | null | undefined): RenderProvider {
   return REGISTRY[isRenderProviderId(id) ? id : "creatomate"];

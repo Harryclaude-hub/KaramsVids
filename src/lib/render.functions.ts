@@ -19,7 +19,7 @@ export const getRenderProviderStatus = createServerFn({ method: "GET" })
     };
   });
 
-const ProviderId = z.enum(["creatomate", "shotstack", "json2video"]);
+const ProviderId = z.enum(["creatomate", "shotstack", "json2video", "custom"]);
 
 /** Verbindungstest gegen den gewählten Render-Provider. */
 export const testRenderProvider = createServerFn({ method: "POST" })
