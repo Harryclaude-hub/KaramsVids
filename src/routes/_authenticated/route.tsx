@@ -32,8 +32,6 @@ import { useEnsureWorkspace, createWorkspace } from "@/lib/use-workspace";
 import { BrandAvatar } from "@/components/brand-avatar";
 import { toast } from "sonner";
 
-const ADMIN_EMAIL = "saifokaram1@gmail.com";
-
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
@@ -41,22 +39,21 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
 
     // Freigabe-Gate: ohne Admin-Genehmigung kein Zugang zur App.
-    // Der Admin-Account selbst ist immer freigeschaltet.
-    let isAdmin = data.user.email === ADMIN_EMAIL;
-    if (!isAdmin) {
-      const { data: profile, error: profErr } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      if (!profErr && profile) {
-        const p = profile as { status?: string; role?: string };
-        isAdmin = p.role === "admin";
-        // Solange die Admin-Migration noch nicht lief, gibt es keine status-Spalte
-        // (undefined) — dann nicht aussperren. Danach gilt: nur 'approved' darf rein.
-        if (!isAdmin && p.status !== undefined && p.status !== "approved") {
-          throw redirect({ to: "/pending" });
-        }
+    // Admin-Rechte kommen ausschliesslich aus profiles.role, nicht mehr aus einem
+    // Vergleich gegen eine fest im Quelltext hinterlegte E-Mail-Adresse.
+    let isAdmin = false;
+    const { data: profile, error: profErr } = await supabase
+      .from("profiles")
+      .select("role, status")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if (!profErr && profile) {
+      const p = profile as { status?: string; role?: string };
+      isAdmin = p.role === "admin";
+      // Solange die Admin-Migration noch nicht lief, gibt es keine status-Spalte
+      // (undefined), dann nicht aussperren. Danach gilt: nur 'approved' darf rein.
+      if (!isAdmin && p.status !== undefined && p.status !== "approved") {
+        throw redirect({ to: "/pending" });
       }
     }
     return { user: data.user, isAdmin };

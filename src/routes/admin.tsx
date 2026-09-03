@@ -3,24 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Shield, ArrowLeft, LogOut } from "lucide-react";
 
-const ADMIN_EMAIL = "saifokaram1@gmail.com";
-
 export const Route = createFileRoute("/admin")({
   ssr: false,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
 
-    let isAdmin = data.user.email === ADMIN_EMAIL;
-    if (!isAdmin) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      const p = (profile ?? {}) as { role?: string };
-      isAdmin = p.role === "admin";
-    }
+    // Admin-Rechte kommen ausschliesslich aus profiles.role. Frueher stand hier
+    // zusaetzlich ein Vergleich gegen eine fest im Quelltext hinterlegte
+    // E-Mail-Adresse. Das war eine schwache Kennung (wer die Adresse uebernimmt,
+    // uebernimmt die Plattform) und legte nebenbei eine private Adresse offen.
+    // Die Rolle wird von der Migration admin_portal gesetzt und von den
+    // SQL-Funktionen is_admin() bzw. is_approved() ohnehin so geprueft.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    const isAdmin = (profile as { role?: string } | null)?.role === "admin";
     if (!isAdmin) throw redirect({ to: "/app" });
     return { user: data.user };
   },

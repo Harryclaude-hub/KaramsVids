@@ -58,9 +58,14 @@ gedacht, aber du solltest nicht anfangen, darauf Entscheidungen zu stützen.
 
 ### 2.3 Serverless kann das Rendern nicht
 
-`ffmpeg.wasm` im Browser hat ein 2-GB-Speicherlimit. Ein einstündiges 1080p-Video
-sprengt das. Dein eigenes Dokument sagt es schon: *"Supabase Edge Function reicht
-NICHT, braucht echten Worker."* Genau da hängt es.
+`ffmpeg.wasm` im Browser ist auf rund 2 GB Arbeitsspeicher gebaut. Die Grenze betrifft
+**Ausgabe plus Arbeitsspeicher, nicht die Eingabe**: seit Version 0.12.7 lässt sich die
+Quelldatei per `mount()` mit WORKERFS lesen, ohne sie in den Speicher zu laden (getestet
+bis 13,2 GB). Einstündige Videos sind also grundsätzlich verarbeitbar. Was in der Praxis
+scheitert, sind vollständige Neukodierungen mit großer Ausgabedatei in einem Durchlauf,
+und der Tab muss die ganze Zeit offen bleiben. Dein eigenes Dokument sagt es schon:
+*"Supabase Edge Function reicht NICHT, braucht echten Worker."* Der eigene Worker bleibt
+richtig, aber wegen Tempo und Zuverlässigkeit, nicht wegen einer harten Wand.
 
 Der Vertrag für die eigene Render-Maschine ist in `CUSTOM-RENDER-API.md` bereits
 sauber definiert (`POST /renders`, `GET /renders/{id}`, `GET /health`). Die Maschine
@@ -99,9 +104,13 @@ Hetzner-Server, kein großes Projekt, aber es geht nicht in Lovable.
 
 Hier muss ich klar sein, weil es die Grundlage deiner Planung betrifft.
 
-**Automatische Account-Erstellung baue ich nicht.** Sie ist bei allen vier Plattformen
-per AGB verboten, und technisch ginge sie nur, indem man CAPTCHA, SMS-Verifizierung
-und Geräte-Fingerprinting umgeht. Das ist Bot-Farm-Infrastruktur. Praktisch führt es
+**Automatische Account-Erstellung baue ich nicht.** Für reguläre, öffentlich nutzbare
+Profile bietet keine der vier Plattformen eine Schnittstelle dafür, und Massenregistrierung
+verstößt gegen ihre Nutzungsbedingungen; technisch ginge sie nur, indem man CAPTCHA,
+SMS-Verifizierung und Geräte-Fingerprinting umgeht. (Zur Genauigkeit: Meta erlaubt bis zu
+2.000 *unsichtbare Testkonten* pro App per Schnittstelle, und Google-Konten lassen sich in
+einer eigenen Workspace-Domain anlegen. Beides hilft hier nicht: Testkonten sehen nur andere
+Testkonten, und ein Google-Konto ist noch kein YouTube-Kanal.) Das ist Bot-Farm-Infrastruktur. Praktisch führt es
 außerdem genau zu dem, was du vermeiden willst: Massensperrungen, und zwar inklusive
 der Developer-App, an der alle deine echten Accounts hängen.
 
@@ -116,15 +125,21 @@ harten Grenzen aus deiner eigenen Recherche:
 
 | Plattform | Grenze |
 |---|---|
-| YouTube | 10.000 Quota-Einheiten/Tag pro Projekt, 1 Upload = 1.600 → **~6 Uploads/Tag** |
-| Instagram | jeder Account muss Business sein + mit einer FB-Seite verknüpft + einzeln per OAuth verbunden; 100 Posts/24h pro Account |
-| TikTok | ohne Audit **5 autorisierte Accounts pro 24 h**, Posts nur SELF_ONLY |
-| Meta App Review | eine App mit 1.000 verbundenen Accounts kommt durch keine Prüfung |
+| YouTube | eigener Topf für Uploads: **100 Uploads/Tag** pro Projekt (ein Upload kostet dort 1 Einheit). Der 10.000er-Topf gilt nur für die übrigen Abfragen |
+| Instagram | jedes Konto braucht ein **professionelles Konto** (Business *oder* Creator) und eigenes OAuth; eine FB-Seite nur beim Anmeldeweg über Facebook-Login; 100 Posts pro gleitende 24 h |
+| TikTok | ohne Audit **5 postende Creator pro rollierende 24 h** (nicht: 5 verbundene Konten), Direct-Post erzwungen SELF_ONLY, Konten müssen dabei auf privat stehen. Der Deckel bleibt nach dem Audit, nur höher |
+| Meta App Review | eine App mit 1.000 verbundenen Konten kommt durch keine Prüfung |
+
+> Diese Tabelle wurde im September 2026 gegen die offizielle Dokumentation gegengeprüft.
+> Drei frühere Angaben waren falsch: YouTube (war 6 Uploads/Tag), Instagram (Business-Zwang
+> und 90-Sekunden-Grenze für Reels, tatsächlich 15 Minuten) und die Einheit des TikTok-Limits.
+> Prüfe die Werte vor jeder Kalkulation erneut, sie ändern sich.
 
 Realistisch fahrbar sind **Größenordnung 10 bis 50 Accounts pro Plattform**, und
 selbst dafür brauchst du die App-Reviews. Wenn du auf 1.000 willst, ist der Engpass
 nicht die Software, es sind mehrere Google-Cloud-Projekte, mehrere Meta-Apps und
-sehr viel manuelle Verifizierung.
+sehr viel manuelle Verifizierung. Der engste Kanal ist nach der Korrektur nicht
+YouTube, sondern TikTok mit 5 postenden Creatorn pro 24 Stunden ohne Audit.
 
 **Was dagegen unbegrenzt skaliert und wo der eigentliche Wert liegt:** das
 Massen-Clipping. Aus einem Langvideo 100 fertige Shorts zu machen, hat kein
