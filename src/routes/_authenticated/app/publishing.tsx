@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { runPublishQueue } from "@/lib/hooks.functions";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { useState } from "react";
 import { CalendarClock, ListOrdered, Plus, Trash2, ArrowUp, ArrowDown, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, Clock, Edit3 } from "lucide-react";
@@ -29,6 +31,7 @@ function PublishingPage() {
   const brandsQ = useBrands(user.id);
   const brand = brandsQ.data?.find((b) => b.id === activeBrandId) ?? null;
   const qc = useQueryClient();
+  const runQueue = useServerFn(runPublishQueue);
 
   const schedQ = useQuery({
     queryKey: ["publish_schedules", user.id, activeBrandId],
@@ -84,9 +87,7 @@ function PublishingPage() {
   async function triggerProcess() {
     toast.info("Warteschlange wird abgearbeitet …");
     try {
-      const res = await fetch("/api/public/hooks/process-publish-queue", { method: "POST" });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? res.statusText);
+      const j = await runQueue();
       toast.success(`${j.published} Clip(s) veröffentlicht (${j.schedules_processed} Slots)`);
       qc.invalidateQueries({ queryKey: ["clips", user.id, activeBrandId] });
       qc.invalidateQueries({ queryKey: ["publish_schedules", user.id, activeBrandId] });

@@ -20,6 +20,13 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Secrets — echte Werte gehören hier hinein, nicht in die eingecheckte .env.
+# (.env selbst ist historisch getrackt und enthält nur öffentliche
+# Supabase-Publishable-Keys. Alles Geheime NUR in .env.local ablegen.)
+.env.local
+.env.*.local
+.env.production
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -590,7 +590,8 @@ function JobEditor() {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        e.shiftKey ? redo() : undo();
+        if (e.shiftKey) redo();
+        else undo();
         return;
       }
       if (mod && e.key.toLowerCase() === "y") {

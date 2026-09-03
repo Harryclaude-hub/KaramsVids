@@ -6,7 +6,11 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/hooks/process-automations")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const { requireHookSecret } = await import("@/lib/hook-auth.server");
+        const denied = requireHookSecret(request);
+        if (denied) return denied;
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const { data: rules, error } = await supabaseAdmin

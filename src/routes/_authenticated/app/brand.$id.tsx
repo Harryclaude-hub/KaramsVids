@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { runAnalyticsSync } from "@/lib/hooks.functions";
 import {
   Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
   RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
@@ -45,6 +47,7 @@ function BrandDetail() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const syncAnalyticsFn = useServerFn(runAnalyticsSync);
   const [, setActiveBrandId] = useActiveBrandId();
 
   useEffect(() => { setActiveBrandId(id); }, [id, setActiveBrandId]);
@@ -376,9 +379,7 @@ function BrandDetail() {
   async function triggerSync() {
     toast.info("Analyse-Sync gestartet …");
     try {
-      const res = await fetch("/api/public/hooks/sync-analytics", { method: "POST" });
-      if (!res.ok) throw new Error(await res.text());
-      const j = await res.json();
+      const j = await syncAnalyticsFn();
       toast.success(`Sync fertig · ${j.synced} Account(s)`);
       qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
       qc.invalidateQueries({ queryKey: ["snapshots", user.id, id] });

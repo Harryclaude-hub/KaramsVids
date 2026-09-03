@@ -7,7 +7,11 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/hooks/process-generation-queue")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const { requireHookSecret } = await import("@/lib/hook-auth.server");
+        const denied = requireHookSecret(request);
+        if (denied) return denied;
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { processJobs, providerStatus } = await import("@/lib/generation-core.server");
 
