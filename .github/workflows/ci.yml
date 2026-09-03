@@ -1,0 +1,44 @@
+name: CI
+
+# Prüft jeden Push und jeden Pull Request. Ohne das merkt niemand, wenn
+# etwas kaputtgeht: der Bestand war einmal auf 1.930 Lint-Fehler gelaufen
+# und "npm ci" schlug fehl, weil es niemand ausgeführt hat.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    name: Typen, Lint und Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Bewusst npm und nicht bun: bun.lock zeigt auf Lovables privates
+      # Registry und ist ausserhalb der Lovable-Sandbox nicht aufloesbar.
+      - name: Abhaengigkeiten installieren
+        run: npm ci --no-audit --no-fund
+
+      - name: Typen pruefen
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build

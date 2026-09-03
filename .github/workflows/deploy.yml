@@ -1,0 +1,56 @@
+name: Veröffentlichen
+
+# Baut die App und stellt sie als Cloudflare Worker bereit.
+# Ergebnis ist eine oeffentliche HTTPS-Adresse.
+#
+# Voraussetzung, einmalig in GitHub unter
+# Settings -> Secrets and variables -> Actions -> New repository secret:
+#   CLOUDFLARE_API_TOKEN    Token mit der Vorlage "Edit Cloudflare Workers"
+#   CLOUDFLARE_ACCOUNT_ID   steht im Cloudflare-Dashboard rechts in der Seitenleiste
+#
+# Die Secrets der App selbst (SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET,
+# GOOGLE_CLIENT_SECRET und so weiter) gehoeren NICHT hierher, sondern in
+# Cloudflare unter Workers -> Settings -> Variables and Secrets.
+# Siehe docs/DEPLOY.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  veroeffentlichen:
+    name: Bauen und bereitstellen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci --no-audit --no-fund
+
+      - name: Typen pruefen
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      # Nitro erzeugt beim Build .output/server/wrangler.json samt
+      # Asset-Bindung. Wrangler wird von dort aus aufgerufen.
+      - name: Auf Cloudflare bereitstellen
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: .output/server
+          command: deploy
