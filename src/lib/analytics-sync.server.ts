@@ -1,7 +1,7 @@
 // ============================================================
 // Analytics-Sync (nur Server).
 //
-// ACHTUNG — aktuell werden KEINE echten Zahlen geholt: TikTok/IG/YT/FB/X
+// ACHTUNG: aktuell werden KEINE echten Zahlen geholt: TikTok/IG/YT/FB/X
 // verlangen für Insights alle eine geprüfte Developer-App. Bis die
 // Reviews durch sind, wird pro verbundenem Account ein plausibler
 // Snapshot erzeugt und gespeichert. Die Zahlen in der Oberfläche sind

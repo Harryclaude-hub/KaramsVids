@@ -39,7 +39,7 @@ function presentedSecret(request: Request): string | null {
     const token = new URL(request.url).searchParams.get("token");
     if (token?.trim()) return token.trim();
   } catch {
-    /* ungültige URL — dann eben kein Token */
+    /* ungültige URL, dann eben kein Token */
   }
   return null;
 }
@@ -60,7 +60,7 @@ export function requireHookSecret(request: Request): Response | null {
       {
         ok: false,
         error:
-          "CRON_SECRET ist nicht gesetzt — dieser Endpunkt ist deshalb gesperrt. " +
+          "CRON_SECRET ist nicht gesetzt, dieser Endpunkt ist deshalb gesperrt. " +
           "Secret in den Server-Umgebungsvariablen hinterlegen und beim Aufruf als " +
           "'Authorization: Bearer <CRON_SECRET>' mitschicken.",
       },

@@ -2,8 +2,8 @@
 // Kern der Publishing-Warteschlange (nur Server).
 //
 // Wird von zwei Stellen aufgerufen:
-//   1. /api/public/hooks/process-publish-queue  — pg_cron, alle Nutzer
-//   2. runPublishQueue() in hooks.functions.ts  — „Jetzt ausführen"
+//   1. /api/public/hooks/process-publish-queue: pg_cron, alle Nutzer
+//   2. runPublishQueue() in hooks.functions.ts: „Jetzt ausführen"
 //      aus der UI, eingeschränkt auf den angemeldeten Nutzer
 //
 // Für jeden fälligen Zeitplan werden die nächsten N Clips aus der
@@ -14,7 +14,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Ergebnis eines einzelnen Zeitplans — bewusst JSON-serialisierbar. */
+/** Ergebnis eines einzelnen Zeitplans, bewusst JSON-serialisierbar. */
 export type PublishQueueDetail = {
   schedule_id: string;
   brands?: string[];
@@ -92,7 +92,7 @@ export async function processPublishQueue(
           if (wantedTypes.length > 0) clipQuery = clipQuery.in("post_type", wantedTypes);
 
           // Beim Mischen einen größeren Pool holen und daraus deterministisch
-          // pro Brand+Tag zufällig wählen — so postet nicht jede Brand identisch.
+          // pro Brand+Tag zufällig wählen, so postet nicht jede Brand identisch.
           const poolSize = shuffle ? Math.max(s.videos_per_slot * 8, 20) : s.videos_per_slot;
           const { data: pool, error: clipErr } = await clipQuery
             .order("queue_position", { ascending: true })
@@ -251,7 +251,7 @@ export function computeNextRun(s: Schedule, from: Date): Date {
   return tmr;
 }
 
-/** Tages-Schlüssel (lokal) — sorgt dafür, dass die Mischung pro Tag stabil bleibt. */
+/** Tages-Schlüssel (lokal), sorgt dafür, dass die Mischung pro Tag stabil bleibt. */
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }

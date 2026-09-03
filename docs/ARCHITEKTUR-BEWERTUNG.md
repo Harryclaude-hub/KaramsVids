@@ -60,12 +60,12 @@ gedacht, aber du solltest nicht anfangen, darauf Entscheidungen zu stützen.
 
 `ffmpeg.wasm` im Browser hat ein 2-GB-Speicherlimit. Ein einstündiges 1080p-Video
 sprengt das. Dein eigenes Dokument sagt es schon: *"Supabase Edge Function reicht
-NICHT — braucht echten Worker."* Genau da hängt es.
+NICHT, braucht echten Worker."* Genau da hängt es.
 
 Der Vertrag für die eigene Render-Maschine ist in `CUSTOM-RENDER-API.md` bereits
 sauber definiert (`POST /renders`, `GET /renders/{id}`, `GET /health`). Die Maschine
 selbst fehlt. Das ist ein Container mit nativem ffmpeg auf Fly.io, Railway oder einem
-Hetzner-Server — kein großes Projekt, aber es geht nicht in Lovable.
+Hetzner-Server, kein großes Projekt, aber es geht nicht in Lovable.
 
 ### 2.4 Kleinere Punkte
 
@@ -73,7 +73,7 @@ Hetzner-Server — kein großes Projekt, aber es geht nicht in Lovable.
   Auto-Publishing ist das riskant.
 - **`job.$id.tsx` hat 2.803 Zeilen** und 32 `useState` in einer Komponente. Der
   Editor wird so bald nicht mehr wartbar.
-- **78x `any`** im Code — TypeScript hilft an genau den Stellen nicht mehr, wo es
+- **78x `any`** im Code. TypeScript hilft an genau den Stellen nicht mehr, wo es
   am wichtigsten wäre (Supabase-Antworten).
 - **Zwei Lockfiles, die sich widersprechen**: `bun.lock` zeigt auf Lovables privates
   Registry (`europe-west4-npm.pkg.dev/lovable-core-prod/…`, 124 Einträge),
@@ -123,7 +123,7 @@ harten Grenzen aus deiner eigenen Recherche:
 
 Realistisch fahrbar sind **Größenordnung 10 bis 50 Accounts pro Plattform**, und
 selbst dafür brauchst du die App-Reviews. Wenn du auf 1.000 willst, ist der Engpass
-nicht die Software — es sind mehrere Google-Cloud-Projekte, mehrere Meta-Apps und
+nicht die Software, es sind mehrere Google-Cloud-Projekte, mehrere Meta-Apps und
 sehr viel manuelle Verifizierung.
 
 **Was dagegen unbegrenzt skaliert und wo der eigentliche Wert liegt:** das

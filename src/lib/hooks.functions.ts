@@ -3,7 +3,7 @@
 //
 // Früher hat das Frontend direkt /api/public/hooks/* per fetch
 // aufgerufen. Diese Endpunkte laufen mit der Service-Role über ALLE
-// Nutzer hinweg — sie gehören dem Cron, nicht dem Browser.
+// Nutzer hinweg, sie gehören dem Cron, nicht dem Browser.
 //
 // Diese Server-Funktionen prüfen die Anmeldung und schränken die
 // Verarbeitung auf die Daten des angemeldeten Nutzers ein.
