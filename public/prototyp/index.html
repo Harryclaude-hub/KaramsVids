@@ -1,0 +1,1393 @@
+<title>Clip-Fabrik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ============================================================
+   Clip-Fabrik — Bedienoberfläche
+   Farbtoken: helle Palette vollständig auf :root, danach nur
+   Überschreibungen für dunkel. Jede Farbe kommt aus einem Token.
+   ============================================================ */
+:root {
+  --ground:      #FAF7F4;
+  --surface:     #FFFFFF;
+  --surface-2:   #F2EDE8;
+  --surface-3:   #E7E0D9;
+  --line:        #DED5CC;
+  --line-strong: #C7BBAF;
+
+  --ink:         #3A332E;
+  --ink-strong:  #1A1512;
+  --ink-muted:   #6B6460;
+
+  --accent:      #C2571A;
+  --accent-soft: #F6E4D6;
+  --accent-ink:  #FFFFFF;
+
+  --good:        #2F7D48;
+  --good-soft:   #DFEDE3;
+  --warn:        #9A6B10;
+  --warn-soft:   #F6EBD3;
+  --crit:        #C4462F;
+  --crit-soft:   #F8E1DC;
+
+  --chart:       #C2571A;
+  --chart-fill:  rgba(194, 87, 26, 0.16);
+  --grid:        #E7E0D9;
+
+  --shadow:      0 1px 2px rgba(58, 51, 46, 0.06), 0 6px 20px rgba(58, 51, 46, 0.05);
+  --shadow-lift: 0 2px 4px rgba(58, 51, 46, 0.08), 0 12px 32px rgba(58, 51, 46, 0.10);
+
+  --sans: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --rail: 268px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #141110;
+    --surface:     #1E1A18;
+    --surface-2:   #262120;
+    --surface-3:   #322B28;
+    --line:        #352E2B;
+    --line-strong: #4A413C;
+
+    --ink:         #F5F0EB;
+    --ink-strong:  #FFFFFF;
+    --ink-muted:   #A39A93;
+
+    --accent:      #F26A1F;
+    --accent-soft: #3A2318;
+    --accent-ink:  #141110;
+
+    --good:        #4FBF7A;
+    --good-soft:   #16301F;
+    --warn:        #E8A33D;
+    --warn-soft:   #33260F;
+    --crit:        #E2624A;
+    --crit-soft:   #351914;
+
+    --chart:       #F26A1F;
+    --chart-fill:  rgba(242, 106, 31, 0.18);
+    --grid:        #322B28;
+
+    --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #141110;
+  --surface:     #1E1A18;
+  --surface-2:   #262120;
+  --surface-3:   #322B28;
+  --line:        #352E2B;
+  --line-strong: #4A413C;
+
+  --ink:         #F5F0EB;
+  --ink-strong:  #FFFFFF;
+  --ink-muted:   #A39A93;
+
+  --accent:      #F26A1F;
+  --accent-soft: #3A2318;
+  --accent-ink:  #141110;
+
+  --good:        #4FBF7A;
+  --good-soft:   #16301F;
+  --warn:        #E8A33D;
+  --warn-soft:   #33260F;
+  --crit:        #E2624A;
+  --crit-soft:   #351914;
+
+  --chart:       #F26A1F;
+  --chart-fill:  rgba(242, 106, 31, 0.18);
+  --grid:        #322B28;
+
+  --shadow:      0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; font-weight: 600; letter-spacing: -0.011em; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.num  { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* ---------- Grundgerüst ---------- */
+.shell { display: grid; grid-template-columns: var(--rail) 1fr; min-height: 100vh; }
+
+/* ---------- Linke Schiene ---------- */
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.brandmark { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+.brandmark .wordmark {
+  display: flex; align-items: baseline; gap: 7px;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink-strong);
+}
+.brandmark .spark {
+  width: 9px; height: 9px; border-radius: 2px; background: var(--accent);
+  transform: translateY(-1px); flex: none;
+}
+.brandmark .sub {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.13em; color: var(--ink-muted); margin-top: 5px;
+}
+
+.rail-group { padding: 14px 12px; border-bottom: 1px solid var(--line); }
+.rail-label {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.13em; color: var(--ink-muted); padding: 0 8px 8px; display: block;
+}
+
+.profile-switch {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 11px; cursor: pointer; text-align: left;
+}
+.profile-switch:hover { border-color: var(--line-strong); }
+.profile-switch .dot { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); flex: none;
+  display: grid; place-items: center; color: var(--accent-ink); font-weight: 700; font-size: 12px; }
+.profile-switch .nm { font-weight: 600; font-size: 13px; color: var(--ink-strong); }
+.profile-switch .mt { font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); }
+.profile-switch .chev { margin-left: auto; color: var(--ink-muted); font-size: 11px; }
+
+.tree { display: flex; flex-direction: column; gap: 2px; }
+.tree-brand {
+  display: flex; align-items: center; gap: 9px; padding: 7px 8px;
+  border-radius: 7px; cursor: pointer; border: 1px solid transparent; background: none; width: 100%; text-align: left;
+}
+.tree-brand:hover { background: var(--surface-2); }
+.tree-brand[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.tree-brand .sw { width: 8px; height: 20px; border-radius: 3px; flex: none; }
+.tree-brand .bn { font-weight: 500; font-size: 13px; color: var(--ink-strong); }
+.tree-brand .bc { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); }
+
+.nav { padding: 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: 7px; border: 0; background: none;
+  cursor: pointer; text-align: left; font-size: 13.5px; font-weight: 500; color: var(--ink);
+}
+.nav-item:hover { background: var(--surface-2); }
+.nav-item[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.nav-item .ic { width: 17px; flex: none; display: grid; place-items: center; }
+.nav-item .badge {
+  margin-left: auto; font-family: var(--mono); font-size: 10px; padding: 1px 5px;
+  border-radius: 4px; background: var(--surface-3); color: var(--ink-muted);
+}
+.nav-item[aria-current="page"] .badge { background: rgba(0,0,0,0.18); color: var(--accent-ink); }
+
+.rail-foot { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+.theme-btn {
+  border: 1px solid var(--line); background: var(--surface-2); border-radius: 7px;
+  padding: 6px 10px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;
+}
+.theme-btn:hover { border-color: var(--line-strong); }
+
+/* ---------- Hauptbereich ---------- */
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 16px 28px; border-bottom: 1px solid var(--line);
+  background: var(--surface); position: sticky; top: 0; z-index: 20;
+}
+.topbar h1 { font-size: 19px; color: var(--ink-strong); }
+.topbar .crumb { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+.topbar .spacer { margin-left: auto; }
+
+.view { padding: 24px 28px 56px; max-width: 1240px; }
+.view[hidden] { display: none; }
+
+.section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.section-head h2 { font-size: 15px; color: var(--ink-strong); }
+.section-head .hint { font-size: 12.5px; color: var(--ink-muted); }
+
+/* ---------- Bauzustand-Chips ---------- */
+.chip {
+  font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 2px 7px; border-radius: 4px; font-weight: 600; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+}
+.chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chip-built { background: var(--good-soft); color: var(--good); }
+.chip-part  { background: var(--warn-soft); color: var(--warn); }
+.chip-draft { background: var(--surface-3); color: var(--ink-muted); }
+.chip-block { background: var(--crit-soft); color: var(--crit); }
+
+/* ---------- Kacheln ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; margin-bottom: 26px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.tile .k {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.11em; color: var(--ink-muted);
+}
+.tile .v {
+  font-family: var(--mono); font-size: 27px; font-weight: 600; color: var(--ink-strong);
+  letter-spacing: -0.03em; margin-top: 5px; line-height: 1.1;
+}
+.tile .v small { font-size: 14px; font-weight: 500; color: var(--ink-muted); letter-spacing: 0; }
+.tile .d { font-size: 11.5px; color: var(--ink-muted); margin-top: 3px; }
+.tile .d.up { color: var(--good); }
+
+/* ---------- Karten & Panels ---------- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.panel + .panel { margin-top: 16px; }
+.panel-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 13px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.panel-head h3 { font-size: 13.5px; color: var(--ink-strong); }
+.panel-head .sp { margin-left: auto; }
+.panel-body { padding: 16px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.grid-3-2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .grid2, .grid-3-2 { grid-template-columns: 1fr; } }
+
+/* ---------- Knöpfe ---------- */
+.btn {
+  border: 1px solid var(--line-strong); background: var(--surface); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.btn:hover { background: var(--surface-2); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn-primary:hover { filter: brightness(1.07); background: var(--accent); }
+.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.field {
+  width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line-strong);
+  background: var(--ground); color: var(--ink); font-family: var(--mono); font-size: 13px;
+}
+.field::placeholder { color: var(--ink-muted); }
+.field:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+
+/* ---------- Fließband ---------- */
+.pipeline { display: flex; gap: 0; margin: 0 0 4px; overflow-x: auto; padding-bottom: 4px; }
+.stage {
+  flex: 1 1 0; min-width: 132px; position: relative;
+  padding: 12px 14px 12px 18px; border: 1px solid var(--line);
+  background: var(--surface); border-right-width: 0;
+}
+.stage:first-child { border-radius: 9px 0 0 9px; }
+.stage:last-child { border-radius: 0 9px 9px 0; border-right-width: 1px; }
+.stage .sn {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-muted);
+  letter-spacing: 0.1em; display: block;
+}
+.stage .st { font-size: 13px; font-weight: 600; color: var(--ink-strong); margin-top: 2px; }
+.stage .sd { font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); margin-top: 3px; min-height: 15px; }
+.stage .bar { height: 3px; border-radius: 2px; background: var(--surface-3); margin-top: 8px; overflow: hidden; }
+.stage .bar i { display: block; height: 100%; width: 0%; background: var(--accent); transition: width .28s linear; }
+.stage[data-state="run"]  { background: var(--accent-soft); border-color: var(--accent); z-index: 2; }
+.stage[data-state="done"] .bar i { width: 100% !important; background: var(--good); }
+.stage[data-state="done"] .sn { color: var(--good); }
+
+/* ---------- Tabellen ---------- */
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ink-muted); font-weight: 600;
+  padding: 9px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2);
+}
+tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--surface-2); }
+td.r, th.r { text-align: right; }
+
+.handle { font-family: var(--mono); font-size: 12.5px; color: var(--ink-strong); }
+.sub { font-size: 11.5px; color: var(--ink-muted); }
+
+.pf { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.pf .g {
+  width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  background: var(--surface-3); color: var(--ink); flex: none;
+}
+
+.state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.s-ok   { color: var(--good); }
+.s-warn { color: var(--warn); }
+.s-err  { color: var(--crit); }
+.s-off  { color: var(--ink-muted); }
+
+/* ---------- Clip-Karten ---------- */
+.clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 12px; }
+.clip {
+  border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
+  background: var(--surface); animation: pop .32s ease both;
+}
+@keyframes pop { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .clip { animation: none; } .stage .bar i { transition: none; } }
+.clip .thumb {
+  aspect-ratio: 9 / 16; background: var(--surface-3); position: relative;
+  display: grid; place-items: center; overflow: hidden;
+}
+.clip .thumb .tc {
+  position: absolute; left: 6px; bottom: 6px; font-family: var(--mono); font-size: 9.5px;
+  background: rgba(20, 17, 16, 0.82); color: #F5F0EB; padding: 2px 5px; border-radius: 4px;
+}
+.clip .thumb .sc {
+  position: absolute; right: 6px; top: 6px; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  padding: 2px 5px; border-radius: 4px; background: var(--surface); color: var(--ink-strong);
+  border: 1px solid var(--line);
+}
+.clip .thumb .wave { width: 72%; height: 34px; opacity: 0.5; }
+.clip .meta { padding: 9px 10px; }
+.clip .meta .t { font-size: 12px; font-weight: 600; color: var(--ink-strong); line-height: 1.35; }
+.clip .meta .h { font-size: 11px; color: var(--ink-muted); margin-top: 3px; line-height: 1.4; }
+
+/* ---------- Hinweisblöcke ---------- */
+.note {
+  border-radius: 10px; padding: 14px 16px; font-size: 13px; line-height: 1.6;
+  border: 1px solid var(--line); background: var(--surface-2);
+}
+.note.block { border-color: var(--crit); background: var(--crit-soft); }
+.note.warnb { border-color: var(--warn); background: var(--warn-soft); }
+.note h4 { font-size: 13px; margin-bottom: 5px; color: var(--ink-strong); }
+.note.block h4 { color: var(--crit); }
+.note.warnb h4 { color: var(--warn); }
+.note ul { margin: 7px 0 0; padding-left: 18px; }
+.note li { margin: 3px 0; }
+
+/* ---------- Ablauf-Schritte ---------- */
+.steps { display: flex; flex-direction: column; gap: 0; }
+.step { display: grid; grid-template-columns: 30px 1fr; gap: 14px; position: relative; padding-bottom: 18px; }
+.step:last-child { padding-bottom: 0; }
+.step::before {
+  content: ""; position: absolute; left: 14.5px; top: 28px; bottom: 0; width: 1px; background: var(--line);
+}
+.step:last-child::before { display: none; }
+.step .no {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  background: var(--surface-3); color: var(--ink); position: relative; z-index: 1;
+}
+.step[data-auto="ja"] .no { background: var(--accent); color: var(--accent-ink); }
+.step[data-auto="hand"] .no { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+.step .sh { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.step .sh strong { font-size: 13.5px; color: var(--ink-strong); font-weight: 600; }
+.step .sb { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.55; }
+
+/* ---------- Verfügbarkeitsprüfung ---------- */
+.avail { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px; margin-top: 14px; }
+.av {
+  border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px;
+  display: flex; align-items: center; gap: 10px; background: var(--surface);
+}
+.av .g { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; background: var(--surface-3); flex: none; }
+.av .txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.av .n { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-strong); line-height: 1.3; }
+.av .r { display: block; font-family: var(--mono); font-size: 11px; line-height: 1.3; }
+.av[data-r="frei"]   { border-color: var(--good); }
+.av[data-r="frei"] .r   { color: var(--good); }
+.av[data-r="belegt"] { border-color: var(--crit); }
+.av[data-r="belegt"] .r { color: var(--crit); }
+.av[data-r="pruef"] .r  { color: var(--ink-muted); }
+
+/* ---------- Diagramme ---------- */
+.chart-wrap { position: relative; }
+svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.ax { font-family: var(--mono); font-size: 10px; fill: var(--ink-muted); }
+.gl { stroke: var(--grid); stroke-width: 1; }
+.tip {
+  position: absolute; pointer-events: none; opacity: 0; transition: opacity .12s;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 7px;
+  padding: 7px 10px; box-shadow: var(--shadow-lift); font-size: 12px; white-space: nowrap; z-index: 5;
+}
+.tip .tv { font-family: var(--mono); font-weight: 600; font-size: 13.5px; color: var(--ink-strong); }
+.tip .td { font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted); }
+
+.bars { display: flex; flex-direction: column; gap: 11px; }
+.bar-row { display: grid; grid-template-columns: 88px 1fr 74px; gap: 11px; align-items: center; }
+.bar-row .bl { font-size: 12.5px; color: var(--ink); }
+.bar-row .bt { height: 15px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.bar-row .bt i { display: block; height: 100%; background: var(--chart); border-radius: 0 3px 3px 0; }
+.bar-row .bv { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--ink-strong); font-variant-numeric: tabular-nums; }
+
+.spark { width: 68px; height: 22px; display: block; }
+
+/* ---------- Legende Bauzustand ---------- */
+.legend {
+  display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+  padding: 11px 16px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--surface); margin-bottom: 20px; font-size: 12.5px;
+}
+.legend .li { display: flex; align-items: center; gap: 7px; }
+.legend .lt { color: var(--ink-muted); }
+
+.hr { height: 1px; background: var(--line); margin: 26px 0; border: 0; }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 12.5px; }
+.kv dt { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+.kv dd { margin: 0; color: var(--ink); }
+
+.pill-row { display: flex; gap: 7px; flex-wrap: wrap; }
+
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .view { padding: 18px 16px 48px; }
+  .topbar { padding: 14px 16px; }
+}
+</style>
+
+<div class="shell">
+
+  <!-- =================== Linke Schiene =================== -->
+  <aside class="rail">
+    <div class="brandmark">
+      <div class="wordmark"><span class="spark"></span>Clip-Fabrik</div>
+      <div class="sub">Prototyp · Bedienoberfläche</div>
+    </div>
+
+    <div class="rail-group">
+      <span class="rail-label">Profil</span>
+      <button class="profile-switch" onclick="alert('Profil-Wechsler: In der App liegen hier alle Profile. Jedes Profil ist komplett getrennt (eigene Brands, eigene Affiliate-Programme, eigene Auszahlung).')">
+        <span class="dot">H</span>
+        <span>
+          <span class="nm">Hauptprofil</span><br>
+          <span class="mt">4 Brands · 11 Konten</span>
+        </span>
+        <span class="chev">▾</span>
+      </button>
+    </div>
+
+    <div class="rail-group">
+      <span class="rail-label">Brands</span>
+      <div class="tree">
+        <button class="tree-brand" aria-current="true">
+          <span class="sw" style="background: var(--accent)"></span>
+          <span class="bn">shortsdaily</span><span class="bc">4</span>
+        </button>
+        <button class="tree-brand">
+          <span class="sw" style="background: var(--good)"></span>
+          <span class="bn">reelwerk</span><span class="bc">3</span>
+        </button>
+        <button class="tree-brand">
+          <span class="sw" style="background: var(--warn)"></span>
+          <span class="bn">clipstube</span><span class="bc">3</span>
+        </button>
+        <button class="tree-brand">
+          <span class="sw" style="background: var(--line-strong)"></span>
+          <span class="bn">nachtschnitt</span><span class="bc">1</span>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item" data-view="uebersicht" aria-current="page"><span class="ic">▣</span>Übersicht</button>
+      <button class="nav-item" data-view="fabrik"><span class="ic">✂</span>Clip-Fabrik<span class="badge">12</span></button>
+      <button class="nav-item" data-view="konten"><span class="ic">◍</span>Konten-Werkbank</button>
+      <button class="nav-item" data-view="verteilung"><span class="ic">⇈</span>Verteilung<span class="badge">86</span></button>
+      <button class="nav-item" data-view="tracking"><span class="ic">◎</span>Tracking</button>
+      <button class="nav-item" data-view="einnahmen"><span class="ic">€</span>Einnahmen</button>
+      <button class="nav-item" data-view="bauplan"><span class="ic">⌗</span>Bauplan</button>
+    </nav>
+
+    <div class="rail-foot">
+      <button class="theme-btn" id="themeBtn" aria-label="Zwischen hell und dunkel wechseln">
+        <span id="themeIcon">◑</span><span id="themeText">Dunkel</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- =================== Hauptbereich =================== -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="crumb">Hauptprofil / shortsdaily</div>
+        <h1 id="viewTitle">Übersicht</h1>
+      </div>
+      <div class="spacer"></div>
+      <span class="chip chip-draft">Beispieldaten</span>
+    </header>
+
+    <!-- ============ Übersicht ============ -->
+    <section class="view" id="v-uebersicht">
+      <div class="legend">
+        <span class="lt">Bauzustand:</span>
+        <span class="li"><span class="chip chip-built">Gebaut</span><span class="lt">läuft im Code</span></span>
+        <span class="li"><span class="chip chip-part">Teilweise</span><span class="lt">Gerüst steht</span></span>
+        <span class="li"><span class="chip chip-draft">Entwurf</span><span class="lt">nur entworfen</span></span>
+        <span class="li"><span class="chip chip-block">Gesperrt</span><span class="lt">Plattform verbietet es</span></span>
+      </div>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="k">Clips in Warteschlange</div>
+          <div class="v">86</div>
+          <div class="d">verteilt auf 4 Brands</div>
+        </div>
+        <div class="tile">
+          <div class="k">Heute veröffentlicht</div>
+          <div class="v">14</div>
+          <div class="d up">+3 gegenüber gestern</div>
+        </div>
+        <div class="tile">
+          <div class="k">Verbundene Konten</div>
+          <div class="v">11 <small>/ 11</small></div>
+          <div class="d">2 Token laufen in 6 Tagen ab</div>
+        </div>
+        <div class="tile">
+          <div class="k">Einnahmen 30 Tage</div>
+          <div class="v">1.284 <small>€</small></div>
+          <div class="d up">+18 % zum Vormonat</div>
+        </div>
+      </div>
+
+      <div class="grid-3-2">
+        <div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Fließband heute</h3>
+              <span class="chip chip-part">Teilweise</span>
+              <span class="sp"></span>
+              <button class="btn btn-sm" onclick="go('fabrik')">Zur Fabrik</button>
+            </div>
+            <div class="panel-body">
+              <div class="pipeline">
+                <div class="stage" data-state="done"><span class="sn">01 · IMPORT</span><div class="st">Quelle</div><div class="sd">3 Videos · 4:12:38</div><div class="bar"><i></i></div></div>
+                <div class="stage" data-state="done"><span class="sn">02 · TRANSKRIPT</span><div class="st">Gehört</div><div class="sd">41.208 Wörter</div><div class="bar"><i></i></div></div>
+                <div class="stage" data-state="run"><span class="sn">03 · SCHNITT</span><div class="st">Gewählt</div><div class="sd">12 von 18 Clips</div><div class="bar"><i style="width:67%"></i></div></div>
+                <div class="stage"><span class="sn">04 · RENDER</span><div class="st">Gebaut</div><div class="sd">wartet</div><div class="bar"><i></i></div></div>
+                <div class="stage"><span class="sn">05 · VERTEILUNG</span><div class="st">Verteilt</div><div class="sd">wartet</div><div class="bar"><i></i></div></div>
+              </div>
+              <p class="sub" style="margin-top:12px">
+                Stufe 02 ist der Punkt, an dem im echten Code noch nichts passiert: die KI bekommt heute
+                nur Titel und Dauer, kein Transkript. Deshalb steht Stufe 03 auf „Teilweise".
+              </p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Konten dieses Profils</h3>
+              <span class="chip chip-built">Gebaut</span>
+              <span class="sp"></span>
+              <span class="sub mono">11 aktiv</span>
+            </div>
+            <div class="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Konto</th><th>Brand</th><th>Zustand</th>
+                    <th class="r">Aufrufe 7 T.</th><th>Verlauf</th><th class="r">Nächster Post</th>
+                  </tr>
+                </thead>
+                <tbody id="accRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Einnahmen, letzte 30 Tage</h3><span class="chip chip-draft">Entwurf</span></div>
+            <div class="panel-body">
+              <div class="chart-wrap" id="earnWrap">
+                <svg class="chart" id="earnChart" viewBox="0 0 340 150" role="img"
+                     aria-label="Tägliche Einnahmen der letzten 30 Tage, von 21 Euro auf 63 Euro gestiegen"></svg>
+                <div class="tip" id="earnTip"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Aufrufe nach Plattform, 30 Tage</h3><span class="chip chip-draft">Entwurf</span></div>
+            <div class="panel-body">
+              <div class="bars">
+                <div class="bar-row"><span class="bl">TikTok</span><span class="bt"><i style="width:100%"></i></span><span class="bv">412.900</span></div>
+                <div class="bar-row"><span class="bl">Instagram</span><span class="bt"><i style="width:70%"></i></span><span class="bv">289.400</span></div>
+                <div class="bar-row"><span class="bl">YouTube</span><span class="bt"><i style="width:38%"></i></span><span class="bv">156.100</span></div>
+                <div class="bar-row"><span class="bl">Facebook</span><span class="bt"><i style="width:11%"></i></span><span class="bv">45.300</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Braucht Aufmerksamkeit</h3></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:11px">
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="state s-warn" style="margin-top:3px"></span>
+                <div><strong style="font-size:12.5px">YouTube-Kontingent bei 9.600 / 10.000</strong>
+                <div class="sub">Noch 1 Upload heute möglich. Zweites Google-Projekt anlegen.</div></div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="state s-warn" style="margin-top:3px"></span>
+                <div><strong style="font-size:12.5px">2 Token laufen ab</strong>
+                <div class="sub">reelwerk auf Instagram und Facebook, in 6 Tagen.</div></div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="state s-err" style="margin-top:3px"></span>
+                <div><strong style="font-size:12.5px">TikTok-Audit fehlt</strong>
+                <div class="sub">Ohne Audit landen Posts nur in den Entwürfen.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Clip-Fabrik ============ -->
+    <section class="view" id="v-fabrik" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>YouTube-Link hinein, fertige Shorts heraus</h3>
+          <span class="chip chip-part">Teilweise</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <input class="field" id="ytUrl" style="flex:1;min-width:260px"
+                   value="https://www.youtube.com/watch?v=Lp7E973zozc" aria-label="YouTube-Adresse">
+            <select class="field" id="clipCount" style="width:auto;min-width:118px" aria-label="Anzahl Clips">
+              <option>12 Clips</option><option>24 Clips</option><option>50 Clips</option><option>100 Clips</option>
+            </select>
+            <button class="btn btn-primary" id="runBtn">Fabrik starten</button>
+          </div>
+
+          <div class="pipeline" id="livePipe" style="margin-top:18px">
+            <div class="stage" data-stage="0"><span class="sn">01 · IMPORT</span><div class="st">Quelle holen</div><div class="sd" data-sd>bereit</div><div class="bar"><i></i></div></div>
+            <div class="stage" data-stage="1"><span class="sn">02 · TRANSKRIPT</span><div class="st">Video anhören</div><div class="sd" data-sd>bereit</div><div class="bar"><i></i></div></div>
+            <div class="stage" data-stage="2"><span class="sn">03 · SCHNITT</span><div class="st">Momente wählen</div><div class="sd" data-sd>bereit</div><div class="bar"><i></i></div></div>
+            <div class="stage" data-stage="3"><span class="sn">04 · RENDER</span><div class="st">9:16 bauen</div><div class="sd" data-sd>bereit</div><div class="bar"><i></i></div></div>
+            <div class="stage" data-stage="4"><span class="sn">05 · VERTEILUNG</span><div class="st">Einreihen</div><div class="sd" data-sd>bereit</div><div class="bar"><i></i></div></div>
+          </div>
+
+          <div id="logLine" class="mono sub" style="margin-top:10px;min-height:19px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Erzeugte Clips</h3>
+          <span class="sp"></span>
+          <span class="sub mono" id="clipCountLbl">12 Clips · 9:16 · Untertitel eingebrannt</span>
+        </div>
+        <div class="panel-body">
+          <div class="clips" id="clipGrid"></div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:16px">
+        <div class="note warnb">
+          <h4>Was hier heute wirklich passiert</h4>
+          Stufe 02 gibt es im Code noch nicht. Die KI bekommt <strong>nur den Titel und die Dauer</strong>
+          des Videos und rät daraufhin die Schnittpunkte. Deshalb sehen die Zeitstempel plausibel aus,
+          treffen aber nicht den Inhalt.
+          <ul>
+            <li>Fehlt: Ton herausziehen und mit Wort-Zeitstempeln transkribieren</li>
+            <li>Fehlt: Segmente aus dem echten Transkript wählen statt raten</li>
+            <li>Fällt dann gratis ab: Untertitel aus denselben Zeitstempeln</li>
+          </ul>
+        </div>
+        <div class="note">
+          <h4>Warum das der wichtigste Schritt ist</h4>
+          Transkription kostet ungefähr <strong class="mono">4 Cent pro Stunde</strong> Video.
+          Damit wird aus einem Ratesystem ein Werkzeug, das tatsächlich die starken Momente findet.
+          Alles andere in der Fabrik, Render, Warteschlange, Verteilung, ist bereits gebaut und wartet nur
+          darauf, dass ihm jemand die richtigen Schnittpunkte liefert.
+          <div class="pill-row" style="margin-top:10px">
+            <span class="chip chip-built">Import gebaut</span>
+            <span class="chip chip-block">Transkript fehlt</span>
+            <span class="chip chip-built">Render gebaut</span>
+            <span class="chip chip-built">Verteilung gebaut</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Konten-Werkbank ============ -->
+    <section class="view" id="v-konten" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Namensprüfung über alle vier Plattformen</h3>
+          <span class="chip chip-built">Gebaut</span>
+        </div>
+        <div class="panel-body">
+          <p class="sub" style="margin-bottom:12px">
+            Einen Namen eintippen, die Fabrik prüft ihn gleichzeitig auf TikTok, Instagram, YouTube und Facebook
+            und schlägt freie Varianten vor.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <input class="field" id="handleIn" style="flex:1;min-width:220px" value="shortsdaily" aria-label="Wunschname">
+            <button class="btn btn-primary" id="checkBtn">Verfügbarkeit prüfen</button>
+          </div>
+          <div class="avail" id="availGrid"></div>
+          <div id="variants" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <div class="grid-3-2" style="margin-top:16px">
+        <div class="panel">
+          <div class="panel-head"><h3>Konto anlegen: der ehrliche Ablauf</h3></div>
+          <div class="panel-body">
+            <div class="steps">
+              <div class="step" data-auto="ja">
+                <span class="no">1</span>
+                <div>
+                  <div class="sh"><strong>Namen prüfen und reservieren</strong><span class="chip chip-built">Gebaut</span></div>
+                  <div class="sb">Die Fabrik prüft alle vier Plattformen und merkt sich die freie Variante für diese Brand.</div>
+                </div>
+              </div>
+              <div class="step" data-auto="ja">
+                <span class="no">2</span>
+                <div>
+                  <div class="sh"><strong>Brand-Paket vorbereiten</strong><span class="chip chip-part">Teilweise</span></div>
+                  <div class="sb">Profilbild, Biografie, Farbe, Wasserzeichen und der Affiliate-Link liegen fertig bereit, damit die Anlage in zwei Minuten durch ist.</div>
+                </div>
+              </div>
+              <div class="step" data-auto="hand">
+                <span class="no">3</span>
+                <div>
+                  <div class="sh"><strong>Konto bei der Plattform anlegen</strong><span class="chip chip-block">Nur von Hand</span></div>
+                  <div class="sb">Die Fabrik öffnet die Anmeldeseite und legt alle Werte zum Einfügen bereit. Den Verifizierungsschritt macht ein Mensch. Keine der vier Plattformen erlaubt die automatische Anlage, und der Weg dorthin ginge nur über das Umgehen von Captcha und SMS-Prüfung.</div>
+                </div>
+              </div>
+              <div class="step" data-auto="ja">
+                <span class="no">4</span>
+                <div>
+                  <div class="sh"><strong>Zugangsdaten in den Tresor</strong><span class="chip chip-built">Gebaut</span></div>
+                  <div class="sb">E-Mail, Passwort und Notizen landen AES-256-verschlüsselt in der Datenbank, pro Brand und Plattform genau einmal.</div>
+                </div>
+              </div>
+              <div class="step" data-auto="ja">
+                <span class="no">5</span>
+                <div>
+                  <div class="sh"><strong>Per OAuth verbinden</strong><span class="chip chip-built">Gebaut</span></div>
+                  <div class="sb">Ein Klick, danach kann die Fabrik in dieses Konto posten und Zahlen abholen. Ab hier läuft alles wieder von allein.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="note block">
+            <h4>Was ich nicht baue</h4>
+            Automatische Konten-Anlage samt selbst erzeugter E-Mail-Adressen und Telefonnummern.
+            Das ginge nur, indem die Software Captcha, SMS-Prüfung und Geräteerkennung umgeht,
+            und genau das ist bei allen vier Plattformen verboten.
+            <p style="margin-top:8px">
+              Der praktische Grund ist aber wichtiger als der formale: an deiner Entwickler-App hängen
+              <em>alle</em> deine echten Konten. Fliegt die auf, ist nicht ein Konto weg, sondern die ganze Fabrik.
+            </p>
+          </div>
+
+          <div class="panel" style="margin-top:16px">
+            <div class="panel-head"><h3>Wie viele Konten wirklich gehen</h3></div>
+            <div class="panel-body">
+              <dl class="kv">
+                <dt>YouTube</dt><dd>10.000 Einheiten pro Tag und Projekt, ein Upload kostet 1.600, macht <strong>6 Uploads am Tag</strong></dd>
+                <dt>Instagram</dt><dd>jedes Konto braucht Business-Status, eine verknüpfte Facebook-Seite und eigenes OAuth; 100 Posts pro 24 Stunden</dd>
+                <dt>TikTok</dt><dd>ohne Audit <strong>5 Konten pro 24 Stunden</strong>, Posts nur privat sichtbar</dd>
+                <dt>Facebook</dt><dd>Seiten-Token pro Seite, App-Prüfung nötig</dd>
+              </dl>
+              <hr class="hr" style="margin:14px 0">
+              <p style="font-size:13px;line-height:1.6">
+                Realistisch fahrbar sind <strong>10 bis 50 Konten pro Plattform</strong>.
+                Der Engpass ist nicht die Software, es sind mehrere Google-Projekte,
+                mehrere Meta-Apps und viel Verifizierung von Hand.
+              </p>
+              <p style="font-size:13px;line-height:1.6;margin-top:8px">
+                Ohne jedes Limit skaliert dagegen die andere Richtung:
+                <strong>aus einem Langvideo 100 Shorts machen</strong>. Da liegt der eigentliche Hebel.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head">
+          <h3>Zugangsdaten-Tresor</h3><span class="chip chip-built">Gebaut</span>
+          <span class="sp"></span><span class="sub mono">AES-256-GCM</span>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Brand</th><th>Plattform</th><th>E-Mail</th><th>Passwort</th><th>OAuth</th><th class="r"></th></tr></thead>
+            <tbody>
+              <tr><td><strong>shortsdaily</strong></td><td><span class="pf"><span class="g">TT</span>TikTok</span></td><td class="mono sub">sd.tiktok@…</td><td class="mono">••••••••</td><td><span class="state s-ok">verbunden</span></td><td class="r"><button class="btn btn-sm">Zeigen</button></td></tr>
+              <tr><td><strong>shortsdaily</strong></td><td><span class="pf"><span class="g">IG</span>Instagram</span></td><td class="mono sub">sd.meta@…</td><td class="mono">••••••••</td><td><span class="state s-ok">verbunden</span></td><td class="r"><button class="btn btn-sm">Zeigen</button></td></tr>
+              <tr><td><strong>reelwerk</strong></td><td><span class="pf"><span class="g">IG</span>Instagram</span></td><td class="mono sub">rw.meta@…</td><td class="mono">••••••••</td><td><span class="state s-warn">läuft ab</span></td><td class="r"><button class="btn btn-sm">Zeigen</button></td></tr>
+              <tr><td><strong>clipstube</strong></td><td><span class="pf"><span class="g">YT</span>YouTube</span></td><td class="mono sub">ct.google@…</td><td class="mono">••••••••</td><td><span class="state s-ok">verbunden</span></td><td class="r"><button class="btn btn-sm">Zeigen</button></td></tr>
+              <tr><td><strong>nachtschnitt</strong></td><td><span class="pf"><span class="g">TT</span>TikTok</span></td><td class="mono sub">ns.tiktok@…</td><td class="mono">nicht hinterlegt</td><td><span class="state s-off">offen</span></td><td class="r"><button class="btn btn-sm">Anlegen</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Verteilung ============ -->
+    <section class="view" id="v-verteilung" hidden>
+      <div class="grid-3-2">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Zeitpläne</h3><span class="chip chip-built">Gebaut</span>
+            <span class="sp"></span><button class="btn btn-sm btn-primary">Slot anlegen</button>
+          </div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Slot</th><th>Brands</th><th>Plattformen</th><th class="r">Pro Slot</th><th>Mischen</th><th class="r">Nächster Lauf</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Morgens</strong><div class="sub mono">täglich 08:30</div></td>
+                  <td class="sub">shortsdaily, reelwerk</td>
+                  <td><span class="pill-row"><span class="chip chip-draft">TT</span><span class="chip chip-draft">IG</span></span></td>
+                  <td class="r num">2</td><td><span class="state s-ok">an</span></td><td class="r mono">morgen 08:30</td>
+                </tr>
+                <tr>
+                  <td><strong>Mittags</strong><div class="sub mono">alle 4 Std</div></td>
+                  <td class="sub">alle 4 Brands</td>
+                  <td><span class="pill-row"><span class="chip chip-draft">TT</span><span class="chip chip-draft">IG</span><span class="chip chip-draft">YT</span></span></td>
+                  <td class="r num">1</td><td><span class="state s-ok">an</span></td><td class="r mono">in 1:42 Std</td>
+                </tr>
+                <tr>
+                  <td><strong>Abends</strong><div class="sub mono">Mo Mi Fr 19:00</div></td>
+                  <td class="sub">clipstube</td>
+                  <td><span class="pill-row"><span class="chip chip-draft">YT</span><span class="chip chip-draft">FB</span></span></td>
+                  <td class="r num">3</td><td><span class="state s-off">aus</span></td><td class="r mono">Mi 19:00</td>
+                </tr>
+                <tr>
+                  <td><strong>Nachtschicht</strong><div class="sub mono">täglich 02:00</div></td>
+                  <td class="sub">nachtschnitt</td>
+                  <td><span class="pill-row"><span class="chip chip-draft">TT</span></span></td>
+                  <td class="r num">5</td><td><span class="state s-ok">an</span></td><td class="r mono">heute 02:00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Warum gemischt wird</h3><span class="chip chip-built">Gebaut</span></div>
+            <div class="panel-body">
+              <p style="font-size:13px;line-height:1.6">
+                Ein Clip kann auf mehrere Brands verteilt werden. Damit die Konten nicht wie Kopien
+                voneinander aussehen, bekommt jede Brand eine eigene Reihenfolge. Der Zufall ist
+                <strong>pro Brand und Tag festgelegt</strong>, also reproduzierbar: derselbe Tag
+                ergibt immer dieselbe Reihenfolge.
+              </p>
+              <div class="mono sub" style="margin-top:11px;padding:11px 13px;background:var(--surface-2);border-radius:8px;border:1px solid var(--line);line-height:1.7">
+                shortsdaily → 04, 11, 02, 07<br>
+                reelwerk&nbsp;&nbsp;&nbsp; → 11, 07, 04, 02<br>
+                clipstube&nbsp;&nbsp; → 07, 02, 11, 04
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Kontingent heute</h3></div>
+            <div class="panel-body">
+              <div class="bars">
+                <div class="bar-row"><span class="bl">YouTube</span><span class="bt"><i style="width:96%;background:var(--warn)"></i></span><span class="bv">9.600</span></div>
+                <div class="bar-row"><span class="bl">TikTok</span><span class="bt"><i style="width:34%"></i></span><span class="bv">17 / 50</span></div>
+                <div class="bar-row"><span class="bl">Instagram</span><span class="bt"><i style="width:22%"></i></span><span class="bv">22 / 100</span></div>
+                <div class="bar-row"><span class="bl">Facebook</span><span class="bt"><i style="width:9%"></i></span><span class="bv">9 / 100</span></div>
+              </div>
+              <p class="sub" style="margin-top:12px">
+                YouTube ist fast aufgebraucht. Ein Upload kostet 1.600 von 10.000 Einheiten pro Tag.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head">
+          <h3>Warteschlange</h3><span class="chip chip-built">Gebaut</span>
+          <span class="sp"></span><span class="sub mono">86 eingereiht · 14 heute raus</span>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th class="r">Pos</th><th>Clip</th><th>Brand</th><th>Plattform</th><th>Zustand</th><th>Affiliate</th><th class="r">Geplant</th></tr></thead>
+            <tbody id="queueRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Tracking ============ -->
+    <section class="view" id="v-tracking" hidden>
+      <div class="note warnb" style="margin-bottom:18px">
+        <h4>Diese Zahlen sind noch erfunden</h4>
+        Der Analyse-Abgleich erzeugt heute Zufallswerte, weil TikTok, Instagram, YouTube und Facebook
+        für echte Kennzahlen alle eine geprüfte Entwickler-App verlangen. Die Struktur steht,
+        die Leitung dahinter noch nicht. Triff keine Entscheidungen auf Basis dieser Werte.
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><div class="k">Aufrufe 30 Tage</div><div class="v">903.700</div><div class="d up">+24 %</div></div>
+        <div class="tile"><div class="k">Gefällt mir</div><div class="v">61.400</div><div class="d up">+19 %</div></div>
+        <div class="tile"><div class="k">Kommentare</div><div class="v">4.820</div><div class="d">−3 %</div></div>
+        <div class="tile"><div class="k">Ø gesehen</div><div class="v">64 <small>%</small></div><div class="d">über alle Clips</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Aufteilung nach Profil, Brand und Plattform</h3><span class="chip chip-part">Teilweise</span>
+          <span class="sp"></span><span class="sub">Die Hierarchie bleibt genau so, wie sie ist</span>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Brand</th><th>Plattform</th><th>Konto</th><th class="r">Aufrufe</th><th class="r">Gefällt</th><th class="r">Ø gesehen</th><th>Verlauf</th></tr></thead>
+            <tbody id="trackRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel">
+          <div class="panel-head"><h3>Was ein echter Abgleich braucht</h3></div>
+          <div class="panel-body">
+            <div class="steps">
+              <div class="step" data-auto="hand"><span class="no">1</span><div><div class="sh"><strong>App-Prüfung beantragen</strong><span class="chip chip-block">2 bis 6 Wochen</span></div><div class="sb">Pro Plattform einmal. Läuft parallel zur weiteren Entwicklung, also früh anstoßen.</div></div></div>
+              <div class="step" data-auto="ja"><span class="no">2</span><div><div class="sh"><strong>Kennzahlen abholen</strong><span class="chip chip-draft">Entwurf</span></div><div class="sb">Der Platzhalter im Code wird an genau einer Stelle ersetzt, der Rest bleibt unverändert.</div></div></div>
+              <div class="step" data-auto="ja"><span class="no">3</span><div><div class="sh"><strong>Verläufe speichern</strong><span class="chip chip-built">Gebaut</span></div><div class="sb">Die Tabelle für Momentaufnahmen liegt schon, samt Zuordnung zu Brand und Konto.</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Beste Clips, 30 Tage</h3><span class="chip chip-draft">Entwurf</span></div>
+          <div class="panel-body">
+            <div class="bars">
+              <div class="bar-row"><span class="bl">Clip 04</span><span class="bt"><i style="width:100%"></i></span><span class="bv">184.200</span></div>
+              <div class="bar-row"><span class="bl">Clip 11</span><span class="bt"><i style="width:63%"></i></span><span class="bv">116.700</span></div>
+              <div class="bar-row"><span class="bl">Clip 02</span><span class="bt"><i style="width:41%"></i></span><span class="bv">75.900</span></div>
+              <div class="bar-row"><span class="bl">Clip 07</span><span class="bt"><i style="width:28%"></i></span><span class="bv">51.300</span></div>
+              <div class="bar-row"><span class="bl">Clip 09</span><span class="bt"><i style="width:17%"></i></span><span class="bv">31.400</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Einnahmen ============ -->
+    <section class="view" id="v-einnahmen" hidden>
+      <div class="tiles">
+        <div class="tile"><div class="k">30 Tage</div><div class="v">1.284 <small>€</small></div><div class="d up">+18 %</div></div>
+        <div class="tile"><div class="k">Laufender Monat</div><div class="v">846 <small>€</small></div><div class="d">Stand heute</div></div>
+        <div class="tile"><div class="k">Offen</div><div class="v">412 <small>€</small></div><div class="d">Auszahlung am 15.</div></div>
+        <div class="tile"><div class="k">Ø je 1.000 Aufrufe</div><div class="v">1,42 <small>€</small></div><div class="d">über alle Programme</div></div>
+      </div>
+
+      <div class="grid-3-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Affiliate-Programme</h3><span class="chip chip-part">Teilweise</span>
+            <span class="sp"></span><button class="btn btn-sm">Programm anlegen</button></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Programm</th><th>Vergütung</th><th>Brands</th><th class="r">Klicks</th><th class="r">Einnahmen</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Creator-Fonds TikTok</strong><div class="sub mono">automatisch</div></td><td class="sub">CPM</td><td class="sub">3 Brands</td><td class="r num">—</td><td class="r num">486 €</td></tr>
+                <tr><td><strong>Partnerprogramm A</strong><div class="sub mono">clipfab.link/a</div></td><td class="sub">2,40 € pro Verkauf</td><td class="sub">shortsdaily</td><td class="r num">3.912</td><td class="r num">402 €</td></tr>
+                <tr><td><strong>Partnerprogramm B</strong><div class="sub mono">clipfab.link/b</div></td><td class="sub">1,10 € pro Anmeldung</td><td class="sub">reelwerk, clipstube</td><td class="r num">2.180</td><td class="r num">248 €</td></tr>
+                <tr><td><strong>Eigener Shop</strong><div class="sub mono">shop.example/x</div></td><td class="sub">Marge</td><td class="sub">clipstube</td><td class="r num">744</td><td class="r num">148 €</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Nach Brand</h3><span class="chip chip-draft">Entwurf</span></div>
+          <div class="panel-body">
+            <div class="bars">
+              <div class="bar-row"><span class="bl">shortsdaily</span><span class="bt"><i style="width:100%"></i></span><span class="bv">548 €</span></div>
+              <div class="bar-row"><span class="bl">reelwerk</span><span class="bt"><i style="width:63%"></i></span><span class="bv">347 €</span></div>
+              <div class="bar-row"><span class="bl">clipstube</span><span class="bt"><i style="width:47%"></i></span><span class="bv">256 €</span></div>
+              <div class="bar-row"><span class="bl">nachtschnitt</span><span class="bt"><i style="width:24%"></i></span><span class="bv">133 €</span></div>
+            </div>
+            <hr class="hr" style="margin:16px 0">
+            <p style="font-size:13px;line-height:1.6">
+              <strong>Ehrlich zum Auszahlen:</strong> Geld abheben geht über die Fabrik nicht.
+              TikTok, YouTube und Meta zahlen direkt auf dein Konto und bieten dafür keine Schnittstelle.
+              Die Fabrik kann alles gebündelt anzeigen und auf die jeweilige Auszahlungsseite verlinken.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Bauplan ============ -->
+    <section class="view" id="v-bauplan" hidden>
+      <div class="section-head">
+        <h2>Was steht, was fehlt, was zuerst kommt</h2>
+        <span class="hint">Abgeglichen mit dem echten Stand im Code, nicht geschätzt</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Bauzustand nach Baustein</h3></div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Baustein</th><th>Zustand</th><th>Wo es steht</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Datenbank, Profile, Brands, Konten</strong><div class="sub">20+ Tabellen, Zugriffsschutz auf allen, 37 Regeln</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">supabase/migrations</td></tr>
+              <tr><td><strong>OAuth für 5 Plattformen</strong><div class="sub">AES-256-GCM, signierter State, Token-Erneuerung</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">social-oauth.server.ts</td></tr>
+              <tr><td><strong>Upload zu YT, IG, FB, TikTok</strong><div class="sub">echte Adapter, kein Platzhalter</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">social-publish.server.ts</td></tr>
+              <tr><td><strong>Warteschlange und Zeitpläne</strong><div class="sub">Multi-Brand, Mischen pro Brand und Tag</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">publish-queue.server.ts</td></tr>
+              <tr><td><strong>Zugangsdaten-Tresor</strong><div class="sub">verschlüsselt, pro Brand und Plattform</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">brand_credentials</td></tr>
+              <tr><td><strong>Render über Anbieter</strong><div class="sub">Creatomate, Shotstack, json2video oder eigene Maschine</div></td><td><span class="chip chip-built">Gebaut</span></td><td class="mono sub">render-providers.server.ts</td></tr>
+              <tr><td><strong>YouTube-Import</strong><div class="sub">Datei holen und ablegen</div></td><td><span class="chip chip-part">Teilweise</span></td><td class="mono sub">youtube-download.server.ts</td></tr>
+              <tr><td><strong>Clip-Auswahl durch KI</strong><div class="sub">kennt nur Titel und Dauer, rät die Schnittpunkte</div></td><td><span class="chip chip-block">Fehlt</span></td><td class="mono sub">ai.functions.ts</td></tr>
+              <tr><td><strong>Transkript mit Wort-Zeitstempeln</strong><div class="sub">Grundlage für alles Weitere</div></td><td><span class="chip chip-block">Fehlt</span></td><td class="mono sub">noch nicht angelegt</td></tr>
+              <tr><td><strong>Render-Maschine für lange Videos</strong><div class="sub">Browser-ffmpeg bricht bei 2 GB ab</div></td><td><span class="chip chip-block">Fehlt</span></td><td class="mono sub">eigener Container</td></tr>
+              <tr><td><strong>Echte Kennzahlen</strong><div class="sub">heute Zufallswerte</div></td><td><span class="chip chip-draft">Entwurf</span></td><td class="mono sub">analytics-sync.server.ts</td></tr>
+              <tr><td><strong>Einnahmen und Affiliate</strong><div class="sub">Tabellen liegen, Oberfläche entworfen</div></td><td><span class="chip chip-draft">Entwurf</span></td><td class="mono sub">earnings, affiliate_programs</td></tr>
+              <tr><td><strong>Automatische Konten-Anlage</strong><div class="sub">samt erzeugter E-Mails und Nummern</div></td><td><span class="chip chip-block">Gesperrt</span></td><td class="sub">von allen 4 Plattformen verboten</td></tr>
+              <tr><td><strong>Tests</strong><div class="sub">keine einzige Datei bei 19.600 Zeilen</div></td><td><span class="chip chip-block">Fehlt</span></td><td class="mono sub">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Reihenfolge</h3><span class="sp"></span><span class="sub">Schritt 1 bis 3 machen aus dem Prototyp das Werkzeug</span></div>
+        <div class="panel-body">
+          <div class="steps">
+            <div class="step" data-auto="ja"><span class="no">1</span><div><div class="sh"><strong>Transkript-Leitung bauen</strong><span class="chip chip-draft">klein</span></div><div class="sb">Ton herausziehen, Whisper mit Wort-Zeitstempeln, ungefähr 4 Cent pro Stunde Video.</div></div></div>
+            <div class="step" data-auto="ja"><span class="no">2</span><div><div class="sh"><strong>Clip-Auswahl auf das Transkript umstellen</strong><span class="chip chip-draft">klein</span></div><div class="sb">Aus dem Ratesystem wird echte Inhaltsanalyse. Das ist deine Priorität eins.</div></div></div>
+            <div class="step" data-auto="ja"><span class="no">3</span><div><div class="sh"><strong>Untertitel aus denselben Zeitstempeln</strong><span class="chip chip-draft">fällt ab</span></div><div class="sb">Kostet nichts extra, sobald Schritt 1 steht.</div></div></div>
+            <div class="step" data-auto="ja"><span class="no">4</span><div><div class="sh"><strong>Render-Maschine als eigener Container</strong><span class="chip chip-draft">mittel</span></div><div class="sb">Nativer ffmpeg auf Fly.io, Railway oder Hetzner. Der Vertrag dafür steht bereits im Repo.</div></div></div>
+            <div class="step" data-auto="ja"><span class="no">5</span><div><div class="sh"><strong>Tests für Warteschlange und Zeitplan</strong><span class="chip chip-draft">mittel</span></div><div class="sb">Bevor es echtes Geld kostet und in echte Konten postet.</div></div></div>
+            <div class="step" data-auto="hand"><span class="no">6</span><div><div class="sh"><strong>App-Prüfungen beantragen</strong><span class="chip chip-block">dauert Wochen</span></div><div class="sb">YouTube und Meta parallel anstoßen, TikTok-Audit dazu. Blockiert nichts anderes.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Beispieldaten ---------- */
+const KONTEN = [
+  { h: "@shortsdaily",    b: "shortsdaily",  p: "TT", pn: "TikTok",    s: "ok",   v: 182400, n: "in 1:42 Std", sp: [3,5,4,7,6,9,11] },
+  { h: "@shortsdaily.ig", b: "shortsdaily",  p: "IG", pn: "Instagram", s: "ok",   v: 121900, n: "in 1:42 Std", sp: [4,4,5,6,6,7,8] },
+  { h: "@shorts_daily",   b: "shortsdaily",  p: "YT", pn: "YouTube",   s: "warn", v: 64200,  n: "Kontingent",  sp: [6,5,5,4,4,3,3] },
+  { h: "shortsdaily",     b: "shortsdaily",  p: "FB", pn: "Facebook",  s: "ok",   v: 21100,  n: "Mi 19:00",    sp: [2,2,3,3,4,4,5] },
+  { h: "@reelwerk",       b: "reelwerk",     p: "IG", pn: "Instagram", s: "warn", v: 96300,  n: "morgen 08:30",sp: [5,6,6,7,7,8,7] },
+  { h: "@reelwerk.tt",    b: "reelwerk",     p: "TT", pn: "TikTok",    s: "ok",   v: 143700, n: "morgen 08:30",sp: [4,6,7,8,9,10,12] },
+  { h: "reelwerk",        b: "reelwerk",     p: "FB", pn: "Facebook",  s: "warn", v: 14800,  n: "pausiert",    sp: [3,3,2,2,2,1,1] },
+  { h: "@clipstube",      b: "clipstube",    p: "YT", pn: "YouTube",   s: "ok",   v: 71400,  n: "Mi 19:00",    sp: [4,5,5,6,7,7,8] },
+  { h: "@clipstube.ig",   b: "clipstube",    p: "IG", pn: "Instagram", s: "ok",   v: 52800,  n: "in 1:42 Std", sp: [3,4,4,5,5,6,6] },
+  { h: "clipstube",       b: "clipstube",    p: "FB", pn: "Facebook",  s: "ok",   v: 9400,   n: "Mi 19:00",    sp: [1,2,2,2,3,3,3] },
+  { h: "@nachtschnitt",   b: "nachtschnitt", p: "TT", pn: "TikTok",    s: "err",  v: 86700,  n: "Audit fehlt", sp: [7,6,8,7,9,8,10] },
+];
+
+const CLIP_TITEL = [
+  ["Der eine Satz, der alles dreht", "00:04:12", "00:04:41", 92],
+  ["Warum niemand darüber redet",    "00:11:38", "00:12:04", 88],
+  ["Das hätte ich früher wissen müssen", "00:19:02", "00:19:35", 86],
+  ["Drei Minuten, die alles erklären",   "00:27:44", "00:28:16", 84],
+  ["Der teuerste Fehler im Anfang",      "00:33:09", "00:33:38", 81],
+  ["Was wirklich dahintersteckt",        "00:41:22", "00:41:52", 79],
+  ["Er hat es zugegeben",                "00:48:55", "00:49:21", 77],
+  ["Das Gegenteil ist richtig",          "00:56:31", "00:57:02", 74],
+  ["Niemand rechnet damit",              "01:03:17", "01:03:44", 72],
+  ["Der Moment, in dem es kippt",        "01:11:08", "01:11:39", 69],
+  ["Zwei Wege, ein Ergebnis",            "01:18:46", "01:19:14", 66],
+  ["Am Ende zählt nur das",              "01:24:52", "01:25:20", 63],
+];
+
+/* ---------- Ansichten wechseln ---------- */
+const TITEL = {
+  uebersicht: "Übersicht", fabrik: "Clip-Fabrik", konten: "Konten-Werkbank",
+  verteilung: "Verteilung", tracking: "Tracking", einnahmen: "Einnahmen", bauplan: "Bauplan",
+};
+function go(name) {
+  document.querySelectorAll(".view").forEach((v) => { v.hidden = v.id !== "v-" + name; });
+  document.querySelectorAll(".nav-item").forEach((b) => {
+    if (b.dataset.view === name) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  });
+  document.getElementById("viewTitle").textContent = TITEL[name] || name;
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+document.getElementById("nav").addEventListener("click", (e) => {
+  const b = e.target.closest(".nav-item");
+  if (b) go(b.dataset.view);
+});
+
+/* ---------- Hell / dunkel ---------- */
+const root = document.documentElement;
+function currentDark() {
+  const stamped = root.getAttribute("data-theme");
+  if (stamped) return stamped === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function paintThemeBtn() {
+  const dark = currentDark();
+  document.getElementById("themeText").textContent = dark ? "Hell" : "Dunkel";
+  document.getElementById("themeIcon").textContent = dark ? "◐" : "◑";
+}
+document.getElementById("themeBtn").addEventListener("click", () => {
+  root.setAttribute("data-theme", currentDark() ? "light" : "dark");
+  paintThemeBtn();
+  drawEarnings();
+});
+paintThemeBtn();
+
+/* ---------- Kleine Verlaufskurve ---------- */
+function sparkSvg(vals) {
+  const w = 68, h = 22, pad = 2;
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const span = max - min || 1;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / span) * (h - pad * 2);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  });
+  const last = pts[pts.length - 1].split(",");
+  return '<svg class="spark" viewBox="0 0 ' + w + " " + h + '" aria-hidden="true">'
+    + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.6" fill="var(--chart)"/></svg>';
+}
+
+/* ---------- Kontenzeilen ---------- */
+const stateLbl = { ok: ["s-ok", "verbunden"], warn: ["s-warn", "Aufmerksamkeit"], err: ["s-err", "blockiert"] };
+document.getElementById("accRows").innerHTML = KONTEN.map((a) => {
+  const [cls, lbl] = stateLbl[a.s];
+  return "<tr><td><span class='pf'><span class='g'>" + a.p + "</span><span class='handle'>" + a.h + "</span></span></td>"
+    + "<td class='sub'>" + a.b + "</td>"
+    + "<td><span class='state " + cls + "'>" + lbl + "</span></td>"
+    + "<td class='r num'>" + a.v.toLocaleString("de-DE") + "</td>"
+    + "<td>" + sparkSvg(a.sp) + "</td>"
+    + "<td class='r mono sub'>" + a.n + "</td></tr>";
+}).join("");
+
+/* ---------- Tracking-Zeilen ---------- */
+document.getElementById("trackRows").innerHTML = KONTEN.map((a) => {
+  const likes = Math.round(a.v * 0.068);
+  const watch = 52 + (a.v % 29);
+  return "<tr><td><strong>" + a.b + "</strong></td>"
+    + "<td><span class='pf'><span class='g'>" + a.p + "</span>" + a.pn + "</span></td>"
+    + "<td class='handle'>" + a.h + "</td>"
+    + "<td class='r num'>" + a.v.toLocaleString("de-DE") + "</td>"
+    + "<td class='r num'>" + likes.toLocaleString("de-DE") + "</td>"
+    + "<td class='r num'>" + watch + " %</td>"
+    + "<td>" + sparkSvg(a.sp) + "</td></tr>";
+}).join("");
+
+/* ---------- Warteschlange ---------- */
+const QSTATE = [["s-ok","eingereiht"],["s-ok","eingereiht"],["s-warn","wartet auf Kontingent"],["s-ok","eingereiht"],["s-err","kein Konto verbunden"],["s-ok","eingereiht"]];
+document.getElementById("queueRows").innerHTML = CLIP_TITEL.slice(0, 6).map((c, i) => {
+  const a = KONTEN[i];
+  const [cls, lbl] = QSTATE[i];
+  return "<tr><td class='r num'>" + String(i + 1).padStart(2, "0") + "</td>"
+    + "<td><strong style='font-size:12.5px'>" + c[0] + "</strong><div class='sub mono'>" + c[1] + " → " + c[2] + "</div></td>"
+    + "<td class='sub'>" + a.b + "</td>"
+    + "<td><span class='pf'><span class='g'>" + a.p + "</span>" + a.pn + "</span></td>"
+    + "<td><span class='state " + cls + "'>" + lbl + "</span></td>"
+    + "<td class='sub mono'>" + (i % 2 === 0 ? "clipfab.link/a" : "—") + "</td>"
+    + "<td class='r mono sub'>" + a.n + "</td></tr>";
+}).join("");
+
+/* ---------- Clip-Karten ---------- */
+function wave(seed) {
+  let bars = "";
+  for (let i = 0; i < 22; i++) {
+    const t = Math.abs(Math.sin(seed * 1.7 + i * 0.62)) * 0.78 + 0.16;
+    const hgt = (t * 30).toFixed(1);
+    bars += '<rect x="' + (i * 3.6) + '" y="' + ((34 - hgt) / 2).toFixed(1)
+         + '" width="2.2" height="' + hgt + '" rx="1.1" fill="var(--ink-muted)"/>';
+  }
+  return '<svg class="wave" viewBox="0 0 79 34" aria-hidden="true">' + bars + "</svg>";
+}
+function renderClips(n) {
+  const g = document.getElementById("clipGrid");
+  g.innerHTML = "";
+  const list = [];
+  for (let i = 0; i < n; i++) list.push(CLIP_TITEL[i % CLIP_TITEL.length]);
+  g.innerHTML = list.map((c, i) => {
+    const nr = String(i + 1).padStart(2, "0");
+    return '<article class="clip" style="animation-delay:' + (i * 26) + 'ms">'
+      + '<div class="thumb">' + wave(i + 1)
+      + '<span class="tc">' + c[1] + " → " + c[2] + "</span>"
+      + '<span class="sc">' + c[3] + "</span></div>"
+      + '<div class="meta"><div class="t">' + nr + " · " + c[0] + "</div>"
+      + '<div class="h">Hook-Stärke ' + c[3] + " · 9:16 · Untertitel</div></div></article>";
+  }).join("");
+  document.getElementById("clipCountLbl").textContent = n + " Clips · 9:16 · Untertitel eingebrannt";
+}
+renderClips(12);
+
+/* ---------- Fließband-Lauf ---------- */
+const STUFEN = [
+  { t: 1100, txt: ["lädt 1080p …", "1:26:40 geladen"], log: "Quelle geholt: 1:26:40, 1080p, 412 MB" },
+  { t: 1500, txt: ["hört zu …", "18.402 Wörter"],      log: "Transkript mit Wort-Zeitstempeln erzeugt (Kosten: 0,06 €)" },
+  { t: 1300, txt: ["wählt Momente …", "aus 41 Kandidaten"], log: "Segmente aus dem Transkript gewählt und nach Hook-Stärke sortiert" },
+  { t: 1700, txt: ["rendert …", "fertig"],             log: "Renders abgeschlossen, 9:16, Untertitel eingebrannt" },
+  { t: 900,  txt: ["reiht ein …", "eingereiht"],       log: "In die Warteschlange gelegt, verteilt auf 4 Brands mit eigener Reihenfolge" },
+];
+let laeuft = false;
+document.getElementById("runBtn").addEventListener("click", () => {
+  if (laeuft) return;
+  laeuft = true;
+  const btn = document.getElementById("runBtn");
+  btn.disabled = true;
+  btn.textContent = "Fabrik läuft …";
+  const anzahl = parseInt(document.getElementById("clipCount").value, 10) || 12;
+  const stages = [...document.querySelectorAll("#livePipe .stage")];
+  const log = document.getElementById("logLine");
+  stages.forEach((s) => { s.removeAttribute("data-state"); s.querySelector("[data-sd]").textContent = "bereit"; s.querySelector(".bar i").style.width = "0%"; });
+  document.getElementById("clipGrid").innerHTML = "";
+  log.textContent = "";
+
+  let i = 0;
+  (function next() {
+    if (i >= stages.length) {
+      renderClips(anzahl);
+      log.textContent = "Fertig. " + anzahl + " Clips liegen in der Warteschlange.";
+      btn.disabled = false;
+      btn.textContent = "Fabrik starten";
+      laeuft = false;
+      return;
+    }
+    const st = stages[i], cfg = STUFEN[i];
+    st.setAttribute("data-state", "run");
+    st.querySelector("[data-sd]").textContent = cfg.txt[0];
+    const fill = st.querySelector(".bar i");
+    let p = 0;
+    const iv = setInterval(() => {
+      p = Math.min(100, p + 100 / (cfg.t / 90));
+      fill.style.width = p + "%";
+    }, 90);
+    setTimeout(() => {
+      clearInterval(iv);
+      fill.style.width = "100%";
+      st.setAttribute("data-state", "done");
+      st.querySelector("[data-sd]").textContent = cfg.txt[1];
+      log.textContent = cfg.log;
+      i++;
+      next();
+    }, cfg.t);
+  })();
+});
+
+/* ---------- Namensprüfung ---------- */
+const PLATTFORMEN = [["TT", "TikTok"], ["IG", "Instagram"], ["YT", "YouTube"], ["FB", "Facebook"]];
+function belegt(name, kuerzel) {
+  let h = 0;
+  const s = name.toLowerCase() + kuerzel;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 3 === 0;
+}
+function zeigePruefung(name, pruefend) {
+  document.getElementById("availGrid").innerHTML = PLATTFORMEN.map(([k, n]) => {
+    if (pruefend) return '<div class="av" data-r="pruef"><span class="g">' + k + '</span><span class="txt"><span class="n">' + n + '</span><span class="r">prüft …</span></span></div>';
+    const b = belegt(name, k);
+    return '<div class="av" data-r="' + (b ? "belegt" : "frei") + '"><span class="g">' + k + '</span>'
+      + '<span class="txt"><span class="n">' + n + '</span><span class="r">' + (b ? "belegt" : "frei") + "</span></span></div>";
+  }).join("");
+
+  const box = document.getElementById("variants");
+  if (pruefend) { box.innerHTML = ""; return; }
+  const frei = PLATTFORMEN.filter(([k]) => !belegt(name, k)).length;
+  if (frei === 4) {
+    box.innerHTML = '<div class="note"><h4>Auf allen vier frei</h4>'
+      + "<strong class='mono'>" + name + "</strong> lässt sich überall gleich benennen. "
+      + "Die Fabrik merkt sich den Namen für diese Brand und legt das Brand-Paket bereit.</div>";
+  } else {
+    const varianten = [name + ".official", name + "hq", "der" + name, name + "_de"]
+      .map((v) => "<strong class='mono'>" + v + "</strong>").join(", ");
+    box.innerHTML = '<div class="note warnb"><h4>' + (4 - frei) + " von 4 belegt</h4>"
+      + "Freie Varianten aus demselben Stamm: " + varianten + ". "
+      + "Ein einheitlicher Name über alle vier Plattformen ist mehr wert als der kürzeste.</div>";
+  }
+}
+zeigePruefung("shortsdaily", false);
+document.getElementById("checkBtn").addEventListener("click", () => {
+  const name = (document.getElementById("handleIn").value || "").trim() || "shortsdaily";
+  zeigePruefung(name, true);
+  setTimeout(() => zeigePruefung(name, false), 620);
+});
+document.getElementById("handleIn").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("checkBtn").click();
+});
+
+/* ---------- Einnahmen-Diagramm ----------
+   Eine Reihe, also keine Legende: der Titel benennt sie.
+   Die Skala platziert Marken, Ticks und Beschriftungen gemeinsam. */
+const TAGE = [21,24,22,28,26,31,29,27,34,33,30,38,36,35,41,39,37,44,42,46,43,48,45,52,49,54,51,58,55,63];
+function drawEarnings() {
+  const svg = document.getElementById("earnChart");
+  const W = 340, H = 150, L = 34, R = 8, T = 10, B = 24;
+  const iw = W - L - R, ih = H - T - B;
+  const max = 70, min = 0;
+  const x = (i) => L + (i / (TAGE.length - 1)) * iw;
+  const y = (v) => T + ih - ((v - min) / (max - min)) * ih;
+
+  let g = "";
+  [0, 20, 40, 60].forEach((v) => {
+    g += '<line class="gl" x1="' + L + '" y1="' + y(v).toFixed(1) + '" x2="' + (W - R) + '" y2="' + y(v).toFixed(1) + '"/>'
+      + '<text class="ax" x="' + (L - 7) + '" y="' + (y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + v + "</text>";
+  });
+
+  const line = TAGE.map((v, i) => x(i).toFixed(1) + "," + y(v).toFixed(1)).join(" ");
+  const area = L + "," + y(0).toFixed(1) + " " + line + " " + (W - R) + "," + y(0).toFixed(1);
+
+  const lastX = x(TAGE.length - 1), lastY = y(TAGE[TAGE.length - 1]);
+
+  svg.innerHTML = g
+    + '<polygon points="' + area + '" fill="var(--chart-fill)"/>'
+    + '<polyline points="' + line + '" fill="none" stroke="var(--chart)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<line id="cross" x1="0" y1="' + T + '" x2="0" y2="' + (T + ih) + '" stroke="var(--line-strong)" stroke-width="1" opacity="0"/>'
+    + '<circle id="dot" r="4" fill="var(--chart)" stroke="var(--surface)" stroke-width="2" opacity="0"/>'
+    + '<circle cx="' + lastX.toFixed(1) + '" cy="' + lastY.toFixed(1) + '" r="3.6" fill="var(--chart)"/>'
+    + '<text class="ax" x="' + L + '" y="' + (H - 7) + '">vor 30 T.</text>'
+    + '<text class="ax" x="' + (W - R) + '" y="' + (H - 7) + '" text-anchor="end">heute</text>';
+
+  const wrap = document.getElementById("earnWrap");
+  const tip = document.getElementById("earnTip");
+  const cross = svg.querySelector("#cross"), dot = svg.querySelector("#dot");
+
+  function move(ev) {
+    const r = svg.getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * W;
+    let i = Math.round(((px - L) / iw) * (TAGE.length - 1));
+    i = Math.max(0, Math.min(TAGE.length - 1, i));
+    const cx = x(i), cy = y(TAGE[i]);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("opacity", "1");
+    dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("opacity", "1");
+    tip.innerHTML = '<span class="tv">' + TAGE[i] + " €</span><br><span class='td'>vor " + (TAGE.length - 1 - i) + " Tagen</span>";
+    tip.style.opacity = "1";
+    tip.style.left = Math.min(r.width - 92, Math.max(0, (cx / W) * r.width - 42)) + "px";
+    tip.style.top = ((cy / H) * r.height - 52) + "px";
+  }
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("pointerleave", () => {
+    tip.style.opacity = "0"; cross.setAttribute("opacity", "0"); dot.setAttribute("opacity", "0");
+  });
+}
+drawEarnings();
+</script>
