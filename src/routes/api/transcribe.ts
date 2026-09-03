@@ -11,7 +11,9 @@ export const Route = createFileRoute("/api/transcribe")({
 
         const supabaseUrl = process.env.SUPABASE_URL!;
         const supabasePub = process.env.SUPABASE_PUBLISHABLE_KEY!;
-        const supabase = createClient(supabaseUrl, supabasePub, { auth: { persistSession: false, autoRefreshToken: false } });
+        const supabase = createClient(supabaseUrl, supabasePub, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
         const { data: userData } = await supabase.auth.getUser(token);
         if (!userData.user) return new Response("Unauthorized", { status: 401 });
 
@@ -24,14 +26,17 @@ export const Route = createFileRoute("/api/transcribe")({
 
         // Match extension to real MIME type so OpenAI's format inference doesn't reject.
         const mime = (file.type.split(";")[0] || "").toLowerCase();
-        const ext = ({
-          "audio/webm": "webm",
-          "audio/ogg": "webm",
-          "audio/mp4": "mp4",
-          "audio/mpeg": "mp3",
-          "audio/wav": "wav",
-          "audio/x-wav": "wav",
-        } as Record<string, string>)[mime] ?? "webm";
+        const ext =
+          (
+            {
+              "audio/webm": "webm",
+              "audio/ogg": "webm",
+              "audio/mp4": "mp4",
+              "audio/mpeg": "mp3",
+              "audio/wav": "wav",
+              "audio/x-wav": "wav",
+            } as Record<string, string>
+          )[mime] ?? "webm";
 
         const upstream = new FormData();
         upstream.append("file", file, `recording.${ext}`);
@@ -43,7 +48,10 @@ export const Route = createFileRoute("/api/transcribe")({
           body: upstream,
         });
         const text = await res.text();
-        return new Response(text, { status: res.status, headers: { "Content-Type": "application/json" } });
+        return new Response(text, {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
       },
     },
   },

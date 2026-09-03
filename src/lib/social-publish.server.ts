@@ -13,7 +13,8 @@ async function signedClipUrl(supabaseAdmin: any, storagePath: string): Promise<s
   const { data, error } = await supabaseAdmin.storage
     .from("rendered-clips")
     .createSignedUrl(storagePath, 60 * 60 * 3);
-  if (error || !data?.signedUrl) throw new Error("Signierte Video-URL fehlgeschlagen: " + (error?.message ?? ""));
+  if (error || !data?.signedUrl)
+    throw new Error("Signierte Video-URL fehlgeschlagen: " + (error?.message ?? ""));
   return data.signedUrl as string;
 }
 
@@ -41,7 +42,10 @@ export async function publishClip(
   const videoUrl = await signedClipUrl(supabaseAdmin, clip.storage_path);
   const title = clip.title?.slice(0, 95) || "Neuer Clip";
   const tags = (clip.hashtags ?? []).map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ");
-  const caption = [clip.post_caption?.trim() || title, tags].filter(Boolean).join("\n\n").slice(0, 2100);
+  const caption = [clip.post_caption?.trim() || title, tags]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 2100);
   const postType = clip.post_type ?? null;
 
   switch (account.platform) {
@@ -61,7 +65,6 @@ export async function publishClip(
       throw new Error("Unbekannte Plattform");
   }
 }
-
 
 // ---------- YouTube (Short oder normales Video) ----------
 async function publishYouTube(
@@ -118,7 +121,8 @@ async function publishInstagram(
   caption: string,
   postType: string | null,
 ): Promise<PublishResult> {
-  if (!igUserId) throw new Error("Kein Instagram-Business-Account am Token — bitte Account neu verbinden");
+  if (!igUserId)
+    throw new Error("Kein Instagram-Business-Account am Token — bitte Account neu verbinden");
 
   const kind = postType ?? "reel";
   const body: Record<string, unknown> =
@@ -138,7 +142,8 @@ async function publishInstagram(
     body: JSON.stringify(body),
   });
   const cj: any = await create.json();
-  if (!create.ok || cj.error) throw new Error(`Instagram-Container (${kind}): ${cj.error?.message ?? create.status}`);
+  if (!create.ok || cj.error)
+    throw new Error(`Instagram-Container (${kind}): ${cj.error?.message ?? create.status}`);
 
   // Verarbeitung abwarten (max ~3 Min)
   for (let i = 0; i < 36; i++) {
@@ -148,7 +153,8 @@ async function publishInstagram(
     );
     const sj: any = await st.json();
     if (sj.status_code === "FINISHED") break;
-    if (sj.status_code === "ERROR") throw new Error(`Instagram-Verarbeitung: ${sj.status ?? "ERROR"}`);
+    if (sj.status_code === "ERROR")
+      throw new Error(`Instagram-Verarbeitung: ${sj.status ?? "ERROR"}`);
   }
 
   const pub = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media_publish`, {
@@ -157,9 +163,14 @@ async function publishInstagram(
     body: JSON.stringify({ creation_id: cj.id, access_token: token }),
   });
   const pj: any = await pub.json();
-  if (!pub.ok || pj.error) throw new Error(`Instagram-Publish (${kind}): ${pj.error?.message ?? pub.status}`);
+  if (!pub.ok || pj.error)
+    throw new Error(`Instagram-Publish (${kind}): ${pj.error?.message ?? pub.status}`);
   return {
-    url: pj.id ? (kind === "story" ? `https://www.instagram.com/stories/` : `https://www.instagram.com/reel/${pj.id}`) : null,
+    url: pj.id
+      ? kind === "story"
+        ? `https://www.instagram.com/stories/`
+        : `https://www.instagram.com/reel/${pj.id}`
+      : null,
     note: kind === "story" ? "Als Story veröffentlicht (24 h sichtbar)" : undefined,
   };
 }
@@ -183,24 +194,32 @@ async function publishFacebook(
       body: JSON.stringify({ upload_phase: "start", access_token: token }),
     });
     const sj: any = await start.json();
-    if (!start.ok || sj.error) throw new Error(`Facebook-Reel-Start: ${sj.error?.message ?? start.status}`);
+    if (!start.ok || sj.error)
+      throw new Error(`Facebook-Reel-Start: ${sj.error?.message ?? start.status}`);
 
     const up = await fetch(`https://rupload.facebook.com/video-upload/v21.0/${sj.video_id}`, {
       method: "POST",
       headers: { Authorization: `OAuth ${token}`, file_url: videoUrl },
     });
     const uj: any = await up.json().catch(() => ({}));
-    if (!up.ok || uj.error) throw new Error(`Facebook-Reel-Upload: ${uj.error?.message ?? up.status}`);
+    if (!up.ok || uj.error)
+      throw new Error(`Facebook-Reel-Upload: ${uj.error?.message ?? up.status}`);
 
     const finishUrl =
       `https://graph.facebook.com/v21.0/${pageId}/video_reels?upload_phase=finish` +
       `&video_id=${sj.video_id}&video_state=PUBLISHED` +
-      (kind === "story" ? "&post_to_story=true" : `&description=${encodeURIComponent(description)}`) +
+      (kind === "story"
+        ? "&post_to_story=true"
+        : `&description=${encodeURIComponent(description)}`) +
       `&access_token=${token}`;
     const fin = await fetch(finishUrl, { method: "POST" });
     const fj: any = await fin.json();
-    if (!fin.ok || fj.error) throw new Error(`Facebook-Reel-Finish: ${fj.error?.message ?? fin.status}`);
-    return { url: `https://www.facebook.com/reel/${sj.video_id}`, note: kind === "story" ? "Als Story gepostet" : undefined };
+    if (!fin.ok || fj.error)
+      throw new Error(`Facebook-Reel-Finish: ${fj.error?.message ?? fin.status}`);
+    return {
+      url: `https://www.facebook.com/reel/${sj.video_id}`,
+      note: kind === "story" ? "Als Story gepostet" : undefined,
+    };
   }
 
   const res = await fetch(`https://graph-video.facebook.com/v21.0/${pageId}/videos`, {
@@ -213,9 +232,12 @@ async function publishFacebook(
   return { url: j.id ? `https://www.facebook.com/${j.id}` : null };
 }
 
-
 // ---------- TikTok ----------
-async function publishTikTok(token: string, videoUrl: string, title: string): Promise<PublishResult> {
+async function publishTikTok(
+  token: string,
+  videoUrl: string,
+  title: string,
+): Promise<PublishResult> {
   // Direct Post benötigt einen bestandenen TikTok-Audit. Ohne Audit landet das
   // Video über "inbox" in den Entwürfen des Accounts (halbautomatisch).
   const direct = await fetch("https://open.tiktokapis.com/v2/post/publish/video/init/", {
@@ -228,7 +250,10 @@ async function publishTikTok(token: string, videoUrl: string, title: string): Pr
   });
   const dj: any = await direct.json().catch(() => ({}));
   if (direct.ok && !dj?.error?.code?.match?.(/^(?!ok$)/i)) {
-    return { url: null, note: `TikTok Direct-Post gestartet (publish_id ${dj?.data?.publish_id ?? "?"})` };
+    return {
+      url: null,
+      note: `TikTok Direct-Post gestartet (publish_id ${dj?.data?.publish_id ?? "?"})`,
+    };
   }
 
   const inbox = await fetch("https://open.tiktokapis.com/v2/post/publish/inbox/video/init/", {
@@ -242,5 +267,8 @@ async function publishTikTok(token: string, videoUrl: string, title: string): Pr
       `TikTok-Upload: ${ij?.error?.message ?? dj?.error?.message ?? inbox.status}. Hinweis: Ohne bestandenen TikTok-Audit ist nur der Entwurfs-Upload möglich und die Video-URL-Domain muss in der TikTok-App verifiziert sein.`,
     );
   }
-  return { url: null, note: "In TikTok-Entwürfe geladen — in der App nur noch auf 'Posten' tippen." };
+  return {
+    url: null,
+    note: "In TikTok-Entwürfe geladen — in der App nur noch auf 'Posten' tippen.",
+  };
 }

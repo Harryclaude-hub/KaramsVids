@@ -65,10 +65,8 @@ function AdminPortal() {
           }
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles" },
-        () => qc.invalidateQueries({ queryKey: ["admin_users"] }),
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, () =>
+        qc.invalidateQueries({ queryKey: ["admin_users"] }),
       )
       .subscribe();
     return () => {
@@ -95,8 +93,7 @@ function AdminPortal() {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      (u.email ?? "").toLowerCase().includes(q) ||
-      (u.display_name ?? "").toLowerCase().includes(q)
+      (u.email ?? "").toLowerCase().includes(q) || (u.display_name ?? "").toLowerCase().includes(q)
     );
   });
 

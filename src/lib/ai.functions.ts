@@ -7,7 +7,6 @@ const InputSchema = z.object({
   desiredClipCount: z.number().int().min(1).max(100).nullable().optional(),
 });
 
-
 type Segment = {
   start_s: number;
   end_s: number;
@@ -128,13 +127,18 @@ Antworte NUR mit JSON, das dieser Struktur folgt:
     const segs = Array.isArray(analysis.segments) ? analysis.segments : [];
     if (want > 0) {
       const clean = segs
-        .filter((s) => Number.isFinite(s?.start_s) && Number.isFinite(s?.end_s) && s.end_s > s.start_s)
+        .filter(
+          (s) => Number.isFinite(s?.start_s) && Number.isFinite(s?.end_s) && s.end_s > s.start_s,
+        )
         .slice(0, want);
       if (clean.length < want) {
         const missing = want - clean.length;
         const slot = Math.max(8, Math.min(60, dur / want));
         for (let i = 0; i < missing; i++) {
-          const start = Math.min(dur - slot, ((clean.length + i) * slot) % Math.max(slot, dur - slot));
+          const start = Math.min(
+            dur - slot,
+            ((clean.length + i) * slot) % Math.max(slot, dur - slot),
+          );
           const src = segs[i % Math.max(1, segs.length)];
           clean.push({
             start_s: Math.max(0, Number(start.toFixed(2))),
@@ -146,7 +150,6 @@ Antworte NUR mit JSON, das dieser Struktur folgt:
       }
       analysis.segments = clean;
     }
-
 
     await supabase
       .from("edit_jobs")

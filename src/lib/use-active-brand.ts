@@ -30,7 +30,6 @@ export function useBrands(userId: string) {
   });
 }
 
-
 export function useActiveBrandId(): [string | null, (id: string | null) => void] {
   const [id, setId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -65,6 +64,5 @@ export function useCreateBrand(userId: string) {
     if (error) throw error;
     qc.invalidateQueries({ queryKey: ["brands"] });
     return data as Brand;
-
   };
 }

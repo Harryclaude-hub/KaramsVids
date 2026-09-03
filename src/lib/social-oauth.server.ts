@@ -15,7 +15,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 
 export type Platform = "tiktok" | "youtube" | "instagram" | "facebook" | "x";
 
@@ -40,7 +46,8 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     secretEnv: "GOOGLE_CLIENT_SECRET",
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
-    scopes: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly",
+    scopes:
+      "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly",
     docsUrl: "https://console.cloud.google.com/apis/credentials",
     extraAuthParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
   },
@@ -60,7 +67,8 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     secretEnv: "META_APP_SECRET",
     authUrl: "https://www.facebook.com/v21.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v21.0/oauth/access_token",
-    scopes: "pages_show_list,pages_manage_posts,pages_read_engagement,read_insights,business_management",
+    scopes:
+      "pages_show_list,pages_manage_posts,pages_read_engagement,read_insights,business_management",
     docsUrl: "https://developers.facebook.com/apps",
   },
   tiktok: {
@@ -139,7 +147,9 @@ function stateSecret(): string {
 }
 
 export function signState(payload: Omit<StatePayload, "e">): string {
-  const body = Buffer.from(JSON.stringify({ ...payload, e: Date.now() + 15 * 60_000 })).toString("base64url");
+  const body = Buffer.from(JSON.stringify({ ...payload, e: Date.now() + 15 * 60_000 })).toString(
+    "base64url",
+  );
   const sig = createHmac("sha256", stateSecret()).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
@@ -235,7 +245,8 @@ export async function exchangeCode(
       }),
     });
     const j: any = await res.json();
-    if (!res.ok || j.error) throw new Error(`TikTok-Token: ${j.error_description ?? j.error ?? res.status}`);
+    if (!res.ok || j.error)
+      throw new Error(`TikTok-Token: ${j.error_description ?? j.error ?? res.status}`);
     return {
       accessToken: j.access_token,
       refreshToken: j.refresh_token ?? null,
@@ -319,7 +330,9 @@ export async function exchangeCode(
   const pagesJson: any = await pagesRes.json();
   const pages: any[] = Array.isArray(pagesJson.data) ? pagesJson.data : [];
   const page =
-    platform === "instagram" ? pages.find((p) => p.instagram_business_account) ?? pages[0] : pages[0];
+    platform === "instagram"
+      ? (pages.find((p) => p.instagram_business_account) ?? pages[0])
+      : pages[0];
 
   if (!page) {
     throw new Error(
@@ -332,7 +345,9 @@ export async function exchangeCode(
   return {
     accessToken: page.access_token ?? userToken,
     refreshToken: null,
-    expiresAt: longJson.expires_in ? new Date(Date.now() + longJson.expires_in * 1000).toISOString() : null,
+    expiresAt: longJson.expires_in
+      ? new Date(Date.now() + longJson.expires_in * 1000).toISOString()
+      : null,
     meta: {
       page_id: page.id,
       page_name: page.name,
@@ -354,12 +369,15 @@ export async function fetchHandle(platform: Platform, t: TokenSet): Promise<stri
       return j.items?.[0]?.snippet?.title ?? null;
     }
     if (platform === "tiktok") {
-      const r = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=display_name,username", {
-        headers: { Authorization: `Bearer ${t.accessToken}` },
-      });
+      const r = await fetch(
+        "https://open.tiktokapis.com/v2/user/info/?fields=display_name,username",
+        {
+          headers: { Authorization: `Bearer ${t.accessToken}` },
+        },
+      );
       const j: any = await r.json();
       const d = j.data?.user;
-      return d?.username ? `@${d.username}` : d?.display_name ?? null;
+      return d?.username ? `@${d.username}` : (d?.display_name ?? null);
     }
     if (platform === "x") {
       const r = await fetch("https://api.twitter.com/2/users/me", {
@@ -389,7 +407,8 @@ export async function refreshIfNeeded(
     expires_at: string | null;
   },
 ): Promise<string> {
-  if (!account.access_token_encrypted) throw new Error("Kein Access-Token gespeichert — bitte Account neu verbinden");
+  if (!account.access_token_encrypted)
+    throw new Error("Kein Access-Token gespeichert — bitte Account neu verbinden");
   const access = decryptToken(account.access_token_encrypted);
   const exp = account.expires_at ? new Date(account.expires_at).getTime() : 0;
   const stillValid = !exp || exp - Date.now() > 5 * 60_000;

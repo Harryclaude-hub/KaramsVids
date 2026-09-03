@@ -32,7 +32,6 @@ import { useEnsureWorkspace, createWorkspace } from "@/lib/use-workspace";
 import { BrandAvatar } from "@/components/brand-avatar";
 import { toast } from "sonner";
 
-
 const ADMIN_EMAIL = "saifokaram1@gmail.com";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -141,7 +140,6 @@ function AppShell() {
     }
   }
 
-
   async function submitNewBrand() {
     const name = newName.trim();
     if (!name) return;
@@ -209,8 +207,6 @@ function AppShell() {
             Earnings & Affiliate verwalten →
           </Link>
         </div>
-
-
 
         <nav className="space-y-1">
           {nav.map((n) => {
@@ -390,7 +386,11 @@ function AppShell() {
             title={sidebarOpen ? "Seitenleiste ausblenden" : "Seitenleiste einblenden"}
             className="hidden shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground md:block"
           >
-            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            {sidebarOpen ? (
+              <PanelLeftClose className="h-4 w-4" />
+            ) : (
+              <PanelLeft className="h-4 w-4" />
+            )}
           </button>
           <Link
             to="/app/profile"

@@ -47,7 +47,12 @@ export function sanitizeHandle(raw: string): string {
 
 async function checkOne(platform: string, handle: string): Promise<HandleCheck> {
   const url = PROFILE_URL[platform]?.(handle) ?? "";
-  const base: HandleCheck = { platform, url, state: "unknown", signupUrl: SIGNUP_URL[platform] ?? "" };
+  const base: HandleCheck = {
+    platform,
+    url,
+    state: "unknown",
+    signupUrl: SIGNUP_URL[platform] ?? "",
+  };
   if (!url) return base;
   try {
     const res = await fetch(url, {
@@ -101,12 +106,7 @@ export function suggestHandleVariants(raw: string): string[] {
 
 /** Starkes, aber überall zulässiges Passwort (keine exotischen Sonderzeichen). */
 export function generateStrongPassword(len = 18): string {
-  const sets = [
-    "abcdefghijkmnopqrstuvwxyz",
-    "ABCDEFGHJKLMNPQRSTUVWXYZ",
-    "23456789",
-    "!@#$%*?-_",
-  ];
+  const sets = ["abcdefghijkmnopqrstuvwxyz", "ABCDEFGHJKLMNPQRSTUVWXYZ", "23456789", "!@#$%*?-_"];
   const all = sets.join("");
   const bytes = new Uint8Array(Math.max(len, 12));
   crypto.getRandomValues(bytes);

@@ -6,8 +6,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const getRenderProviderStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const { creatomateConfigured, renderConcurrency, webhookConfigured, webhookUrl, costPerOutputMinute } =
-      await import("@/lib/creatomate.server");
+    const {
+      creatomateConfigured,
+      renderConcurrency,
+      webhookConfigured,
+      webhookUrl,
+      costPerOutputMinute,
+    } = await import("@/lib/creatomate.server");
     const { renderProviderCatalog } = await import("@/lib/render-providers.server");
     return {
       providers: renderProviderCatalog(),
@@ -111,9 +116,8 @@ export const getBulkRenderStats = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => JobInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { renderConcurrency, estimateCostUsd, webhookConfigured } = await import(
-      "@/lib/creatomate.server"
-    );
+    const { renderConcurrency, estimateCostUsd, webhookConfigured } =
+      await import("@/lib/creatomate.server");
     const { data: rows, error } = await supabase
       .from("render_jobs")
       .select(
@@ -127,7 +131,10 @@ export const getBulkRenderStats = createServerFn({ method: "POST" })
     const list = rows ?? [];
     const by = (s: string) => list.filter((r) => r.status === s).length;
     const done = list.filter((r) => r.status === "done");
-    const outputSeconds = list.reduce((a, r) => a + Math.max(0, Number(r.end_s) - Number(r.start_s)), 0);
+    const outputSeconds = list.reduce(
+      (a, r) => a + Math.max(0, Number(r.end_s) - Number(r.start_s)),
+      0,
+    );
     const spent = done.reduce((a, r) => a + Number(r.cost_usd ?? 0), 0);
     const times = done.map((r) => Number(r.render_seconds ?? 0)).filter((n) => n > 0);
     const firstStart = list
@@ -147,7 +154,9 @@ export const getBulkRenderStats = createServerFn({ method: "POST" })
       webhook: webhookConfigured(),
       costSpentUsd: Number(spent.toFixed(3)),
       costEstimateUsd: Number(estimateCostUsd(outputSeconds).toFixed(3)),
-      avgRenderSeconds: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
+      avgRenderSeconds: times.length
+        ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+        : null,
       wallClockSeconds:
         firstStart.length && lastEnd.length
           ? Math.max(0, Math.round((Math.max(...lastEnd) - Math.min(...firstStart)) / 1000))
@@ -184,7 +193,9 @@ export const getJobExportAssets = createServerFn({ method: "POST" })
 
     const sign = async (path?: string | null) => {
       if (!path) return null;
-      const { data: s } = await supabase.storage.from("rendered-clips").createSignedUrl(path, 60 * 60 * 6);
+      const { data: s } = await supabase.storage
+        .from("rendered-clips")
+        .createSignedUrl(path, 60 * 60 * 6);
       return s?.signedUrl ?? null;
     };
 
@@ -251,7 +262,11 @@ export const saveTemplatePreset = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
     const q = data.id
-      ? context.supabase.from("render_template_presets").update(row).eq("id", data.id).eq("user_id", context.userId)
+      ? context.supabase
+          .from("render_template_presets")
+          .update(row)
+          .eq("id", data.id)
+          .eq("user_id", context.userId)
       : context.supabase.from("render_template_presets").insert(row);
     const { data: saved, error } = await q.select("id").single();
     if (error) throw new Error(error.message);

@@ -571,31 +571,55 @@ function EditorLanding() {
             <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               <Wand2 className="h-3 w-3 text-primary" /> Editor-Werkzeuge
             </div>
-            <h2 className="mt-1 text-lg font-semibold">Vorlagen & virale Sounds — auch ohne Video erkunden</h2>
-            <p className="text-xs text-muted-foreground">Der Editor selbst ist für ein einzelnes Video. Für Massen-Clipping aus einem Long-Video → <Link to="/app/clip" className="text-primary hover:underline">Clipping-Bereich</Link>.</p>
+            <h2 className="mt-1 text-lg font-semibold">
+              Vorlagen & virale Sounds — auch ohne Video erkunden
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Der Editor selbst ist für ein einzelnes Video. Für Massen-Clipping aus einem
+              Long-Video →{" "}
+              <Link to="/app/clip" className="text-primary hover:underline">
+                Clipping-Bereich
+              </Link>
+              .
+            </p>
           </div>
-          <Link to="/app/clip" className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15">
+          <Link
+            to="/app/clip"
+            className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+          >
             <Wand2 className="h-3 w-3" /> Zum Clipping-Bereich
           </Link>
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {CLIP_TEMPLATES.map((t) => (
             <div key={t.id} className="rounded-lg border border-border bg-background/60 p-3">
-              <div className="text-sm"><span className="mr-1">{t.emoji}</span><span className="font-semibold">{t.label}</span></div>
+              <div className="text-sm">
+                <span className="mr-1">{t.emoji}</span>
+                <span className="font-semibold">{t.label}</span>
+              </div>
               <div className="mt-1 text-[10px] text-muted-foreground">{t.short}</div>
-              <div className="mt-1 font-mono text-[10px] text-muted-foreground">Mood: {t.musicMood} · Captions: {t.captions ? "an" : "aus"}</div>
+              <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                Mood: {t.musicMood} · Captions: {t.captions ? "an" : "aus"}
+              </div>
             </div>
           ))}
         </div>
         <div className="mt-4">
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium"><Music2 className="h-3.5 w-3.5 text-accent" /> Virale Sounds — anhören</div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium">
+            <Music2 className="h-3.5 w-3.5 text-accent" /> Virale Sounds — anhören
+          </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {MUSIC_LIBRARY.slice(0, 8).map((s) => (
-              <div key={s.id} className="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-2.5 py-2 text-xs">
+              <div
+                key={s.id}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-2.5 py-2 text-xs"
+              >
                 <SoundPreview url={s.url} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{s.title}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">{s.mood} · {s.bpm} BPM</div>
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    {s.mood} · {s.bpm} BPM
+                  </div>
                 </div>
               </div>
             ))}
@@ -638,11 +662,19 @@ function SoundPreview({ url }: { url: string }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   return (
     <>
-      <button onClick={() => {
-        if (!ref.current) return;
-        if (playing) { ref.current.pause(); setPlaying(false); }
-        else { ref.current.play().catch(() => {}); setPlaying(true); }
-      }} className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20">
+      <button
+        onClick={() => {
+          if (!ref.current) return;
+          if (playing) {
+            ref.current.pause();
+            setPlaying(false);
+          } else {
+            ref.current.play().catch(() => {});
+            setPlaying(true);
+          }
+        }}
+        className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+      >
         <Play className="h-3 w-3" />
       </button>
       <audio ref={ref} src={url} onEnded={() => setPlaying(false)} preload="none" />

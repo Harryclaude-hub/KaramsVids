@@ -10,11 +10,11 @@ export const Route = createFileRoute("/api/public/oauth/$platform/callback")({
         const url = new URL(request.url);
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
-        const providerError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
+        const providerError =
+          url.searchParams.get("error_description") ?? url.searchParams.get("error");
 
-        const { verifyState, exchangeCode, fetchHandle, encryptToken, PLATFORMS } = await import(
-          "@/lib/social-oauth.server"
-        );
+        const { verifyState, exchangeCode, fetchHandle, encryptToken, PLATFORMS } =
+          await import("@/lib/social-oauth.server");
 
         const platform = params.platform as (typeof PLATFORMS)[number];
         const done = (ok: boolean, msg: string, origin?: string) =>

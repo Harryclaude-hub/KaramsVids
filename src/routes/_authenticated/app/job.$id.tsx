@@ -789,7 +789,10 @@ function JobEditor() {
       const vFilterChain = [seg.reverse ? "reverse" : "", clipVideoChain(seg, idx, 0)]
         .filter(Boolean)
         .join(",");
-      const aFilterChain = [seg.reverse ? "areverse" : "", buildAudioFilters(seg, outputDuration(seg))]
+      const aFilterChain = [
+        seg.reverse ? "areverse" : "",
+        buildAudioFilters(seg, outputDuration(seg)),
+      ]
         .filter(Boolean)
         .join(",");
 
@@ -1123,7 +1126,8 @@ function JobEditor() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <div className="text-sm font-medium">Editor wird geladen …</div>
           <div className="text-xs text-muted-foreground">
-            Job-Daten, Video-URL und Timeline werden vorbereitet. Bei langen Videos oder frisch importierten YouTube-Links kann das einen Moment dauern.
+            Job-Daten, Video-URL und Timeline werden vorbereitet. Bei langen Videos oder frisch
+            importierten YouTube-Links kann das einen Moment dauern.
           </div>
         </div>
       </div>
@@ -1135,10 +1139,22 @@ function JobEditor() {
       <div className="grid min-h-screen place-items-center bg-background p-8">
         <div className="max-w-md space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm">
           <div className="font-semibold text-destructive">Job konnte nicht geladen werden</div>
-          <div className="text-xs text-muted-foreground">{jobQ.error instanceof Error ? jobQ.error.message : "Unbekannter Fehler"}</div>
+          <div className="text-xs text-muted-foreground">
+            {jobQ.error instanceof Error ? jobQ.error.message : "Unbekannter Fehler"}
+          </div>
           <div className="flex gap-2">
-            <button onClick={() => jobQ.refetch()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90">Erneut versuchen</button>
-            <Link to="/app" className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">Zurück</Link>
+            <button
+              onClick={() => jobQ.refetch()}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
+            >
+              Erneut versuchen
+            </button>
+            <Link
+              to="/app"
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary"
+            >
+              Zurück
+            </Link>
           </div>
         </div>
       </div>
@@ -1371,14 +1387,17 @@ function JobEditor() {
 
       {job.status === "analyzing" && (
         <div className="flex items-center gap-2 border-b border-border bg-accent/10 px-4 py-2 text-xs text-accent">
-          <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert Inhalt & schlägt Clips vor … (bei langen Videos 1–3 Min)
+          <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert Inhalt & schlägt Clips vor …
+          (bei langen Videos 1–3 Min)
         </div>
       )}
 
       {job.status === "failed" && (
         <div className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 text-xs text-destructive">
           <div className="font-semibold">KI-Analyse fehlgeschlagen</div>
-          <div className="mt-0.5 text-[11px] opacity-90">{jobError ?? "Unbekannter Fehler — bitte erneut versuchen oder Video neu hochladen."}</div>
+          <div className="mt-0.5 text-[11px] opacity-90">
+            {jobError ?? "Unbekannter Fehler — bitte erneut versuchen oder Video neu hochladen."}
+          </div>
         </div>
       )}
 
@@ -1414,7 +1433,9 @@ function JobEditor() {
           <div className="flex items-center gap-2">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span className="font-semibold">
-              {rendering === "master" ? "Master-Export läuft …" : `Clip ${Number(rendering) + 1} wird gerendert …`}
+              {rendering === "master"
+                ? "Master-Export läuft …"
+                : `Clip ${Number(rendering) + 1} wird gerendert …`}
             </span>
             <span className="ml-auto font-mono text-[10px]">{progress}%</span>
           </div>
@@ -1422,7 +1443,8 @@ function JobEditor() {
             <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
           </div>
           <div className="mt-1 text-[10px] text-muted-foreground">
-            Rendering läuft im Browser (ffmpeg.wasm) — Tab bitte offen lassen. Erstes Laden der Engine dauert 5–15 Sek.
+            Rendering läuft im Browser (ffmpeg.wasm) — Tab bitte offen lassen. Erstes Laden der
+            Engine dauert 5–15 Sek.
           </div>
         </div>
       )}
@@ -1433,107 +1455,107 @@ function JobEditor() {
           className={`${showLeft ? "w-52" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-2.5`}
         >
           {panels.media && (
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Film className="h-3 w-3" /> Media Bin
-            </div>
-            <div className="space-y-2">
-              <div className="rounded-md border border-border bg-background p-2 text-xs">
-                <div className="truncate font-medium">{raw?.title}</div>
-                <div className="font-mono text-[10px] text-muted-foreground">
-                  {Math.round(rawDur)}s Quelle
-                </div>
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Film className="h-3 w-3" /> Media Bin
               </div>
-              {audioTracks.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background p-2 text-xs"
-                >
-                  <Music className="h-3 w-3 shrink-0 text-accent" />
-                  <div className="min-w-0 flex-1 truncate">{a.name}</div>
-                  <button
-                    onClick={() => deleteAudio(a.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+              <div className="space-y-2">
+                <div className="rounded-md border border-border bg-background p-2 text-xs">
+                  <div className="truncate font-medium">{raw?.title}</div>
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    {Math.round(rawDur)}s Quelle
+                  </div>
                 </div>
-              ))}
-              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">
-                <UploadCloud className="h-3 w-3" /> Audio hinzufügen
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && uploadAudio(e.target.files[0])}
-                />
-              </label>
+                {audioTracks.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-2 rounded-md border border-border bg-background p-2 text-xs"
+                  >
+                    <Music className="h-3 w-3 shrink-0 text-accent" />
+                    <div className="min-w-0 flex-1 truncate">{a.name}</div>
+                    <button
+                      onClick={() => deleteAudio(a.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className="inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">
+                  <UploadCloud className="h-3 w-3" /> Audio hinzufügen
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && uploadAudio(e.target.files[0])}
+                  />
+                </label>
+              </div>
             </div>
-          </div>
           )}
 
           {/* Viral Sound Library */}
           {panels.media && (
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Music className="h-3 w-3 text-accent" /> Viral Sounds
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Music className="h-3 w-3 text-accent" /> Viral Sounds
+              </div>
+              <ViralMusicPicker
+                template={templateById(options.template_id as string | undefined)}
+                onPick={(t) => {
+                  setAudioTracks((prev) => [
+                    ...prev,
+                    {
+                      id: uid(),
+                      storage_path: "",
+                      source_url: t.url,
+                      name: `${t.title} · ${t.bpm}BPM`,
+                      volume: 0.35,
+                      duck: true,
+                    },
+                  ]);
+                  toast.success(`„${t.title}" hinzugefügt`);
+                }}
+              />
             </div>
-            <ViralMusicPicker
-              template={templateById(options.template_id as string | undefined)}
-              onPick={(t) => {
-                setAudioTracks((prev) => [
-                  ...prev,
-                  {
-                    id: uid(),
-                    storage_path: "",
-                    source_url: t.url,
-                    name: `${t.title} · ${t.bpm}BPM`,
-                    volume: 0.35,
-                    duck: true,
-                  },
-                ]);
-                toast.success(`„${t.title}" hinzugefügt`);
-              }}
-            />
-          </div>
           )}
 
           {panels.effects && (
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Sparkles className="h-3 w-3" /> Werkzeuge
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Sparkles className="h-3 w-3" /> Werkzeuge
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => addOverlay(selectedClip)}
+                  className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                >
+                  <Type className="mx-auto h-4 w-4" />
+                  <div className="mt-1">Text</div>
+                </button>
+                <button
+                  onClick={splitAtPlayhead}
+                  className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                >
+                  <ScissorsIcon className="mx-auto h-4 w-4" />
+                  <div className="mt-1">Split</div>
+                </button>
+                <button
+                  onClick={addSeg}
+                  className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                >
+                  <Plus className="mx-auto h-4 w-4" />
+                  <div className="mt-1">Neuer Clip</div>
+                </button>
+                <button
+                  onClick={() => resetSeg(selectedClip)}
+                  className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                >
+                  <RotateCcw className="mx-auto h-4 w-4" />
+                  <div className="mt-1">KI-Original</div>
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                onClick={() => addOverlay(selectedClip)}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
-              >
-                <Type className="mx-auto h-4 w-4" />
-                <div className="mt-1">Text</div>
-              </button>
-              <button
-                onClick={splitAtPlayhead}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
-              >
-                <ScissorsIcon className="mx-auto h-4 w-4" />
-                <div className="mt-1">Split</div>
-              </button>
-              <button
-                onClick={addSeg}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
-              >
-                <Plus className="mx-auto h-4 w-4" />
-                <div className="mt-1">Neuer Clip</div>
-              </button>
-              <button
-                onClick={() => resetSeg(selectedClip)}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
-              >
-                <RotateCcw className="mx-auto h-4 w-4" />
-                <div className="mt-1">KI-Original</div>
-              </button>
-            </div>
-          </div>
           )}
 
           {panels.effects && analysis?.transcript_summary && (
@@ -1576,7 +1598,10 @@ function JobEditor() {
                 <div className="grid h-64 w-96 max-w-full place-items-center rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-6 text-center text-xs text-amber-600 dark:text-amber-400">
                   <div>
                     <div className="font-semibold">Kein Preview verfügbar</div>
-                    <div className="mt-1 text-[11px] opacity-80">YouTube-Video ist verlinkt, aber nicht als Datei vorhanden. Bitte MP4 hochladen, um Preview & Export zu aktivieren.</div>
+                    <div className="mt-1 text-[11px] opacity-80">
+                      YouTube-Video ist verlinkt, aber nicht als Datei vorhanden. Bitte MP4
+                      hochladen, um Preview & Export zu aktivieren.
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -2005,7 +2030,9 @@ function JobEditor() {
                         step={0.05}
                         disabled={selectedSeg.muted}
                         value={selectedSeg.volume ?? 1}
-                        onChange={(e) => updateSeg(selectedClip, { volume: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateSeg(selectedClip, { volume: Number(e.target.value) })
+                        }
                         className="flex-1 accent-primary disabled:opacity-40"
                       />
                     </div>
@@ -2187,7 +2214,11 @@ function JobEditor() {
                     <button
                       onClick={() =>
                         updateSeg(selectedClip, {
-                          transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1, zoom_end: 1.25 },
+                          transform: {
+                            ...(selectedSeg.transform ?? {}),
+                            zoom_start: 1,
+                            zoom_end: 1.25,
+                          },
                         })
                       }
                       className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
@@ -2197,7 +2228,11 @@ function JobEditor() {
                     <button
                       onClick={() =>
                         updateSeg(selectedClip, {
-                          transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1.25, zoom_end: 1 },
+                          transform: {
+                            ...(selectedSeg.transform ?? {}),
+                            zoom_start: 1.25,
+                            zoom_end: 1,
+                          },
                         })
                       }
                       className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
@@ -2210,10 +2245,7 @@ function JobEditor() {
                           transform: {
                             ...(selectedSeg.transform ?? {}),
                             rotate: (((selectedSeg.transform?.rotate ?? 0) + 90) % 360) as
-                              | 0
-                              | 90
-                              | 180
-                              | 270,
+                              0 | 90 | 180 | 270,
                           },
                         })
                       }
@@ -2508,7 +2540,8 @@ function JobEditor() {
           {/* KI-Chat */}
           <div className={`${panels.chat ? "" : "hidden"} p-3`}>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <MessageSquare className="h-3 w-3 text-accent" /> KI-Chat — sag, was geändert werden soll
+              <MessageSquare className="h-3 w-3 text-accent" /> KI-Chat — sag, was geändert werden
+              soll
             </div>
             <EditorChat
               jobId={id}

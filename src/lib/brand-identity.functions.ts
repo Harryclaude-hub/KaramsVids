@@ -54,7 +54,10 @@ export const saveBrandCredential = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const q = existing
-      ? context.supabase.from("brand_credentials").update(patch as never).eq("id", existing.id)
+      ? context.supabase
+          .from("brand_credentials")
+          .update(patch as never)
+          .eq("id", existing.id)
       : context.supabase.from("brand_credentials").insert(patch as never);
     const { error } = await q;
     if (error) throw new Error(error.message);
@@ -89,9 +92,8 @@ export const suggestBrandSetup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SuggestInput.parse(i))
   .handler(async ({ data }) => {
-    const { suggestHandleVariants, generateStrongPassword, checkHandle } = await import(
-      "@/lib/brand-identity.server"
-    );
+    const { suggestHandleVariants, generateStrongPassword, checkHandle } =
+      await import("@/lib/brand-identity.server");
     const variants = suggestHandleVariants(data.name).slice(0, 5);
     const platforms = ["instagram", "tiktok", "youtube", "facebook", "x"];
     const checked = await Promise.all(
@@ -131,7 +133,10 @@ export const setCredentialSetupStatus = createServerFn({ method: "POST" })
       .eq("platform", data.platform)
       .maybeSingle();
     const q = existing
-      ? context.supabase.from("brand_credentials").update(patch as never).eq("id", existing.id)
+      ? context.supabase
+          .from("brand_credentials")
+          .update(patch as never)
+          .eq("id", existing.id)
       : context.supabase.from("brand_credentials").insert(patch as never);
     const { error } = await q;
     if (error) throw new Error(error.message);

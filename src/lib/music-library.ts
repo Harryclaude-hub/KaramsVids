@@ -4,13 +4,7 @@
 // Diese Liste kann später gegen Epidemic Sound / Artlist / eigene Uploads
 // getauscht werden — API-Anforderungen siehe README-Notiz in-app.
 
-export type MusicMood =
-  | "hype"
-  | "chill"
-  | "cinematic"
-  | "energetic"
-  | "emotional"
-  | "none";
+export type MusicMood = "hype" | "chill" | "cinematic" | "energetic" | "emotional" | "none";
 
 export type ViralTrack = {
   id: string;

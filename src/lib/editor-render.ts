@@ -27,11 +27,7 @@ export function escapeDrawtext(s: string): string {
  * Bildkette für einen Clip: Format/Zuschnitt, Farbe, Zoom, Rotation,
  * Ein-/Ausblenden. Gibt eine kommaseparierte Filterkette zurück.
  */
-export function buildVideoFilters(
-  seg: Segment,
-  aspect: Aspect,
-  clipDuration: number,
-): string {
+export function buildVideoFilters(seg: Segment, aspect: Aspect, clipDuration: number): string {
   const { w, h } = ASPECT_SIZE[aspect];
   const f: string[] = [];
 

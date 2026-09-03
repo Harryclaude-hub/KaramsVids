@@ -61,7 +61,8 @@ async function sourceUrlFor(supabase: any, raw: any): Promise<string> {
     const { data, error } = await supabase.storage
       .from("raw-videos")
       .createSignedUrl(raw.storage_path, SIGNED_URL_TTL);
-    if (error || !data?.signedUrl) throw new Error("Signierte URL fehlgeschlagen: " + (error?.message ?? ""));
+    if (error || !data?.signedUrl)
+      throw new Error("Signierte URL fehlgeschlagen: " + (error?.message ?? ""));
     return data.signedUrl;
   }
   if (raw?.source_url) return raw.source_url as string;
@@ -95,7 +96,8 @@ export async function enqueueBulkRender(
 
   const analysis = (job.analysis ?? {}) as { segments?: Segment[] };
   const segments = Array.isArray(analysis.segments) ? analysis.segments : [];
-  if (!segments.length) throw new Error("Noch kein KI-Schnittplan vorhanden — bitte zuerst analysieren.");
+  if (!segments.length)
+    throw new Error("Noch kein KI-Schnittplan vorhanden — bitte zuerst analysieren.");
 
   const raw = job.raw_videos;
   const videoUrl = await sourceUrlFor(supabase, raw);
@@ -126,7 +128,10 @@ export async function enqueueBulkRender(
     .eq("user_id", opts.userId);
   presetQuery = options.template_preset_id
     ? presetQuery.eq("id", options.template_preset_id)
-    : presetQuery.eq("base_template_id", templateId).order("updated_at", { ascending: false }).limit(1);
+    : presetQuery
+        .eq("base_template_id", templateId)
+        .order("updated_at", { ascending: false })
+        .limit(1);
   const { data: presets } = await presetQuery;
   if (presets?.length) overrides = (presets[0].config ?? {}) as TemplateOverrides;
 
@@ -142,9 +147,7 @@ export async function enqueueBulkRender(
       .map((r: any) => r.clip_index as number),
   );
 
-  const wanted = opts.clipIndexes?.length
-    ? opts.clipIndexes
-    : segments.map((_, i) => i);
+  const wanted = opts.clipIndexes?.length ? opts.clipIndexes : segments.map((_, i) => i);
 
   const rows = wanted
     .filter((i) => i >= 0 && i < segments.length && !blocked.has(i))
@@ -210,7 +213,10 @@ export async function finalizeRender(
 
   if (render.status !== "succeeded" || !render.url) {
     const pct = render.status === "rendering" ? 70 : render.status === "transcoding" ? 45 : 20;
-    await supabase.from("render_jobs").update({ status: "rendering", progress: pct, ...stamp }).eq("id", row.id);
+    await supabase
+      .from("render_jobs")
+      .update({ status: "rendering", progress: pct, ...stamp })
+      .eq("id", row.id);
     return "pending";
   }
 
@@ -306,7 +312,9 @@ export async function processRenderQueue(
   let failed = 0;
 
   if (configured) {
-    const activeQ = base().in("status", ACTIVE).limit(renderConcurrency() * 3);
+    const activeQ = base()
+      .in("status", ACTIVE)
+      .limit(renderConcurrency() * 3);
     const { data: active } = await activeQ;
     const graceCutoff = Date.now() - 5 * 60_000;
 
@@ -342,7 +350,10 @@ export async function processRenderQueue(
 
   // --- 2. freie Slots mit neuen Renders füllen ---
   const { count: stillActive } = await (() => {
-    let q = supabase.from("render_jobs").select("id", { count: "exact", head: true }).in("status", ACTIVE);
+    let q = supabase
+      .from("render_jobs")
+      .select("id", { count: "exact", head: true })
+      .in("status", ACTIVE);
     if (scope.userId) q = q.eq("user_id", scope.userId);
     return q;
   })();
@@ -407,7 +418,10 @@ export async function processRenderQueue(
   }
 
   const counts = async (status: string) => {
-    let q = supabase.from("render_jobs").select("id", { count: "exact", head: true }).eq("status", status);
+    let q = supabase
+      .from("render_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", status);
     if (scope.userId) q = q.eq("user_id", scope.userId);
     const { count } = await q;
     return count ?? 0;

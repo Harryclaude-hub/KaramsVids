@@ -4,9 +4,25 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { runAnalyticsSync } from "@/lib/hooks.functions";
 import {
-  Film, Share2, BarChart3, Upload, Youtube, Instagram, Facebook, ArrowLeft,
-  RefreshCw, Unlink, Plug, FolderPlus, Folder as FolderIcon, Search, ArrowUpDown,
-  Pencil, Trash2, Loader2, Stamp,
+  Film,
+  Share2,
+  BarChart3,
+  Upload,
+  Youtube,
+  Instagram,
+  Facebook,
+  ArrowLeft,
+  RefreshCw,
+  Unlink,
+  Plug,
+  FolderPlus,
+  Folder as FolderIcon,
+  Search,
+  ArrowUpDown,
+  Pencil,
+  Trash2,
+  Loader2,
+  Stamp,
 } from "lucide-react";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { BrandAvatar } from "@/components/brand-avatar";
@@ -50,7 +66,9 @@ function BrandDetail() {
   const syncAnalyticsFn = useServerFn(runAnalyticsSync);
   const [, setActiveBrandId] = useActiveBrandId();
 
-  useEffect(() => { setActiveBrandId(id); }, [id, setActiveBrandId]);
+  useEffect(() => {
+    setActiveBrandId(id);
+  }, [id, setActiveBrandId]);
 
   const allBrandsQ = useBrands(user.id);
   const allBrands = allBrandsQ.data ?? [];
@@ -100,7 +118,11 @@ function BrandDetail() {
   const foldersQ = useQuery({
     queryKey: ["folders", user.id, id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("folders").select("*").eq("brand_id", id).order("created_at");
+      const { data, error } = await supabase
+        .from("folders")
+        .select("*")
+        .eq("brand_id", id)
+        .order("created_at");
       if (error) throw error;
       return data ?? [];
     },
@@ -194,7 +216,10 @@ function BrandDetail() {
     const rangeDays: Record<string, number | null> = { "7d": 7, "30d": 30, "90d": 90, all: null };
     const days = rangeDays[analyticsRange] ?? null;
     const cutoff = days ? now - days * 86400_000 : 0;
-    const agg = new Map<string, { views: number; likes: number; comments: number; shares: number; samples: number }>();
+    const agg = new Map<
+      string,
+      { views: number; likes: number; comments: number; shares: number; samples: number }
+    >();
     for (const s of snapshots as any[]) {
       if (cutoff && new Date(s.snapshot_at).getTime() < cutoff) continue;
       if (analyticsPlatform !== "all" && s.platform !== analyticsPlatform) continue;
@@ -214,13 +239,19 @@ function BrandDetail() {
   }, [snapshots, analyticsRange, analyticsPlatform]);
 
   const lastSyncOverall = useMemo(() => {
-    const times = accounts.map((a) => a.last_sync_at).filter(Boolean).map((t) => new Date(t!).getTime());
+    const times = accounts
+      .map((a) => a.last_sync_at)
+      .filter(Boolean)
+      .map((t) => new Date(t!).getTime());
     return times.length ? new Date(Math.max(...times)) : null;
   }, [accounts]);
 
   async function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("desc"); }
+    else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
   }
 
   function openBrandEditor() {
@@ -318,7 +349,10 @@ function BrandDetail() {
   }
 
   async function patchWatermark(patch: Record<string, unknown>, msg?: string) {
-    const { error } = await supabase.from("brands").update(patch as never).eq("id", id);
+    const { error } = await supabase
+      .from("brands")
+      .update(patch as never)
+      .eq("id", id);
     if (error) return toast.error(error.message);
     if (msg) toast.success(msg);
     qc.invalidateQueries({ queryKey: ["brand", id] });
@@ -347,7 +381,11 @@ function BrandDetail() {
     const handle = window.prompt(`Handle für ${pid} (z. B. @mybrand)`)?.trim();
     if (!handle) return;
     const { error } = await supabase.from("social_accounts").insert({
-      user_id: user.id, brand_id: id, platform: pid as any, handle, status: "connected",
+      user_id: user.id,
+      brand_id: id,
+      platform: pid as any,
+      handle,
+      status: "connected",
     });
     if (error) return toast.error(error.message);
     toast.success(`${pid} verbunden`);
@@ -356,24 +394,35 @@ function BrandDetail() {
 
   async function disconnectAccount(accId: string) {
     if (!confirm("Verbindung wirklich trennen?")) return;
-    const { error } = await supabase.from("social_accounts").update({ status: "disconnected" }).eq("id", accId);
+    const { error } = await supabase
+      .from("social_accounts")
+      .update({ status: "disconnected" })
+      .eq("id", accId);
     if (error) return toast.error(error.message);
     toast.success("Getrennt");
     qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
   }
 
   async function reconnectAccount(accId: string) {
-    const { error } = await supabase.from("social_accounts")
-      .update({ status: "connected", sync_error: null }).eq("id", accId);
+    const { error } = await supabase
+      .from("social_accounts")
+      .update({ status: "connected", sync_error: null })
+      .eq("id", accId);
     if (error) return toast.error(error.message);
     toast.success("Wieder verbunden");
     qc.invalidateQueries({ queryKey: ["social_accounts", user.id, id] });
   }
 
   async function checkStatus(accId: string) {
-    const { data, error } = await supabase.from("social_accounts").select("*").eq("id", accId).maybeSingle();
+    const { data, error } = await supabase
+      .from("social_accounts")
+      .select("*")
+      .eq("id", accId)
+      .maybeSingle();
     if (error || !data) return toast.error(error?.message ?? "Nicht gefunden");
-    toast.info(`Status: ${data.status}${data.last_sync_at ? ` · Sync ${new Date(data.last_sync_at).toLocaleString()}` : " · noch nie synchronisiert"}`);
+    toast.info(
+      `Status: ${data.status}${data.last_sync_at ? ` · Sync ${new Date(data.last_sync_at).toLocaleString()}` : " · noch nie synchronisiert"}`,
+    );
   }
 
   async function triggerSync() {
@@ -391,7 +440,9 @@ function BrandDetail() {
   async function addFolder() {
     const name = window.prompt("Ordnername")?.trim();
     if (!name) return;
-    const { error } = await supabase.from("folders").insert({ user_id: user.id, brand_id: id, name });
+    const { error } = await supabase
+      .from("folders")
+      .insert({ user_id: user.id, brand_id: id, name });
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["folders", user.id, id] });
   }
@@ -404,12 +455,16 @@ function BrandDetail() {
     qc.invalidateQueries({ queryKey: ["raw_videos", user.id, id] });
   }
 
-  if (brandQ.isLoading) return <div className="animate-pulse text-sm text-muted-foreground">Lade Brand …</div>;
+  if (brandQ.isLoading)
+    return <div className="animate-pulse text-sm text-muted-foreground">Lade Brand …</div>;
   if (!brand) return <div className="text-sm text-muted-foreground">Brand nicht gefunden.</div>;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <button onClick={() => navigate({ to: "/app" })} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <button
+        onClick={() => navigate({ to: "/app" })}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="h-3 w-3" /> Zurück zum Dashboard
       </button>
 
@@ -439,20 +494,35 @@ function BrandDetail() {
           </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-primary">Brand</p>
-            <h1 className={`text-3xl font-semibold tracking-tight ${fontClass((brand as any).name_font)}`}>{brand.name}</h1>
+            <h1
+              className={`text-3xl font-semibold tracking-tight ${fontClass((brand as any).name_font)}`}
+            >
+              {brand.name}
+            </h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              {lastSyncOverall ? `Letzter Analyse-Sync: ${lastSyncOverall.toLocaleString()}` : "Noch kein Analyse-Sync"}
+              {lastSyncOverall
+                ? `Letzter Analyse-Sync: ${lastSyncOverall.toLocaleString()}`
+                : "Noch kein Analyse-Sync"}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={openBrandEditor} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+          <button
+            onClick={openBrandEditor}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card"
+          >
             <Pencil className="h-4 w-4" /> Bearbeiten
           </button>
-          <button onClick={triggerSync} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+          <button
+            onClick={triggerSync}
+            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card"
+          >
             <RefreshCw className="h-4 w-4" /> Analytics jetzt syncen
           </button>
-          <button onClick={() => navigate({ to: "/app/upload" })} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <button
+            onClick={() => navigate({ to: "/app/upload" })}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             <Upload className="h-4 w-4" /> Video hinzufügen
           </button>
         </div>
@@ -636,21 +706,31 @@ function BrandDetail() {
             <BarChart3 className="h-4 w-4" /> Tracking — Views je Plattform
           </h2>
           <div className="flex flex-wrap gap-2">
-            <Select value={analyticsPlatform} onChange={setAnalyticsPlatform} options={[
-              { value: "all", label: "Alle Plattformen" },
-              ...platforms.map((p) => ({ value: p.id, label: p.name })),
-            ]} />
-            <Select value={analyticsRange} onChange={setAnalyticsRange} options={[
-              { value: "7d", label: "Letzte 7 Tage" },
-              { value: "30d", label: "Letzte 30 Tage" },
-              { value: "90d", label: "Letzte 90 Tage" },
-              { value: "all", label: "Gesamter Zeitraum" },
-            ]} />
+            <Select
+              value={analyticsPlatform}
+              onChange={setAnalyticsPlatform}
+              options={[
+                { value: "all", label: "Alle Plattformen" },
+                ...platforms.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
+            <Select
+              value={analyticsRange}
+              onChange={setAnalyticsRange}
+              options={[
+                { value: "7d", label: "Letzte 7 Tage" },
+                { value: "30d", label: "Letzte 30 Tage" },
+                { value: "90d", label: "Letzte 90 Tage" },
+                { value: "all", label: "Gesamter Zeitraum" },
+              ]}
+            />
           </div>
         </div>
         <div className="mb-4 flex items-baseline gap-3">
           <div className="text-3xl font-semibold">{platformStats.totalViews.toLocaleString()}</div>
-          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Gesamt-Views im Zeitraum</div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Gesamt-Views im Zeitraum
+          </div>
         </div>
         {platformStats.rows.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
@@ -659,19 +739,28 @@ function BrandDetail() {
         ) : (
           <div className="space-y-3">
             {platformStats.rows.map((r) => {
-              const pct = platformStats.totalViews ? Math.round((r.views / platformStats.totalViews) * 100) : 0;
+              const pct = platformStats.totalViews
+                ? Math.round((r.views / platformStats.totalViews) * 100)
+                : 0;
               const meta = platforms.find((p) => p.id === r.platform);
               const Icon = meta?.icon ?? Share2;
               return (
-                <div key={r.platform} className="rounded-lg border border-border bg-background/60 p-3">
+                <div
+                  key={r.platform}
+                  className="rounded-lg border border-border bg-background/60 p-3"
+                >
                   <div className="mb-2 flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2">
                       <Icon className="h-3.5 w-3.5 text-primary" />
                       <span className="font-medium">{meta?.name ?? r.platform}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">{r.samples} Snapshots</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {r.samples} Snapshots
+                      </span>
                     </div>
                     <div className="font-mono text-muted-foreground">
-                      <span className="text-foreground">{r.views.toLocaleString()}</span> views · {pct}% · {r.likes.toLocaleString()} likes · {r.comments.toLocaleString()} kommentare
+                      <span className="text-foreground">{r.views.toLocaleString()}</span> views ·{" "}
+                      {pct}% · {r.likes.toLocaleString()} likes · {r.comments.toLocaleString()}{" "}
+                      kommentare
                     </div>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-secondary">
@@ -706,17 +795,30 @@ function BrandDetail() {
                       <div className="font-mono text-[10px] text-muted-foreground">
                         {acc ? (
                           <>
-                            <span className={acc.status === "connected" ? "text-primary" : acc.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                            <span
+                              className={
+                                acc.status === "connected"
+                                  ? "text-primary"
+                                  : acc.status === "error"
+                                    ? "text-destructive"
+                                    : "text-muted-foreground"
+                              }
+                            >
                               ● {acc.status}
                             </span>
                             {acc.handle ? ` · @${acc.handle}` : ""}
-                            {acc.last_sync_at ? ` · sync ${new Date(acc.last_sync_at).toLocaleTimeString()}` : " · noch kein sync"}
+                            {acc.last_sync_at
+                              ? ` · sync ${new Date(acc.last_sync_at).toLocaleTimeString()}`
+                              : " · noch kein sync"}
                           </>
-                        ) : "Nicht verbunden"}
+                        ) : (
+                          "Nicht verbunden"
+                        )}
                       </div>
                       {acc && snap && (
                         <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                          {m.views ?? 0} views · {m.likes ?? 0} likes · Retention {m.avg_watch_pct ?? 0}%
+                          {m.views ?? 0} views · {m.likes ?? 0} likes · Retention{" "}
+                          {m.avg_watch_pct ?? 0}%
                         </div>
                       )}
                     </div>
@@ -724,28 +826,42 @@ function BrandDetail() {
                   <div className="flex flex-col gap-1">
                     {acc ? (
                       <>
-                        <button onClick={() => checkStatus(acc.id)} className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background">
+                        <button
+                          onClick={() => checkStatus(acc.id)}
+                          className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background"
+                        >
                           Status
                         </button>
                         {acc.status === "disconnected" ? (
-                          <button onClick={() => reconnectAccount(acc.id)} className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[11px] text-primary hover:bg-primary/10">
+                          <button
+                            onClick={() => reconnectAccount(acc.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[11px] text-primary hover:bg-primary/10"
+                          >
                             <Plug className="h-3 w-3" /> Reconnect
                           </button>
                         ) : (
-                          <button onClick={() => disconnectAccount(acc.id)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive">
+                          <button
+                            onClick={() => disconnectAccount(acc.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive"
+                          >
                             <Unlink className="h-3 w-3" /> Trennen
                           </button>
                         )}
                       </>
                     ) : (
-                      <button onClick={() => connectPlatform(p.id)} className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90">
+                      <button
+                        onClick={() => connectPlatform(p.id)}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
+                      >
                         <Plug className="h-3 w-3" /> Verbinden
                       </button>
                     )}
                   </div>
                 </div>
                 {acc?.sync_error && (
-                  <div className="mt-2 rounded bg-destructive/10 px-2 py-1 text-[10px] text-destructive">{acc.sync_error}</div>
+                  <div className="mt-2 rounded bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+                    {acc.sync_error}
+                  </div>
                 )}
               </div>
             );
@@ -759,24 +875,34 @@ function BrandDetail() {
           <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <FolderIcon className="h-4 w-4" /> Ordner
           </h2>
-          <button onClick={addFolder} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card">
+          <button
+            onClick={addFolder}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card"
+          >
             <FolderPlus className="h-3 w-3" /> Neuer Ordner
           </button>
         </div>
         {folders.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-            Noch keine Ordner. Ordner strukturieren deine Video-History (z. B. „Kampagne Herbst", „Testimonials").
+            Noch keine Ordner. Ordner strukturieren deine Video-History (z. B. „Kampagne Herbst",
+            „Testimonials").
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {folders.map((f) => {
               const count = videos.filter((v: any) => v.folder_id === f.id).length;
               return (
-                <div key={f.id} className="group flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+                <div
+                  key={f.id}
+                  className="group flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs"
+                >
                   <FolderIcon className="h-3 w-3 text-primary" />
                   <span className="font-medium">{f.name}</span>
                   <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
-                  <button onClick={() => deleteFolder(f.id)} className="ml-1 text-[10px] text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100">
+                  <button
+                    onClick={() => deleteFolder(f.id)}
+                    className="ml-1 text-[10px] text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                  >
                     ×
                   </button>
                 </div>
@@ -797,33 +923,54 @@ function BrandDetail() {
         <div className="mb-3 flex flex-wrap gap-2">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Titel suchen …" className="w-full rounded-md border border-border bg-input py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Titel suchen …"
+              className="w-full rounded-md border border-border bg-input py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary"
+            />
           </div>
-          <Select value={folderFilter} onChange={setFolderFilter} options={[
-            { value: "all", label: "Alle Ordner" },
-            { value: "none", label: "Ohne Ordner" },
-            ...folders.map((f) => ({ value: f.id, label: f.name })),
-          ]} />
-          <Select value={platformFilter} onChange={setPlatformFilter} options={[
-            { value: "all", label: "Alle Plattformen" },
-            { value: "tiktok", label: "TikTok" },
-            { value: "youtube", label: "YouTube" },
-            { value: "instagram", label: "Instagram" },
-            { value: "facebook", label: "Facebook" },
-            { value: "x", label: "X" },
-          ]} />
-          <Select value={statusFilter} onChange={setStatusFilter} options={[
-            { value: "all", label: "Alle Status" },
-            { value: "ready", label: "Ready" },
-            { value: "processing", label: "Processing" },
-            { value: "error", label: "Error" },
-          ]} />
-          <Select value={rangeFilter} onChange={setRangeFilter} options={[
-            { value: "all", label: "Gesamter Zeitraum" },
-            { value: "7d", label: "Letzte 7 Tage" },
-            { value: "30d", label: "Letzte 30 Tage" },
-            { value: "90d", label: "Letzte 90 Tage" },
-          ]} />
+          <Select
+            value={folderFilter}
+            onChange={setFolderFilter}
+            options={[
+              { value: "all", label: "Alle Ordner" },
+              { value: "none", label: "Ohne Ordner" },
+              ...folders.map((f) => ({ value: f.id, label: f.name })),
+            ]}
+          />
+          <Select
+            value={platformFilter}
+            onChange={setPlatformFilter}
+            options={[
+              { value: "all", label: "Alle Plattformen" },
+              { value: "tiktok", label: "TikTok" },
+              { value: "youtube", label: "YouTube" },
+              { value: "instagram", label: "Instagram" },
+              { value: "facebook", label: "Facebook" },
+              { value: "x", label: "X" },
+            ]}
+          />
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: "all", label: "Alle Status" },
+              { value: "ready", label: "Ready" },
+              { value: "processing", label: "Processing" },
+              { value: "error", label: "Error" },
+            ]}
+          />
+          <Select
+            value={rangeFilter}
+            onChange={setRangeFilter}
+            options={[
+              { value: "all", label: "Gesamter Zeitraum" },
+              { value: "7d", label: "Letzte 7 Tage" },
+              { value: "30d", label: "Letzte 30 Tage" },
+              { value: "90d", label: "Letzte 90 Tage" },
+            ]}
+          />
         </div>
 
         {filteredVideos.length === 0 ? (
@@ -835,13 +982,25 @@ function BrandDetail() {
             <table className="w-full text-sm">
               <thead className="bg-card/60 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 <tr>
-                  <Th onClick={() => toggleSort("title")} active={sortKey === "title"}>Titel</Th>
-                  <Th onClick={() => toggleSort("platform")} active={sortKey === "platform"}>Plattform</Th>
+                  <Th onClick={() => toggleSort("title")} active={sortKey === "title"}>
+                    Titel
+                  </Th>
+                  <Th onClick={() => toggleSort("platform")} active={sortKey === "platform"}>
+                    Plattform
+                  </Th>
                   <Th>Ordner</Th>
-                  <Th onClick={() => toggleSort("duration_s")} active={sortKey === "duration_s"}>Dauer</Th>
-                  <Th onClick={() => toggleSort("clips")} active={sortKey === "clips"}>Clips</Th>
-                  <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>Status</Th>
-                  <Th onClick={() => toggleSort("created_at")} active={sortKey === "created_at"}>Datum</Th>
+                  <Th onClick={() => toggleSort("duration_s")} active={sortKey === "duration_s"}>
+                    Dauer
+                  </Th>
+                  <Th onClick={() => toggleSort("clips")} active={sortKey === "clips"}>
+                    Clips
+                  </Th>
+                  <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
+                    Status
+                  </Th>
+                  <Th onClick={() => toggleSort("created_at")} active={sortKey === "created_at"}>
+                    Datum
+                  </Th>
                   <th className="px-4 py-2 text-right">Analyse</th>
                 </tr>
               </thead>
@@ -849,14 +1008,32 @@ function BrandDetail() {
                 {filteredVideos.map((v: any) => (
                   <tr key={v.id} className="border-t border-border hover:bg-card/40">
                     <td className="px-4 py-3">
-                      <Link to="/app/video/$id" params={{ id: v.id }} className="font-medium hover:text-primary">{v.title}</Link>
+                      <Link
+                        to="/app/video/$id"
+                        params={{ id: v.id }}
+                        className="font-medium hover:text-primary"
+                      >
+                        {v.title}
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.platform ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{v.folders?.name ?? "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.generated_clips?.length ?? 0}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.status}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {v.platform ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {v.folders?.name ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {v.generated_clips?.length ?? 0}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {v.status}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {new Date(v.created_at).toLocaleDateString()}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <select
@@ -866,11 +1043,19 @@ function BrandDetail() {
                           className="max-w-[130px] rounded-md border border-border bg-input px-1.5 py-1 text-[11px] text-muted-foreground outline-none focus:border-primary"
                         >
                           <option value="">Duplizieren …</option>
-                          {allBrands.filter((b) => b.id !== id).map((b) => (
-                            <option key={b.id} value={b.id}>→ {b.name}</option>
-                          ))}
+                          {allBrands
+                            .filter((b) => b.id !== id)
+                            .map((b) => (
+                              <option key={b.id} value={b.id}>
+                                → {b.name}
+                              </option>
+                            ))}
                         </select>
-                        <Link to="/app/video/$id" params={{ id: v.id }} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        <Link
+                          to="/app/video/$id"
+                          params={{ id: v.id }}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
                           <BarChart3 className="h-3 w-3" /> Details
                         </Link>
                       </div>
@@ -884,7 +1069,9 @@ function BrandDetail() {
       </section>
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"><BarChart3 className="h-4 w-4" /> Performance-Snapshots</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <BarChart3 className="h-4 w-4" /> Performance-Snapshots
+        </h2>
         {snapshots.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
             Noch keine Snapshots. Der Sync läuft alle 30 Min. automatisch oder manuell oben.
@@ -905,12 +1092,18 @@ function BrandDetail() {
               <tbody>
                 {snapshots.slice(0, 20).map((s: any) => (
                   <tr key={s.id} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono text-[11px] text-muted-foreground">{new Date(s.snapshot_at).toLocaleString()}</td>
+                    <td className="px-4 py-2 font-mono text-[11px] text-muted-foreground">
+                      {new Date(s.snapshot_at).toLocaleString()}
+                    </td>
                     <td className="px-4 py-2 font-mono text-[11px]">{s.platform}</td>
                     <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.views ?? 0}</td>
                     <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.likes ?? 0}</td>
-                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.avg_watch_pct ?? 0}%</td>
-                    <td className="px-4 py-2 font-mono text-[11px]">{s.metrics?.drop_off_pct ?? 0}%</td>
+                    <td className="px-4 py-2 font-mono text-[11px]">
+                      {s.metrics?.avg_watch_pct ?? 0}%
+                    </td>
+                    <td className="px-4 py-2 font-mono text-[11px]">
+                      {s.metrics?.drop_off_pct ?? 0}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -925,28 +1118,59 @@ function BrandDetail() {
   );
 }
 
-
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</div>
     </div>
   );
 }
 
-function Th({ children, onClick, active }: { children: React.ReactNode; onClick?: () => void; active?: boolean }) {
+function Th({
+  children,
+  onClick,
+  active,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+}) {
   return (
-    <th className={`px-4 py-2 ${onClick ? "cursor-pointer select-none hover:text-foreground" : ""} ${active ? "text-primary" : ""}`} onClick={onClick}>
-      <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}</span>
+    <th
+      className={`px-4 py-2 ${onClick ? "cursor-pointer select-none hover:text-foreground" : ""} ${active ? "text-primary" : ""}`}
+      onClick={onClick}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}
+      </span>
     </th>
   );
 }
 
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+function Select({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary">
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
     </select>
   );
 }

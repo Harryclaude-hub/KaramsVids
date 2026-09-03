@@ -18,7 +18,8 @@ export const Route = createFileRoute("/api/public/hooks/process-automations")({
           .select("*")
           .eq("active", true);
         if (error) return json({ ok: false, error: error.message }, 500);
-        if (!rules || rules.length === 0) return json({ ok: true, sent: 0, note: "keine aktiven Regeln" });
+        if (!rules || rules.length === 0)
+          return json({ ok: true, sent: 0, note: "keine aktiven Regeln" });
 
         const { runAutomationsForAccount } = await import("@/lib/social-automation.server");
         let sent = 0;
@@ -33,13 +34,18 @@ export const Route = createFileRoute("/api/public/hooks/process-automations")({
 
         for (const [brandId, brandRules] of byBrand) {
           const { data: brand } = await supabaseAdmin
-            .from("brands").select("name").eq("id", brandId).maybeSingle();
+            .from("brands")
+            .select("name")
+            .eq("id", brandId)
+            .maybeSingle();
 
           const platforms = [...new Set(brandRules.map((r) => r.platform))];
           for (const platform of platforms) {
             const { data: acc } = await supabaseAdmin
               .from("social_accounts")
-              .select("id,brand_id,platform,access_token_encrypted,refresh_token_encrypted,expires_at,meta")
+              .select(
+                "id,brand_id,platform,access_token_encrypted,refresh_token_encrypted,expires_at,meta",
+              )
               .eq("brand_id", brandId)
               .eq("platform", platform as never)
               .neq("status", "disconnected")

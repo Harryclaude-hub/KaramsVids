@@ -137,20 +137,26 @@ function Connections() {
         <p className="font-mono text-xs uppercase tracking-widest text-primary">Social</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Plattformen verbinden</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Verbindungen gelten <span className="font-medium text-foreground">pro Brand</span> — jeder Brand kann eigene
-          Accounts haben.
+          Verbindungen gelten <span className="font-medium text-foreground">pro Brand</span> — jeder
+          Brand kann eigene Accounts haben.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Brand</span>
-        {brands.length === 0 && <span className="text-xs text-muted-foreground">Noch kein Brand angelegt.</span>}
+        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Brand
+        </span>
+        {brands.length === 0 && (
+          <span className="text-xs text-muted-foreground">Noch kein Brand angelegt.</span>
+        )}
         {brands.map((b) => (
           <button
             key={b.id}
             onClick={() => setBrandId(b.id)}
             className={`rounded-md border px-3 py-1.5 text-xs ${
-              brandId === b.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"
+              brandId === b.id
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border hover:bg-secondary"
             }`}
           >
             {b.name}
@@ -197,10 +203,18 @@ function Connections() {
                   <button
                     onClick={() => connect(id)}
                     disabled={!brandId || connecting === id || !configured}
-                    title={configured ? undefined : `Secrets ${cfg?.idEnv} & ${cfg?.secretEnv} fehlen noch`}
+                    title={
+                      configured
+                        ? undefined
+                        : `Secrets ${cfg?.idEnv} & ${cfg?.secretEnv} fehlen noch`
+                    }
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {connecting === id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                    {connecting === id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Link2 className="h-3 w-3" />
+                    )}
                     Verbinden
                   </button>
                 )}
@@ -232,8 +246,14 @@ function Connections() {
           <ul className="space-y-1 text-muted-foreground">
             {missing.map((p) => (
               <li key={p.platform}>
-                <span className="font-medium text-foreground">{p.label}</span> — {p.idEnv} + {p.secretEnv} ·{" "}
-                <a href={p.docsUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                <span className="font-medium text-foreground">{p.label}</span> — {p.idEnv} +{" "}
+                {p.secretEnv} ·{" "}
+                <a
+                  href={p.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent hover:underline"
+                >
                   {p.docsUrl}
                 </a>
               </li>
@@ -242,7 +262,8 @@ function Connections() {
           <p className="text-[11px] text-muted-foreground">
             Trage bei der Developer-App als Redirect-URI ein:{" "}
             <code className="rounded bg-background px-1 py-0.5 font-mono text-[10px]">
-              {typeof window !== "undefined" ? window.location.origin : ""}/api/public/oauth/&lt;plattform&gt;/callback
+              {typeof window !== "undefined" ? window.location.origin : ""}
+              /api/public/oauth/&lt;plattform&gt;/callback
             </code>
           </p>
         </div>

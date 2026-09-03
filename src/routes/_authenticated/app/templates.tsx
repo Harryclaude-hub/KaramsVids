@@ -68,7 +68,15 @@ const MOTION = [
   ["punch-in", "Punch-In"],
 ] as const;
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -85,7 +93,10 @@ function TemplatesPage() {
   const save = useServerFn(saveTemplatePreset);
   const remove = useServerFn(deleteTemplatePreset);
 
-  const presetsQ = useQuery({ queryKey: ["template-presets"], queryFn: () => listTemplatePresets() });
+  const presetsQ = useQuery({
+    queryKey: ["template-presets"],
+    queryFn: () => listTemplatePresets(),
+  });
 
   const [presetId, setPresetId] = useState<string | null>(null);
   const [name, setName] = useState("Meine Vorlage");
@@ -101,10 +112,7 @@ function TemplatesPage() {
     setCfg(overridesFromTemplate(renderTemplateFor(baseId)));
   }, [baseId, presetId]);
 
-  const merged = useMemo(
-    () => mergeTemplate(renderTemplateFor(baseId), cfg),
-    [baseId, cfg],
-  );
+  const merged = useMemo(() => mergeTemplate(renderTemplateFor(baseId), cfg), [baseId, cfg]);
 
   function set<K extends keyof TemplateOverrides>(k: K, v: TemplateOverrides[K]) {
     setCfg((c) => ({ ...c, [k]: v }));
@@ -171,7 +179,11 @@ function TemplatesPage() {
               <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
             </Row>
             <Row label="Grundvorlage">
-              <select value={baseId} onChange={(e) => setBaseId(e.target.value)} className={inputCls}>
+              <select
+                value={baseId}
+                onChange={(e) => setBaseId(e.target.value)}
+                className={inputCls}
+              >
                 {BASE_IDS.map((id) => (
                   <option key={id} value={id}>
                     {id}
@@ -323,7 +335,11 @@ function TemplatesPage() {
               disabled={busy}
               className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
               {presetId ? "Vorlage aktualisieren" : "Vorlage speichern"}
             </button>
             <button
@@ -370,7 +386,10 @@ function TemplatesPage() {
                   key={p.id}
                   className={`flex items-center gap-1 rounded border px-2 py-1.5 text-[11px] ${p.id === presetId ? "border-primary/60 bg-primary/5" : "border-border"}`}
                 >
-                  <button onClick={() => loadPreset(p)} className="min-w-0 flex-1 truncate text-left">
+                  <button
+                    onClick={() => loadPreset(p)}
+                    className="min-w-0 flex-1 truncate text-left"
+                  >
                     {p.name}
                     <span className="ml-1 font-mono text-[9px] text-muted-foreground">
                       {p.base_template_id}

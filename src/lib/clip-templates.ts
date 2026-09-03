@@ -1,10 +1,5 @@
 export type ClipTemplateId =
-  | "ugc_hook"
-  | "podcast_snippet"
-  | "story_time"
-  | "talking_head"
-  | "fast_reel"
-  | "cinematic";
+  "ugc_hook" | "podcast_snippet" | "story_time" | "talking_head" | "fast_reel" | "cinematic";
 
 export type ClipTemplate = {
   id: ClipTemplateId;

@@ -183,10 +183,7 @@ export type TemplateOverrides = {
 };
 
 /** Basis-Vorlage + individuelle Einstellungen zusammenführen. */
-export function mergeTemplate(
-  base: RenderTemplate,
-  o?: TemplateOverrides | null,
-): RenderTemplate {
+export function mergeTemplate(base: RenderTemplate, o?: TemplateOverrides | null): RenderTemplate {
   if (!o) return base;
   return {
     ...base,
@@ -231,7 +228,6 @@ export function overridesFromTemplate(t: RenderTemplate): Required<TemplateOverr
   };
 }
 
-
 // ---------- Creatomate-Source-Builder ----------
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -242,12 +238,18 @@ function inAnimation(t: RenderTemplate): any[] {
     case "fade":
       return [{ time: 0, duration: d, easing: "quadratic-out", type: "fade" }];
     case "slide-up":
-      return [
-        { time: 0, duration: d, easing: "quadratic-out", type: "slide", direction: "up" },
-      ];
+      return [{ time: 0, duration: d, easing: "quadratic-out", type: "slide", direction: "up" }];
     case "scale-up":
       return [
-        { time: 0, duration: d, easing: "quadratic-out", type: "scale", scope: "element", start_scale: "108%", end_scale: "100%" },
+        {
+          time: 0,
+          duration: d,
+          easing: "quadratic-out",
+          type: "scale",
+          scope: "element",
+          start_scale: "108%",
+          end_scale: "100%",
+        },
         { time: 0, duration: d * 0.7, easing: "linear", type: "fade" },
       ];
     case "wipe-right":
@@ -265,7 +267,15 @@ function outAnimation(t: RenderTemplate, clipDur: number): any[] {
       return [{ time, duration: d, easing: "quadratic-in", type: "fade", reversed: true }];
     case "scale-down":
       return [
-        { time, duration: d, easing: "quadratic-in", type: "scale", scope: "element", start_scale: "100%", end_scale: "94%" },
+        {
+          time,
+          duration: d,
+          easing: "quadratic-in",
+          type: "scale",
+          scope: "element",
+          start_scale: "100%",
+          end_scale: "94%",
+        },
         { time, duration: d, easing: "linear", type: "fade", reversed: true },
       ];
     default:
@@ -437,7 +447,14 @@ export function buildCreatomateSource(input: BuildSourceInput): Record<string, u
       stroke_color: "#000000",
       stroke_width: "1.2 vmin",
       animations: [
-        { time: 0, duration: 0.4, easing: "quadratic-out", type: "text-slide", scope: "split-clip", split: "word" },
+        {
+          time: 0,
+          duration: 0.4,
+          easing: "quadratic-out",
+          type: "text-slide",
+          scope: "split-clip",
+          split: "word",
+        },
         { time: Math.min(2.2, clipDur - 0.4), duration: 0.4, type: "fade", reversed: true },
       ],
     });

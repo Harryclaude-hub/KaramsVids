@@ -46,7 +46,6 @@ export function webhookUrl(): string | null {
   return `${base}/api/public/hooks/creatomate-webhook?token=${encodeURIComponent(secret)}`;
 }
 
-
 export function webhookConfigured() {
   return !!webhookUrl();
 }

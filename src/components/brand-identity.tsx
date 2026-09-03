@@ -2,7 +2,20 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AtSign, CheckCircle2, Circle, Copy, ExternalLink, Eye, HelpCircle, KeyRound, Loader2, Search, Wand2, XCircle } from "lucide-react";
+import {
+  AtSign,
+  CheckCircle2,
+  Circle,
+  Copy,
+  ExternalLink,
+  Eye,
+  HelpCircle,
+  KeyRound,
+  Loader2,
+  Search,
+  Wand2,
+  XCircle,
+} from "lucide-react";
 
 const PLATFORMS = [
   { id: "instagram", name: "Instagram" },
@@ -12,7 +25,12 @@ const PLATFORMS = [
   { id: "x", name: "X (Twitter)" },
 ] as const;
 
-type Check = { platform: string; url: string; state: "free" | "taken" | "unknown"; signupUrl: string };
+type Check = {
+  platform: string;
+  url: string;
+  state: "free" | "taken" | "unknown";
+  signupUrl: string;
+};
 
 export function BrandIdentity({ brandId, brandName }: { brandId: string; brandName: string }) {
   const qc = useQueryClient();
@@ -43,7 +61,10 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
       });
       setHandle(res.handle);
       setResults(res.results as Check[]);
-      await supabase.from("brands").update({ handle: res.handle } as never).eq("id", brandId);
+      await supabase
+        .from("brands")
+        .update({ handle: res.handle } as never)
+        .eq("id", brandId);
       qc.invalidateQueries({ queryKey: ["brand", brandId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Prüfung fehlgeschlagen");
@@ -91,26 +112,43 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
           {results.map((r) => {
             const meta = PLATFORMS.find((p) => p.id === r.platform)!;
             return (
-              <div key={r.platform} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+              <div
+                key={r.platform}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2"
+              >
                 <div className="min-w-0">
                   <div className="text-xs font-medium">{meta.name}</div>
-                  <div className="truncate font-mono text-[10px] text-muted-foreground">@{handle}</div>
+                  <div className="truncate font-mono text-[10px] text-muted-foreground">
+                    @{handle}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {r.state === "free" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-primary"><CheckCircle2 className="h-3 w-3" /> frei</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+                      <CheckCircle2 className="h-3 w-3" /> frei
+                    </span>
                   )}
                   {r.state === "taken" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-destructive"><XCircle className="h-3 w-3" /> vergeben</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
+                      <XCircle className="h-3 w-3" /> vergeben
+                    </span>
                   )}
                   {r.state === "unknown" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title="Plattform blockt die automatische Prüfung — bitte manuell im Link prüfen">
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
+                      title="Plattform blockt die automatische Prüfung — bitte manuell im Link prüfen"
+                    >
                       <HelpCircle className="h-3 w-3" /> unklar
                     </span>
                   )}
-                  <a href={r.state === "taken" ? r.url : r.signupUrl} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-                    {r.state === "taken" ? "Ansehen" : "Anlegen"} <ExternalLink className="h-3 w-3" />
+                  <a
+                    href={r.state === "taken" ? r.url : r.signupUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+                  >
+                    {r.state === "taken" ? "Ansehen" : "Anlegen"}{" "}
+                    <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>
@@ -161,9 +199,15 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
 type Suggestion = { handle: string; results: Check[]; free: number; taken: number };
 
 function SetupWizard({
-  brandId, brandName, creds, onChanged,
+  brandId,
+  brandName,
+  creds,
+  onChanged,
 }: {
-  brandId: string; brandName: string; creds: any[]; onChanged: () => void;
+  brandId: string;
+  brandName: string;
+  creds: any[];
+  onChanged: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
@@ -196,12 +240,16 @@ function SetupWizard({
   async function mark(platform: string, status: "in_progress" | "done") {
     setBusy(platform);
     try {
-      const { setCredentialSetupStatus, saveBrandCredential } = await import(
-        "@/lib/brand-identity.functions"
-      );
+      const { setCredentialSetupStatus, saveBrandCredential } =
+        await import("@/lib/brand-identity.functions");
       if (status === "done" && chosen) {
         await saveBrandCredential({
-          data: { brandId, platform: platform as never, username: chosen, password: password || null },
+          data: {
+            brandId,
+            platform: platform as never,
+            username: chosen,
+            password: password || null,
+          },
         });
       }
       await setCredentialSetupStatus({ data: { brandId, platform: platform as never, status } });
@@ -250,7 +298,9 @@ function SetupWizard({
                 key={s.handle}
                 onClick={() => setChosen(s.handle)}
                 className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left ${
-                  chosen === s.handle ? "border-primary bg-primary/5" : "border-border bg-background/50"
+                  chosen === s.handle
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-background/50"
                 }`}
               >
                 <span className="font-mono text-xs">@{s.handle}</span>
@@ -265,12 +315,16 @@ function SetupWizard({
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
             <span className="text-[10px] text-muted-foreground">Passwort</span>
             <code className="font-mono text-[11px]">{password}</code>
-            <button onClick={() => copy(password, "Passwort")}
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+            <button
+              onClick={() => copy(password, "Passwort")}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+            >
               <Copy className="h-3 w-3" /> Kopieren
             </button>
-            <button onClick={() => copy(chosen, "Username")}
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+            <button
+              onClick={() => copy(chosen, "Username")}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+            >
               <Copy className="h-3 w-3" /> Username
             </button>
           </div>
@@ -279,22 +333,37 @@ function SetupWizard({
             {PLATFORMS.map((p) => {
               const cred = creds.find((c) => c.platform === p.id);
               const status = cred?.setup_status ?? "todo";
-              const check = suggestions.find((s) => s.handle === chosen)?.results.find((r) => r.platform === p.id);
+              const check = suggestions
+                .find((s) => s.handle === chosen)
+                ?.results.find((r) => r.platform === p.id);
               return (
-                <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2"
+                >
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-xs font-medium">
-                      {status === "done" ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <Circle className="h-3 w-3 text-muted-foreground" />}
+                      {status === "done" ? (
+                        <CheckCircle2 className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Circle className="h-3 w-3 text-muted-foreground" />
+                      )}
                       {p.name}
                     </div>
                     <div className="truncate font-mono text-[10px] text-muted-foreground">
-                      @{chosen} · {check?.state === "free" ? "frei" : check?.state === "taken" ? "vergeben" : "unklar"}
+                      @{chosen} ·{" "}
+                      {check?.state === "free"
+                        ? "frei"
+                        : check?.state === "taken"
+                          ? "vergeben"
+                          : "unklar"}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <a
                       href={check?.signupUrl || "#"}
-                      target="_blank" rel="noreferrer"
+                      target="_blank"
+                      rel="noreferrer"
                       onClick={() => mark(p.id, "in_progress")}
                       className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
                     >
@@ -318,12 +387,18 @@ function SetupWizard({
   );
 }
 
-
 function CredentialRow({
-  brandId, platform, label, row, onSaved,
+  brandId,
+  platform,
+  label,
+  row,
+  onSaved,
 }: {
-  brandId: string; platform: string; label: string;
-  row: any | null; onSaved: () => void;
+  brandId: string;
+  platform: string;
+  label: string;
+  row: any | null;
+  onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState(row?.username ?? "");
@@ -372,33 +447,61 @@ function CredentialRow({
         </div>
         <div className="flex items-center gap-1">
           {row?.login_url && (
-            <a href={row.login_url} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+            <a
+              href={row.login_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+            >
               Login <ExternalLink className="h-3 w-3" />
             </a>
           )}
           {row?.password_encrypted && (
-            <button onClick={reveal} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+            <button
+              onClick={reveal}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+            >
               <Eye className="h-3 w-3" /> Zeigen
             </button>
           )}
-          <button onClick={() => setOpen((v) => !v)} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+          >
             {open ? "Schließen" : row ? "Bearbeiten" : "Hinzufügen"}
           </button>
         </div>
       </div>
-      {revealed && <div className="mt-2 rounded bg-secondary px-2 py-1 font-mono text-[11px]">{revealed}</div>}
+      {revealed && (
+        <div className="mt-2 rounded bg-secondary px-2 py-1 font-mono text-[11px]">{revealed}</div>
+      )}
       {open && (
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
-          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
-            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-Mail"
-            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+          />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="E-Mail"
+            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+          />
           <div className="flex gap-1">
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Passwort"
-              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
-            <button onClick={save} disabled={saving}
-              className="rounded-md bg-primary px-2.5 py-1.5 text-[11px] font-medium text-primary-foreground disabled:opacity-60">
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="Passwort"
+              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+            />
+            <button
+              onClick={save}
+              disabled={saving}
+              className="rounded-md bg-primary px-2.5 py-1.5 text-[11px] font-medium text-primary-foreground disabled:opacity-60"
+            >
               {saving ? "…" : "OK"}
             </button>
           </div>

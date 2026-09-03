@@ -61,7 +61,10 @@ function ProfilePage() {
     const byPlatform = new Map<string, number>();
     const byBrand = new Map<string, number>();
     for (const e of earnings) {
-      byPlatform.set(e.platform ?? "—", (byPlatform.get(e.platform ?? "—") ?? 0) + Number(e.amount));
+      byPlatform.set(
+        e.platform ?? "—",
+        (byPlatform.get(e.platform ?? "—") ?? 0) + Number(e.amount),
+      );
       if (e.brand_id) byBrand.set(e.brand_id, (byBrand.get(e.brand_id) ?? 0) + Number(e.amount));
     }
     return { total, paid, open: total - paid, byPlatform, byBrand };

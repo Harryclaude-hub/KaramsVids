@@ -37,7 +37,9 @@ export const Route = createFileRoute("/api/chat")({
 
         const { data: job, error: jobErr } = await supabase
           .from("edit_jobs")
-          .select("id, analysis, options, style_reference, raw_videos(title, duration_s, source_url)")
+          .select(
+            "id, analysis, options, style_reference, raw_videos(title, duration_s, source_url)",
+          )
           .eq("id", body.jobId)
           .single();
         if (jobErr || !job) return new Response("Job not found", { status: 404 });
@@ -48,14 +50,42 @@ export const Route = createFileRoute("/api/chat")({
 
         const analysis = ((job.analysis as unknown) ?? { segments: [] }) as {
           segments: Array<{
-            start_s: number; end_s: number; title: string; hook?: string; captions?: string;
-            speed?: number; muted?: boolean; reverse?: boolean; freeze_at_s?: number;
+            start_s: number;
+            end_s: number;
+            title: string;
+            hook?: string;
+            captions?: string;
+            speed?: number;
+            muted?: boolean;
+            reverse?: boolean;
+            freeze_at_s?: number;
             fill_mode?: "crop" | "letterbox" | "blur_pad";
             color?: { brightness?: number; contrast?: number; saturation?: number; gamma?: number };
-            transform?: { zoom_start?: number; zoom_end?: number; rotate?: 0|90|180|270; flip_h?: boolean };
+            transform?: {
+              zoom_start?: number;
+              zoom_end?: number;
+              rotate?: 0 | 90 | 180 | 270;
+              flip_h?: boolean;
+            };
           }>;
-          overlays?: Array<{ id: string; clip_index: number; start_s: number; end_s: number; text: string; position: "top"|"center"|"bottom"; font_size: number; color: string; bg: boolean }>;
-          audio_tracks?: Array<{ id: string; name: string; url?: string; volume: number; duck: boolean }>;
+          overlays?: Array<{
+            id: string;
+            clip_index: number;
+            start_s: number;
+            end_s: number;
+            text: string;
+            position: "top" | "center" | "bottom";
+            font_size: number;
+            color: string;
+            bg: boolean;
+          }>;
+          audio_tracks?: Array<{
+            id: string;
+            name: string;
+            url?: string;
+            volume: number;
+            duck: boolean;
+          }>;
           [k: string]: unknown;
         };
         if (!Array.isArray(analysis.segments)) analysis.segments = [];
@@ -66,13 +96,22 @@ export const Route = createFileRoute("/api/chat")({
         const uid = () => Math.random().toString(36).slice(2, 10);
 
         async function persistAnalysis() {
-          await supabase.from("edit_jobs").update({ analysis: analysis as unknown as never }).eq("id", body.jobId!);
+          await supabase
+            .from("edit_jobs")
+            .update({ analysis: analysis as unknown as never })
+            .eq("id", body.jobId!);
         }
         async function persistOptions() {
-          await supabase.from("edit_jobs").update({ options: options as unknown as never }).eq("id", body.jobId!);
+          await supabase
+            .from("edit_jobs")
+            .update({ options: options as unknown as never })
+            .eq("id", body.jobId!);
         }
 
-        const COLOR_PRESETS: Record<string, { brightness?: number; contrast?: number; saturation?: number; gamma?: number }> = {
+        const COLOR_PRESETS: Record<
+          string,
+          { brightness?: number; contrast?: number; saturation?: number; gamma?: number }
+        > = {
           warm: { brightness: 0.03, saturation: 1.25, gamma: 1.05 },
           cold: { brightness: 0.02, saturation: 0.9, contrast: 1.1 },
           cinematic: { contrast: 1.25, saturation: 0.85, gamma: 0.95 },
@@ -115,7 +154,9 @@ export const Route = createFileRoute("/api/chat")({
             execute: async ({ index, ...patch }) => {
               const seg = analysis.segments[index];
               if (!seg) return { ok: false, error: "Index out of range" };
-              const cleaned = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+              const cleaned = Object.fromEntries(
+                Object.entries(patch).filter(([, v]) => v !== undefined),
+              );
               analysis.segments[index] = { ...seg, ...cleaned };
               await persistAnalysis();
               return { ok: true, clip: analysis.segments[index] };
@@ -132,7 +173,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           reorder_clips: tool({
-            description: "Ordnet Clips neu — 'order' ist ein Array alter Indizes in neuer Reihenfolge.",
+            description:
+              "Ordnet Clips neu — 'order' ist ein Array alter Indizes in neuer Reihenfolge.",
             inputSchema: z.object({ order: z.array(z.number().int().min(0)) }),
             execute: async ({ order }) => {
               const next = order.map((i) => analysis.segments[i]).filter(Boolean);
@@ -143,7 +185,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           set_aspect: tool({
-            description: "Setzt das Ausgabeformat (9:16 vertikal, 16:9 landscape, 1:1 quadratisch).",
+            description:
+              "Setzt das Ausgabeformat (9:16 vertikal, 16:9 landscape, 1:1 quadratisch).",
             inputSchema: z.object({ aspect: z.enum(["9:16", "16:9", "1:1"]) }),
             execute: async ({ aspect }) => {
               options = { ...options, aspect };
@@ -153,7 +196,9 @@ export const Route = createFileRoute("/api/chat")({
           }),
           set_captions_style: tool({
             description: "Setzt den Untertitel-Stil (none, burned_bottom, burned_center, karaoke).",
-            inputSchema: z.object({ style: z.enum(["none", "burned_bottom", "burned_center", "karaoke"]) }),
+            inputSchema: z.object({
+              style: z.enum(["none", "burned_bottom", "burned_center", "karaoke"]),
+            }),
             execute: async ({ style }) => {
               options = { ...options, caption_style: style };
               await persistOptions();
@@ -174,7 +219,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           trim_all_to_length: tool({
-            description: "Kürzt alle Clips, die länger als max_seconds sind, auf max_seconds ab dem Startpunkt.",
+            description:
+              "Kürzt alle Clips, die länger als max_seconds sind, auf max_seconds ab dem Startpunkt.",
             inputSchema: z.object({ max_seconds: z.number().min(1).max(120) }),
             execute: async ({ max_seconds }) => {
               let trimmed = 0;
@@ -203,8 +249,12 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           set_clip_speed: tool({
-            description: "Setzt die Wiedergabegeschwindigkeit eines Clips (0.25 = Slowmo, 2 = doppelt).",
-            inputSchema: z.object({ index: z.number().int().min(0), speed: z.number().min(0.25).max(4) }),
+            description:
+              "Setzt die Wiedergabegeschwindigkeit eines Clips (0.25 = Slowmo, 2 = doppelt).",
+            inputSchema: z.object({
+              index: z.number().int().min(0),
+              speed: z.number().min(0.25).max(4),
+            }),
             execute: async ({ index, speed }) => {
               const seg = analysis.segments[index];
               if (!seg) return { ok: false };
@@ -236,7 +286,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           apply_color_preset: tool({
-            description: "Wendet einen Farb-Look an: warm, cold, cinematic, vibrant, bw, flat. Auf einen Clip (index) oder alle (index weglassen).",
+            description:
+              "Wendet einen Farb-Look an: warm, cold, cinematic, vibrant, bw, flat. Auf einen Clip (index) oder alle (index weglassen).",
             inputSchema: z.object({
               preset: z.enum(["warm", "cold", "cinematic", "vibrant", "bw", "flat"]),
               index: z.number().int().min(0).optional(),
@@ -255,7 +306,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           set_fill_mode: tool({
-            description: "Setzt wie das Bild ins Ausgabeformat passt: crop (zuschneiden), letterbox (schwarze Ränder), blur_pad (unscharfer Rand).",
+            description:
+              "Setzt wie das Bild ins Ausgabeformat passt: crop (zuschneiden), letterbox (schwarze Ränder), blur_pad (unscharfer Rand).",
             inputSchema: z.object({
               mode: z.enum(["crop", "letterbox", "blur_pad"]),
               index: z.number().int().min(0).optional(),
@@ -273,28 +325,39 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           apply_ken_burns: tool({
-            description: "Fügt Ken-Burns Zoom-Bewegung hinzu: 'in' (rein), 'out' (raus), 'off' (aus). Auf Clip oder alle.",
+            description:
+              "Fügt Ken-Burns Zoom-Bewegung hinzu: 'in' (rein), 'out' (raus), 'off' (aus). Auf Clip oder alle.",
             inputSchema: z.object({
               direction: z.enum(["in", "out", "off"]),
               index: z.number().int().min(0).optional(),
             }),
             execute: async ({ direction, index }) => {
-              const t = direction === "in" ? { zoom_start: 1, zoom_end: 1.25 }
-                : direction === "out" ? { zoom_start: 1.25, zoom_end: 1 }
-                : { zoom_start: 1, zoom_end: 1 };
+              const t =
+                direction === "in"
+                  ? { zoom_start: 1, zoom_end: 1.25 }
+                  : direction === "out"
+                    ? { zoom_start: 1.25, zoom_end: 1 }
+                    : { zoom_start: 1, zoom_end: 1 };
               if (index === undefined) {
-                analysis.segments = analysis.segments.map((s) => ({ ...s, transform: { ...(s.transform ?? {}), ...t } }));
+                analysis.segments = analysis.segments.map((s) => ({
+                  ...s,
+                  transform: { ...(s.transform ?? {}), ...t },
+                }));
               } else {
                 const seg = analysis.segments[index];
                 if (!seg) return { ok: false };
-                analysis.segments[index] = { ...seg, transform: { ...(seg.transform ?? {}), ...t } };
+                analysis.segments[index] = {
+                  ...seg,
+                  transform: { ...(seg.transform ?? {}), ...t },
+                };
               }
               await persistAnalysis();
               return { ok: true };
             },
           }),
           add_text_overlay: tool({
-            description: "Fügt einen Text-Overlay zu einem Clip hinzu (Zeiten relativ zum Clip-Anfang).",
+            description:
+              "Fügt einen Text-Overlay zu einem Clip hinzu (Zeiten relativ zum Clip-Anfang).",
             inputSchema: z.object({
               clip_index: z.number().int().min(0),
               text: z.string(),
@@ -314,7 +377,8 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           add_music_track: tool({
-            description: "Fügt eine Hintergrundmusik-Spur hinzu (Name/URL aus Bibliothek). Ducking senkt Musik bei Sprache.",
+            description:
+              "Fügt eine Hintergrundmusik-Spur hinzu (Name/URL aus Bibliothek). Ducking senkt Musik bei Sprache.",
             inputSchema: z.object({
               name: z.string(),
               url: z.string().url().optional(),
@@ -328,13 +392,22 @@ export const Route = createFileRoute("/api/chat")({
             },
           }),
           apply_style_reference: tool({
-            description: "Wendet den zuletzt analysierten Referenz-Stil auf alle Clips an. Vorher muss ein Referenzvideo analysiert worden sein.",
+            description:
+              "Wendet den zuletzt analysierten Referenz-Stil auf alle Clips an. Vorher muss ein Referenzvideo analysiert worden sein.",
             inputSchema: z.object({}),
             execute: async () => {
               const { data: fresh } = await supabase
-                .from("edit_jobs").select("style_reference").eq("id", body.jobId!).single();
+                .from("edit_jobs")
+                .select("style_reference")
+                .eq("id", body.jobId!)
+                .single();
               const style = fresh?.style_reference as Record<string, unknown> | null;
-              if (!style) return { ok: false, error: "Kein Referenz-Stil vorhanden. Bitte zuerst ein Referenzvideo hochladen und analysieren." };
+              if (!style)
+                return {
+                  ok: false,
+                  error:
+                    "Kein Referenz-Stil vorhanden. Bitte zuerst ein Referenzvideo hochladen und analysieren.",
+                };
               const target = Math.max(5, Math.min(60, Number(style.avg_clip_length_s ?? 20)));
               analysis.segments = analysis.segments.map((s) => {
                 const dur = s.end_s - s.start_s;
@@ -342,7 +415,11 @@ export const Route = createFileRoute("/api/chat")({
                 return {
                   ...s,
                   end_s,
-                  captions: s.captions ?? (typeof style.caption_style_example === "string" ? style.caption_style_example : undefined),
+                  captions:
+                    s.captions ??
+                    (typeof style.caption_style_example === "string"
+                      ? style.caption_style_example
+                      : undefined),
                 };
               });
               if (typeof style.aspect === "string") {
@@ -382,7 +459,10 @@ Arbeitsweise:
           originalMessages: body.messages,
           onFinish: async ({ messages }) => {
             try {
-              await supabase.from("edit_jobs").update({ chat_messages: messages as unknown as never }).eq("id", body.jobId!);
+              await supabase
+                .from("edit_jobs")
+                .update({ chat_messages: messages as unknown as never })
+                .eq("id", body.jobId!);
             } catch (e) {
               console.error("chat persist failed", e);
             }

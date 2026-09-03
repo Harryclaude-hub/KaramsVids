@@ -5,10 +5,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { runPublishQueue } from "@/lib/hooks.functions";
 import { useActiveBrandId, useBrands } from "@/lib/use-active-brand";
 import { useState } from "react";
-import { CalendarClock, ListOrdered, Plus, Trash2, ArrowUp, ArrowDown, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, Clock, Edit3 } from "lucide-react";
+import {
+  CalendarClock,
+  ListOrdered,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Play,
+  Pause,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Edit3,
+} from "lucide-react";
 import { toast } from "sonner";
-import { PLATFORM_POST_TYPES, POST_TYPE_LABEL, normalizePostType, type PostType } from "@/lib/post-types";
-
+import {
+  PLATFORM_POST_TYPES,
+  POST_TYPE_LABEL,
+  normalizePostType,
+  type PostType,
+} from "@/lib/post-types";
 
 export const Route = createFileRoute("/_authenticated/app/publishing")({
   component: PublishingPage,
@@ -24,7 +42,6 @@ const PLATFORMS = [
 
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
-
 function PublishingPage() {
   const { user } = Route.useRouteContext();
   const [activeBrandId] = useActiveBrandId();
@@ -37,8 +54,11 @@ function PublishingPage() {
     queryKey: ["publish_schedules", user.id, activeBrandId],
     enabled: !!activeBrandId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("publish_schedules")
-        .select("*").eq("brand_id", activeBrandId!).order("created_at");
+      const { data, error } = await supabase
+        .from("publish_schedules")
+        .select("*")
+        .eq("brand_id", activeBrandId!)
+        .order("created_at");
       if (error) throw error;
       return data ?? [];
     },
@@ -49,7 +69,8 @@ function PublishingPage() {
     queryKey: ["clips", user.id, activeBrandId],
     enabled: !!activeBrandId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("generated_clips")
+      const { data, error } = await supabase
+        .from("generated_clips")
         .select("*, edit_jobs(raw_videos(title))")
         .eq("brand_id", activeBrandId!)
         .order("queue_position", { ascending: true })
@@ -66,7 +87,8 @@ function PublishingPage() {
   if (!activeBrandId) {
     return (
       <div className="mx-auto max-w-xl rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        Kein Brand aktiv. Wähle links einen Brand, um dessen Upload-Zeitplan und Warteschlange zu sehen.
+        Kein Brand aktiv. Wähle links einen Brand, um dessen Upload-Zeitplan und Warteschlange zu
+        sehen.
       </div>
     );
   }
@@ -81,7 +103,8 @@ function PublishingPage() {
 
   const queuedByPlatform: Record<string, number> = {};
   for (const c of clipsQ.data ?? []) {
-    if (c.status === "queued" && c.platform) queuedByPlatform[c.platform] = (queuedByPlatform[c.platform] ?? 0) + 1;
+    if (c.status === "queued" && c.platform)
+      queuedByPlatform[c.platform] = (queuedByPlatform[c.platform] ?? 0) + 1;
   }
 
   async function triggerProcess() {
@@ -100,11 +123,19 @@ function PublishingPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-primary">Publishing · {brand.name}</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-primary">
+            Publishing · {brand.name}
+          </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">Zeitpläne & Warteschlange</h1>
-          <p className="mt-1 text-xs text-muted-foreground">Der Hintergrund-Job läuft alle 5 Min. Fällige Slots holen die nächsten Clips aus der Warteschlange nach ihrer Reihenfolge.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Der Hintergrund-Job läuft alle 5 Min. Fällige Slots holen die nächsten Clips aus der
+            Warteschlange nach ihrer Reihenfolge.
+          </p>
         </div>
-        <button onClick={triggerProcess} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+        <button
+          onClick={triggerProcess}
+          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card"
+        >
           <RefreshCw className="h-4 w-4" /> Jetzt verarbeiten
         </button>
       </div>
@@ -114,10 +145,11 @@ function PublishingPage() {
         userId={user.id}
         brands={(brandsQ.data ?? []).map((b) => ({ id: b.id, name: b.name }))}
         schedules={schedules}
-        onChange={() => qc.invalidateQueries({ queryKey: ["publish_schedules", user.id, activeBrandId] })}
+        onChange={() =>
+          qc.invalidateQueries({ queryKey: ["publish_schedules", user.id, activeBrandId] })
+        }
         queuedByPlatform={queuedByPlatform}
       />
-
 
       <QueueSection
         clips={clips as ClipRow[]}
@@ -168,7 +200,6 @@ type Schedule = {
   next_run_at: string;
   last_run_at: string | null;
 };
-
 
 /** Plattform-Liste eines Plans (neues Array-Feld mit Fallback aufs Altfeld) */
 function schedulePlatforms(s: Schedule): string[] {
@@ -248,10 +279,18 @@ function IntervalEditor({ schedule, onSaved }: { schedule: Schedule; onSaved: ()
 }
 
 function ScheduleSection({
-  brandId, userId, brands, schedules, onChange, queuedByPlatform,
+  brandId,
+  userId,
+  brands,
+  schedules,
+  onChange,
+  queuedByPlatform,
 }: {
-  brandId: string; userId: string; brands: { id: string; name: string }[];
-  schedules: Schedule[]; onChange: () => void;
+  brandId: string;
+  userId: string;
+  brands: { id: string; name: string }[];
+  schedules: Schedule[];
+  onChange: () => void;
   queuedByPlatform: Record<string, number>;
 }) {
   const [creating, setCreating] = useState(false);
@@ -263,7 +302,6 @@ function ScheduleSection({
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // ganze Woche
   const [count, setCount] = useState(1);
   const [selPostTypes, setSelPostTypes] = useState<string[]>([]); // leer = alle Beitragsarten
-
 
   const [intervalN, setIntervalN] = useState(6);
   const [intervalUnit, setIntervalUnit] = useState<"minutes" | "hours" | "days">("hours");
@@ -297,7 +335,8 @@ function ScheduleSection({
       return toast.error("Bitte mindestens einen Wochentag wählen");
     const cadence = mode === "interval" ? "interval" : days.length === 7 ? "daily" : "weekly";
     const { error } = await supabase.from("publish_schedules").insert({
-      user_id: userId, brand_id: selBrands[0],
+      user_id: userId,
+      brand_id: selBrands[0],
       brand_ids: selBrands,
       shuffle,
       platform: selPlatforms[0], // Altfeld (Kompatibilität)
@@ -327,7 +366,10 @@ function ScheduleSection({
   }
 
   async function toggleActive(s: Schedule) {
-    const { error } = await supabase.from("publish_schedules").update({ active: !s.active }).eq("id", s.id);
+    const { error } = await supabase
+      .from("publish_schedules")
+      .update({ active: !s.active })
+      .eq("id", s.id);
     if (error) return toast.error(error.message);
     onChange();
   }
@@ -339,7 +381,10 @@ function ScheduleSection({
   }
   async function updateCount(s: Schedule, n: number) {
     if (n < 1) return;
-    const { error } = await supabase.from("publish_schedules").update({ videos_per_slot: n }).eq("id", s.id);
+    const { error } = await supabase
+      .from("publish_schedules")
+      .update({ videos_per_slot: n })
+      .eq("id", s.id);
     if (error) return toast.error(error.message);
     onChange();
   }
@@ -350,7 +395,10 @@ function ScheduleSection({
         <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <CalendarClock className="h-4 w-4" /> Upload-Zeitpläne ({schedules.length})
         </h2>
-        <button onClick={() => setCreating((v) => !v)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card">
+        <button
+          onClick={() => setCreating((v) => !v)}
+          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card"
+        >
           <Plus className="h-3 w-3" /> Neuer Slot
         </button>
       </div>
@@ -368,13 +416,17 @@ function ScheduleSection({
           {/* Schritt 0: Brands */}
           <div>
             <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">0</span>
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                0
+              </span>
               Für welche Brands gilt dieser Slot?
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() =>
-                  setSelBrands(selBrands.length === brands.length ? [brandId] : brands.map((b) => b.id))
+                  setSelBrands(
+                    selBrands.length === brands.length ? [brandId] : brands.map((b) => b.id),
+                  )
                 }
                 className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${selBrands.length === brands.length ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
               >
@@ -384,7 +436,9 @@ function ScheduleSection({
                 <button
                   key={b.id}
                   onClick={() =>
-                    setSelBrands((cur) => (cur.includes(b.id) ? cur.filter((x) => x !== b.id) : [...cur, b.id]))
+                    setSelBrands((cur) =>
+                      cur.includes(b.id) ? cur.filter((x) => x !== b.id) : [...cur, b.id],
+                    )
                   }
                   className={`rounded-md border px-2.5 py-1.5 text-xs ${selBrands.includes(b.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
                 >
@@ -393,17 +447,22 @@ function ScheduleSection({
               ))}
             </div>
             <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-              Reihenfolge mischen — jeder Brand postet eine andere zufällige Auswahl aus seiner Warteschlange
+              <input
+                type="checkbox"
+                checked={shuffle}
+                onChange={(e) => setShuffle(e.target.checked)}
+              />
+              Reihenfolge mischen — jeder Brand postet eine andere zufällige Auswahl aus seiner
+              Warteschlange
             </label>
           </div>
-
-
 
           {/* Schritt 1: Plattformen */}
           <div>
             <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">1</span>
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                1
+              </span>
               Wohin posten?
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -429,7 +488,9 @@ function ScheduleSection({
           {/* Schritt 2: Wann */}
           <div>
             <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2</span>
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                2
+              </span>
               Wann posten?
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -460,7 +521,9 @@ function ScheduleSection({
                     <button
                       key={i}
                       onClick={() =>
-                        setDays((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]))
+                        setDays((cur) =>
+                          cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i],
+                        )
                       }
                       className={`w-9 rounded-md border px-2 py-1.5 text-xs ${days.includes(i) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}
                     >
@@ -512,15 +575,20 @@ function ScheduleSection({
           {/* Beitragsarten */}
           <div>
             <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2b</span>
-              Welche Beitragsarten posten? <span className="font-normal text-muted-foreground">(leer = alle)</span>
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                2b
+              </span>
+              Welche Beitragsarten posten?{" "}
+              <span className="font-normal text-muted-foreground">(leer = alle)</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {[...new Set(selPlatforms.flatMap((p) => PLATFORM_POST_TYPES[p] ?? []))].map((t) => (
                 <button
                   key={t}
                   onClick={() =>
-                    setSelPostTypes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
+                    setSelPostTypes((cur) =>
+                      cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t],
+                    )
                   }
                   className={`rounded-md border px-2.5 py-1.5 text-xs ${selPostTypes.includes(t) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
                 >
@@ -534,7 +602,9 @@ function ScheduleSection({
 
           <div>
             <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">3</span>
+              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                3
+              </span>
               Wie viele Videos pro Termin?
             </div>
             <div className="flex items-center gap-2 text-xs">
@@ -559,9 +629,14 @@ function ScheduleSection({
                 ⏱ Postet <b>alle {fmtInterval(previewMinutes)}</b> jeweils <b>{count} Video(s)</b>{" "}
                 auf <b>{platformLabel || "— noch keine Plattform gewählt —"}</b> · erster Upload:{" "}
                 <b>
-                  {previewFirstRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr
+                  {previewFirstRun.toLocaleTimeString("de-AT", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  Uhr
                 </b>{" "}
-                ({previewFirstRun.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })})
+                ({previewFirstRun.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })}
+                )
               </>
             ) : (
               <>
@@ -573,15 +648,26 @@ function ScheduleSection({
           </div>
 
           <div className="flex justify-end gap-2">
-            <button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs">Abbrechen</button>
-            <button onClick={add} className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">Plan speichern</button>
+            <button
+              onClick={() => setCreating(false)}
+              className="rounded-md border border-border px-3 py-1.5 text-xs"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={add}
+              className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Plan speichern
+            </button>
           </div>
         </div>
       )}
 
       {schedules.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Noch keine Zeitpläne. Lege einen an, damit gequeuete Clips automatisch veröffentlicht werden.
+          Noch keine Zeitpläne. Lege einen an, damit gequeuete Clips automatisch veröffentlicht
+          werden.
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -599,7 +685,10 @@ function ScheduleSection({
                           </span>
                         ) : (
                           plats.map((p) => (
-                            <span key={p} className="rounded-md bg-secondary px-2 py-0.5 text-xs capitalize">
+                            <span
+                              key={p}
+                              className="rounded-md bg-secondary px-2 py-0.5 text-xs capitalize"
+                            >
                               {PLATFORMS.find((x) => x.id === p)?.name ?? p}
                             </span>
                           ))
@@ -627,13 +716,27 @@ function ScheduleSection({
                     </div>
                     {s.cadence === "weekly" && s.weekdays && s.weekdays.length > 0 && (
                       <div className="mt-1 flex gap-1">
-                        {s.weekdays.map((d) => <span key={d} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">{WEEKDAYS[d]}</span>)}
+                        {s.weekdays.map((d) => (
+                          <span
+                            key={d}
+                            className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]"
+                          >
+                            {WEEKDAYS[d]}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${s.active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      {s.active ? <CheckCircle2 className="h-3 w-3" /> : <Pause className="h-3 w-3" />} {s.active ? "aktiv" : "pausiert"}
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${s.active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {s.active ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : (
+                        <Pause className="h-3 w-3" />
+                      )}{" "}
+                      {s.active ? "aktiv" : "pausiert"}
                     </span>
                     <span className="text-right font-mono text-[10px] leading-relaxed">
                       {plats.map((p) => {
@@ -642,7 +745,9 @@ function ScheduleSection({
                           <span
                             key={p}
                             className={`ml-1.5 ${n === 0 ? "text-destructive" : "text-muted-foreground"}`}
-                            title={n === 0 ? "Warteschlange leer — es wird nichts gepostet!" : undefined}
+                            title={
+                              n === 0 ? "Warteschlange leer — es wird nichts gepostet!" : undefined
+                            }
                           >
                             {(PLATFORMS.find((x) => x.id === p)?.name ?? p).slice(0, 2)}:{n}
                             {n === 0 ? "⚠" : ""}
@@ -655,12 +760,33 @@ function ScheduleSection({
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
                   <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     Videos/Slot
-                    <input type="number" min={1} max={10} value={s.videos_per_slot} onChange={(e) => updateCount(s, Number(e.target.value))} className="w-14 rounded-md border border-border bg-background px-1.5 py-0.5 text-xs" />
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={s.videos_per_slot}
+                      onChange={(e) => updateCount(s, Number(e.target.value))}
+                      className="w-14 rounded-md border border-border bg-background px-1.5 py-0.5 text-xs"
+                    />
                   </label>
-                  <button onClick={() => toggleActive(s)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background">
-                    {s.active ? <><Pause className="h-3 w-3" /> Pausieren</> : <><Play className="h-3 w-3" /> Aktivieren</>}
+                  <button
+                    onClick={() => toggleActive(s)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background"
+                  >
+                    {s.active ? (
+                      <>
+                        <Pause className="h-3 w-3" /> Pausieren
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3" /> Aktivieren
+                      </>
+                    )}
                   </button>
-                  <button onClick={() => remove(s.id)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive">
+                  <button
+                    onClick={() => remove(s.id)}
+                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive"
+                  >
                     <Trash2 className="h-3 w-3" /> Löschen
                   </button>
                 </div>
@@ -674,11 +800,20 @@ function ScheduleSection({
 }
 
 function QueueSection({
-  clips, allClips, platformFilter, statusFilter, onPlatformFilter, onStatusFilter, onChange,
+  clips,
+  allClips,
+  platformFilter,
+  statusFilter,
+  onPlatformFilter,
+  onStatusFilter,
+  onChange,
 }: {
-  clips: ClipRow[]; allClips: ClipRow[];
-  platformFilter: string; statusFilter: string;
-  onPlatformFilter: (v: string) => void; onStatusFilter: (v: string) => void;
+  clips: ClipRow[];
+  allClips: ClipRow[];
+  platformFilter: string;
+  statusFilter: string;
+  onPlatformFilter: (v: string) => void;
+  onStatusFilter: (v: string) => void;
   onChange: () => void;
 }) {
   async function move(c: ClipRow, dir: -1 | 1) {
@@ -688,17 +823,27 @@ function QueueSection({
     const idx = siblings.findIndex((x) => x.id === c.id);
     const swap = siblings[idx + dir];
     if (!swap) return;
-    const a = supabase.from("generated_clips").update({ queue_position: swap.queue_position }).eq("id", c.id);
-    const b = supabase.from("generated_clips").update({ queue_position: c.queue_position }).eq("id", swap.id);
+    const a = supabase
+      .from("generated_clips")
+      .update({ queue_position: swap.queue_position })
+      .eq("id", c.id);
+    const b = supabase
+      .from("generated_clips")
+      .update({ queue_position: c.queue_position })
+      .eq("id", swap.id);
     const [ra, rb] = await Promise.all([a, b]);
-    if (ra.error || rb.error) return toast.error(ra.error?.message ?? rb.error?.message ?? "Fehler");
+    if (ra.error || rb.error)
+      return toast.error(ra.error?.message ?? rb.error?.message ?? "Fehler");
     onChange();
   }
 
   async function setStatus(c: ClipRow, status: "queued" | "draft") {
     const patch: any = { status };
     if (status === "queued") {
-      const maxPos = Math.max(0, ...allClips.filter((x) => x.platform === c.platform).map((x) => x.queue_position));
+      const maxPos = Math.max(
+        0,
+        ...allClips.filter((x) => x.platform === c.platform).map((x) => x.queue_position),
+      );
       patch.queue_position = maxPos + 1;
       patch.publish_error = null;
     }
@@ -708,8 +853,16 @@ function QueueSection({
   }
 
   async function moveToTop(c: ClipRow) {
-    const minPos = Math.min(0, ...allClips.filter((x) => x.platform === c.platform && x.status === "queued").map((x) => x.queue_position));
-    const { error } = await supabase.from("generated_clips").update({ queue_position: minPos - 1 }).eq("id", c.id);
+    const minPos = Math.min(
+      0,
+      ...allClips
+        .filter((x) => x.platform === c.platform && x.status === "queued")
+        .map((x) => x.queue_position),
+    );
+    const { error } = await supabase
+      .from("generated_clips")
+      .update({ queue_position: minPos - 1 })
+      .eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Als Nächstes markiert");
     onChange();
@@ -729,11 +882,23 @@ function QueueSection({
           <ListOrdered className="h-4 w-4" /> Warteschlange ({clips.length})
         </h2>
         <div className="flex gap-2">
-          <select value={platformFilter} onChange={(e) => onPlatformFilter(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary">
+          <select
+            value={platformFilter}
+            onChange={(e) => onPlatformFilter(e.target.value)}
+            className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary"
+          >
             <option value="all">Alle Plattformen</option>
-            {PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {PLATFORMS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
-          <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary">
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilter(e.target.value)}
+            className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary"
+          >
             <option value="all">Alle Status</option>
             <option value="draft">Entwurf</option>
             <option value="queued">Queued</option>
@@ -745,7 +910,11 @@ function QueueSection({
 
       {clips.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Noch keine Clips. Rendere im <Link to="/app" className="text-primary underline">Editor</Link> und wähle „Queue".
+          Noch keine Clips. Rendere im{" "}
+          <Link to="/app" className="text-primary underline">
+            Editor
+          </Link>{" "}
+          und wähle „Queue".
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border">
@@ -765,8 +934,12 @@ function QueueSection({
                 <tr key={c.id} className="border-t border-border hover:bg-card/40">
                   <td className="px-3 py-2 font-mono text-xs">{c.queue_position}</td>
                   <td className="px-3 py-2">
-                    <div className="text-sm font-medium">{c.title ?? c.edit_jobs?.raw_videos?.title ?? "Clip"}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{c.duration_s ? `${Math.round(Number(c.duration_s))}s` : "—"} · {c.aspect}</div>
+                    <div className="text-sm font-medium">
+                      {c.title ?? c.edit_jobs?.raw_videos?.title ?? "Clip"}
+                    </div>
+                    <div className="font-mono text-[10px] text-muted-foreground">
+                      {c.duration_s ? `${Math.round(Number(c.duration_s))}s` : "—"} · {c.aspect}
+                    </div>
                     {c.publish_error && (
                       <div className="mt-1 inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive">
                         <AlertTriangle className="h-3 w-3" /> {c.publish_error}
@@ -788,7 +961,9 @@ function QueueSection({
                       className="mt-1 rounded border border-border bg-input px-1 py-0.5 text-[10px] normal-case"
                     >
                       {(PLATFORM_POST_TYPES[c.platform] ?? ["video"]).map((t) => (
-                        <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>
+                        <option key={t} value={t}>
+                          {POST_TYPE_LABEL[t]}
+                        </option>
                       ))}
                     </select>
                   </td>
@@ -807,19 +982,58 @@ function QueueSection({
                     <div className="flex justify-end gap-1">
                       {c.status === "queued" && (
                         <>
-                          <button onClick={() => moveToTop(c)} title="Als Nächstes" className="rounded border border-border px-1.5 py-1 text-[10px] hover:bg-background">Als Nächstes</button>
-                          <button onClick={() => move(c, -1)} title="Nach oben" className="rounded border border-border px-1 py-1 hover:bg-background"><ArrowUp className="h-3 w-3" /></button>
-                          <button onClick={() => move(c, 1)} title="Nach unten" className="rounded border border-border px-1 py-1 hover:bg-background"><ArrowDown className="h-3 w-3" /></button>
-                          <button onClick={() => setStatus(c, "draft")} title="In Entwurf" className="rounded border border-border px-1 py-1 hover:bg-background"><Edit3 className="h-3 w-3" /></button>
+                          <button
+                            onClick={() => moveToTop(c)}
+                            title="Als Nächstes"
+                            className="rounded border border-border px-1.5 py-1 text-[10px] hover:bg-background"
+                          >
+                            Als Nächstes
+                          </button>
+                          <button
+                            onClick={() => move(c, -1)}
+                            title="Nach oben"
+                            className="rounded border border-border px-1 py-1 hover:bg-background"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => move(c, 1)}
+                            title="Nach unten"
+                            className="rounded border border-border px-1 py-1 hover:bg-background"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => setStatus(c, "draft")}
+                            title="In Entwurf"
+                            className="rounded border border-border px-1 py-1 hover:bg-background"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </button>
                         </>
                       )}
                       {c.status === "draft" && (
-                        <button onClick={() => setStatus(c, "queued")} className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10">In Queue</button>
+                        <button
+                          onClick={() => setStatus(c, "queued")}
+                          className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10"
+                        >
+                          In Queue
+                        </button>
                       )}
                       {c.status === "failed" && (
-                        <button onClick={() => setStatus(c, "queued")} className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10">Erneut</button>
+                        <button
+                          onClick={() => setStatus(c, "queued")}
+                          className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10"
+                        >
+                          Erneut
+                        </button>
                       )}
-                      <button onClick={() => remove(c.id)} className="rounded border border-border px-1 py-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                      <button
+                        onClick={() => remove(c.id)}
+                        className="rounded border border-border px-1 py-1 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -842,7 +1056,9 @@ function StatusPill({ s }: { s: string }) {
   };
   const Icon = s === "published" ? CheckCircle2 : s === "failed" ? AlertTriangle : Clock;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${map[s] ?? map.draft}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${map[s] ?? map.draft}`}
+    >
       <Icon className="h-3 w-3" /> {s}
     </span>
   );

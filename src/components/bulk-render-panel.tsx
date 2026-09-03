@@ -232,7 +232,9 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         </div>
         {providerQ.data && (
           <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            {configured ? `${providerQ.data.concurrency} parallel · ${providerQ.data.webhook ? "Webhook" : "Polling"}` : "Key fehlt"}
+            {configured
+              ? `${providerQ.data.concurrency} parallel · ${providerQ.data.webhook ? "Webhook" : "Polling"}`
+              : "Key fehlt"}
           </span>
         )}
       </div>
@@ -244,8 +246,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
             {activeProvider?.label ?? "Der Render-Dienst"} ist noch nicht verbunden. Hinterlege den
             API-Key als Secret{" "}
             <code className="font-mono">{activeProvider?.keyName ?? "CREATOMATE_API_KEY"}</code>.
-            Aufträge kannst du jetzt schon
-            anlegen — sie starten automatisch, sobald der Key da ist.
+            Aufträge kannst du jetzt schon anlegen — sie starten automatisch, sobald der Key da ist.
           </span>
         </div>
       )}
@@ -280,7 +281,10 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
           ["Fertig", stats.done],
           ["Fehler", stats.failed],
         ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-md border border-border bg-background/60 p-1.5">
+          <div
+            key={String(label)}
+            className="rounded-md border border-border bg-background/60 p-1.5"
+          >
             <div className="text-sm font-semibold tabular-nums">{value as number}</div>
             <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
               {label as string}
@@ -335,7 +339,11 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
           disabled={busy || clipCount === 0}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
         >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Play className="h-3.5 w-3.5" />
+          )}
           {clipCount > 0 ? `${clipCount} Clips rendern` : "Keine Clips"}
         </button>
         {stats.failed > 0 && (
@@ -356,7 +364,11 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
           disabled={testing}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] hover:border-primary/50 disabled:opacity-40"
         >
-          {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+          {testing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <PlugZap className="h-3.5 w-3.5" />
+          )}
           Verbindung testen
         </button>
         <button

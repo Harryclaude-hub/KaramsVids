@@ -83,20 +83,13 @@ export type TextOverlay = {
 export type AudioTrack = {
   id: string;
   storage_path: string; // leer, wenn source_url gesetzt (Bibliothek/URL)
-  source_url?: string;  // externer Direkt-URL (z.B. Pixabay/CDN)
+  source_url?: string; // externer Direkt-URL (z.B. Pixabay/CDN)
   name: string;
   volume: number; // 0..1
   duck: boolean;
 };
 
-export type YouTubeHost =
-  | "youtube"
-  | "tiktok"
-  | "instagram"
-  | "facebook"
-  | "x"
-  | "vimeo"
-  | null;
+export type YouTubeHost = "youtube" | "tiktok" | "instagram" | "facebook" | "x" | "vimeo" | null;
 
 export function detectRestrictedHost(url: string): YouTubeHost {
   try {

@@ -45,7 +45,12 @@ export async function runAutomationsForAccount(
 
   const platform = account.platform as string;
   if (platform !== "instagram" && platform !== "facebook") {
-    return { sent: 0, errors: [`${platform}: Auto-Antworten benötigen eine offene Schreib-API — aktuell nur Meta unterstützt.`] };
+    return {
+      sent: 0,
+      errors: [
+        `${platform}: Auto-Antworten benötigen eine offene Schreib-API — aktuell nur Meta unterstützt.`,
+      ],
+    };
   }
 
   const token = await refreshIfNeeded(supabaseAdmin, account);

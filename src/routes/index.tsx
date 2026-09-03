@@ -19,9 +19,14 @@ function Landing() {
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
             <Scissors className="h-4 w-4" />
           </div>
-          <span>VideoCraft <span className="text-primary">AI</span></span>
+          <span>
+            VideoCraft <span className="text-primary">AI</span>
+          </span>
         </div>
-        <Link to="/auth" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <Link
+          to="/auth"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
           Anmelden
         </Link>
       </header>
@@ -29,9 +34,12 @@ function Landing() {
       <main className="relative">
         <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-24 pt-16 md:grid-cols-2 md:items-center md:pt-24">
           <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-primary">v1 · KI-Editor</p>
+            <p className="font-mono text-xs uppercase tracking-widest text-primary">
+              v1 · KI-Editor
+            </p>
             <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-              Rohvideo rein.<br />
+              Rohvideo rein.
+              <br />
               <span className="text-primary">Fertige Shorts</span> raus.
             </h1>
             <p className="mt-6 max-w-md text-muted-foreground">
@@ -39,10 +47,16 @@ function Landing() {
               Untertiteln — und du postest direkt auf TikTok, YouTube & Instagram.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/auth" className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
                 Kostenlos starten <Play className="h-4 w-4" />
               </Link>
-              <a href="#how" className="inline-flex items-center rounded-md border border-border px-5 py-3 text-sm font-medium hover:bg-secondary">
+              <a
+                href="#how"
+                className="inline-flex items-center rounded-md border border-border px-5 py-3 text-sm font-medium hover:bg-secondary"
+              >
                 So funktioniert's
               </a>
             </div>
@@ -55,7 +69,8 @@ function Landing() {
             <div className="grain absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-accent/10 blur-2xl" />
             <div className="relative rounded-3xl border border-border bg-card p-6 shadow-2xl">
               <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
-                <span>timeline.mp4</span><span className="text-primary">● REC</span>
+                <span>timeline.mp4</span>
+                <span className="text-primary">● REC</span>
               </div>
               <div className="mt-4 space-y-2">
                 {[
@@ -64,7 +79,10 @@ function Landing() {
                   { l: "00:42 — 01:02", t: "Punchline", c: "bg-primary/80" },
                   { l: "01:05 — 01:24", t: "CTA", c: "bg-accent/70" },
                 ].map((s) => (
-                  <div key={s.l} className="flex items-center gap-3 rounded-lg border border-border bg-background/40 p-3">
+                  <div
+                    key={s.l}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background/40 p-3"
+                  >
                     <div className={`h-8 w-1.5 rounded-full ${s.c}`} />
                     <div className="flex-1">
                       <div className="text-sm font-medium">{s.t}</div>
@@ -75,7 +93,8 @@ function Landing() {
                 ))}
               </div>
               <div className="mt-4 rounded-lg bg-background/60 p-3 text-xs text-muted-foreground">
-                <span className="font-mono text-primary">KI:</span> „4 Shorts erkannt · 9:16 · Untertitel DE bereit"
+                <span className="font-mono text-primary">KI:</span> „4 Shorts erkannt · 9:16 ·
+                Untertitel DE bereit"
               </div>
             </div>
           </div>
@@ -84,9 +103,21 @@ function Landing() {
         <section id="how" className="border-t border-border bg-card/40">
           <div className="mx-auto grid max-w-6xl gap-6 px-6 py-16 md:grid-cols-3">
             {[
-              { i: Wand2, t: "Analysieren", d: "KI hört, transkribiert und markiert die stärksten Momente." },
-              { i: Scissors, t: "Schneiden", d: "Auto-Cut, UGC-Shorts oder Long-Form zu vielen Clips." },
-              { i: Share2, t: "Publizieren", d: "TikTok, YouTube, Instagram, X, Facebook — mit einem Klick." },
+              {
+                i: Wand2,
+                t: "Analysieren",
+                d: "KI hört, transkribiert und markiert die stärksten Momente.",
+              },
+              {
+                i: Scissors,
+                t: "Schneiden",
+                d: "Auto-Cut, UGC-Shorts oder Long-Form zu vielen Clips.",
+              },
+              {
+                i: Share2,
+                t: "Publizieren",
+                d: "TikTok, YouTube, Instagram, X, Facebook — mit einem Klick.",
+              },
             ].map((f) => (
               <div key={f.t} className="rounded-2xl border border-border bg-background p-6">
                 <f.i className="h-6 w-6 text-primary" />

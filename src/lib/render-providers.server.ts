@@ -118,7 +118,8 @@ const shotstack: RenderProvider = {
   note: "Sehr schnelle Massen-Renders; Untertitel/Musik werden vereinfacht abgebildet.",
   configured: () => !!process.env.SHOTSTACK_API_KEY,
   async ping() {
-    if (!process.env.SHOTSTACK_API_KEY) return { ok: false, message: "Kein Shotstack-Key hinterlegt." };
+    if (!process.env.SHOTSTACK_API_KEY)
+      return { ok: false, message: "Kein Shotstack-Key hinterlegt." };
     try {
       const res = await fetch(`${SHOTSTACK_API}/renders?limit=1`, {
         headers: { "x-api-key": shotstackKey() },
@@ -230,9 +231,12 @@ const json2video: RenderProvider = {
   note: "Günstige Alternative für einfache Clips mit Musik und Text-Overlay.",
   configured: () => !!process.env.JSON2VIDEO_API_KEY,
   async ping() {
-    if (!process.env.JSON2VIDEO_API_KEY) return { ok: false, message: "Kein JSON2Video-Key hinterlegt." };
+    if (!process.env.JSON2VIDEO_API_KEY)
+      return { ok: false, message: "Kein JSON2Video-Key hinterlegt." };
     try {
-      const res = await fetch(`${J2V_API}/movies?project=ping`, { headers: { "x-api-key": j2vKey() } });
+      const res = await fetch(`${J2V_API}/movies?project=ping`, {
+        headers: { "x-api-key": j2vKey() },
+      });
       if (res.status === 401 || res.status === 403) {
         return { ok: false, message: "JSON2Video-Key wurde abgelehnt (401/403)." };
       }
@@ -250,7 +254,7 @@ const json2video: RenderProvider = {
         src: req.videoUrl,
         start: 0,
         duration,
-        "seek": Math.max(0, req.startS),
+        seek: Math.max(0, req.startS),
         resize: "cover",
       },
     ];
@@ -265,7 +269,13 @@ const json2video: RenderProvider = {
       });
     }
     if (req.musicUrl) {
-      elements.push({ type: "audio", src: req.musicUrl, start: 0, duration, volume: req.musicVolume });
+      elements.push({
+        type: "audio",
+        src: req.musicUrl,
+        start: 0,
+        duration,
+        volume: req.musicVolume,
+      });
     }
     const res = await fetch(`${J2V_API}/movies`, {
       method: "POST",
@@ -293,7 +303,13 @@ const json2video: RenderProvider = {
     if (!res.ok) throw new Error(`JSON2Video Status ${res.status}: ${text.slice(0, 300)}`);
     const m = JSON.parse(text)?.movie ?? {};
     const status: CreatomateRender["status"] =
-      m.status === "done" ? (m.success === false ? "failed" : "succeeded") : m.status === "error" ? "failed" : "rendering";
+      m.status === "done"
+        ? m.success === false
+          ? "failed"
+          : "succeeded"
+        : m.status === "error"
+          ? "failed"
+          : "rendering";
     return {
       id,
       status,
@@ -304,7 +320,6 @@ const json2video: RenderProvider = {
   },
 };
 
-
 // ---------------- Eigene Render-Maschine ("custom") ----------------
 // Vertrag (siehe docs/CUSTOM-RENDER-API.md):
 //   POST   {CUSTOM_RENDER_API_URL}/renders      -> { id }
@@ -313,12 +328,16 @@ const json2video: RenderProvider = {
 
 function customBase() {
   const u = process.env.CUSTOM_RENDER_API_URL;
-  if (!u) throw new Error("CUSTOM_RENDER_API_URL fehlt — Basis-URL deiner eigenen Render-Maschine hinterlegen.");
+  if (!u)
+    throw new Error(
+      "CUSTOM_RENDER_API_URL fehlt — Basis-URL deiner eigenen Render-Maschine hinterlegen.",
+    );
   return u.replace(/\/$/, "");
 }
 function customHeaders() {
   const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (process.env.CUSTOM_RENDER_API_KEY) h.Authorization = `Bearer ${process.env.CUSTOM_RENDER_API_KEY}`;
+  if (process.env.CUSTOM_RENDER_API_KEY)
+    h.Authorization = `Bearer ${process.env.CUSTOM_RENDER_API_KEY}`;
   return h;
 }
 
@@ -331,10 +350,12 @@ const custom: RenderProvider = {
   note: "Selbst gebaute Video-Engine (z. B. ffmpeg-Worker) über einen einfachen JSON-Vertrag.",
   configured: () => !!process.env.CUSTOM_RENDER_API_URL,
   async ping() {
-    if (!process.env.CUSTOM_RENDER_API_URL) return { ok: false, message: "Keine CUSTOM_RENDER_API_URL hinterlegt." };
+    if (!process.env.CUSTOM_RENDER_API_URL)
+      return { ok: false, message: "Keine CUSTOM_RENDER_API_URL hinterlegt." };
     try {
       const res = await fetch(`${customBase()}/health`, { headers: customHeaders() });
-      if (!res.ok) return { ok: false, message: `Eigene Engine antwortete mit HTTP ${res.status}.` };
+      if (!res.ok)
+        return { ok: false, message: `Eigene Engine antwortete mit HTTP ${res.status}.` };
       return { ok: true, message: "Eigene Render-Maschine erreichbar." };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "Netzwerkfehler" };
@@ -363,7 +384,9 @@ const custom: RenderProvider = {
     return { id: String(id) };
   },
   async fetch(id) {
-    const res = await fetch(`${customBase()}/renders/${encodeURIComponent(id)}`, { headers: customHeaders() });
+    const res = await fetch(`${customBase()}/renders/${encodeURIComponent(id)}`, {
+      headers: customHeaders(),
+    });
     const text = await res.text();
     if (!res.ok) throw new Error(`Eigene Engine Status ${res.status}: ${text.slice(0, 300)}`);
     const r = JSON.parse(text) ?? {};
@@ -387,7 +410,12 @@ const custom: RenderProvider = {
   },
 };
 
-const REGISTRY: Record<RenderProviderId, RenderProvider> = { creatomate, shotstack, json2video, custom };
+const REGISTRY: Record<RenderProviderId, RenderProvider> = {
+  creatomate,
+  shotstack,
+  json2video,
+  custom,
+};
 
 export function renderProvider(id: string | null | undefined): RenderProvider {
   return REGISTRY[isRenderProviderId(id) ? id : "creatomate"];

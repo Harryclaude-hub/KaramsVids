@@ -22,7 +22,9 @@ export const analyzeStyleReference = createServerFn({ method: "POST" })
 
     let usedUrl = data.sourceUrl ?? null;
     if (!usedUrl && data.storagePath) {
-      const { data: signed } = await supabase.storage.from("raw-videos").createSignedUrl(data.storagePath, 3600);
+      const { data: signed } = await supabase.storage
+        .from("raw-videos")
+        .createSignedUrl(data.storagePath, 3600);
       usedUrl = signed?.signedUrl ?? null;
     }
 
@@ -65,14 +67,20 @@ Antworte NUR mit gültigem JSON:
     const payload = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const text = payload.choices?.[0]?.message?.content ?? "{}";
     let style: Record<string, unknown>;
-    try { style = JSON.parse(text) as Record<string, unknown>; }
-    catch { throw new Error("KI-Antwort war kein gültiges JSON"); }
+    try {
+      style = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      throw new Error("KI-Antwort war kein gültiges JSON");
+    }
     style._source_url = data.sourceUrl ?? null;
     style._storage_path = data.storagePath ?? null;
     style._notes = data.notes ?? null;
     style._analyzed_at = new Date().toISOString();
 
-    const { error } = await supabase.from("edit_jobs").update({ style_reference: style as unknown as never }).eq("id", data.jobId);
+    const { error } = await supabase
+      .from("edit_jobs")
+      .update({ style_reference: style as unknown as never })
+      .eq("id", data.jobId);
     if (error) throw new Error(error.message);
     return { style: style as Record<string, string | number | boolean | null> };
   });
