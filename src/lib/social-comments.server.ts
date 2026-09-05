@@ -72,7 +72,7 @@ export async function fetchComments(
 
 async function fetchYouTube(token: string, account: AccountRow): Promise<InboundComment[]> {
   const channelId = account.external_id ?? account.meta?.channel_id;
-  if (!channelId) throw new Error("YouTube-Kanal-ID fehlt — bitte Account neu verbinden");
+  if (!channelId) throw new Error("YouTube-Kanal-ID fehlt, bitte Account neu verbinden");
 
   const url =
     `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=time` +
@@ -106,7 +106,7 @@ async function fetchYouTube(token: string, account: AccountRow): Promise<Inbound
 
 async function fetchInstagram(token: string, account: AccountRow): Promise<InboundComment[]> {
   const igId = account.external_id ?? account.meta?.ig_user_id;
-  if (!igId) throw new Error("Instagram-Account-ID fehlt — bitte Account neu verbinden");
+  if (!igId) throw new Error("Instagram-Account-ID fehlt, bitte Account neu verbinden");
 
   const mres = await fetch(
     `https://graph.facebook.com/v21.0/${igId}/media?fields=id,permalink&limit=${MAX_POSTS}&access_token=${token}`,
@@ -141,7 +141,7 @@ async function fetchInstagram(token: string, account: AccountRow): Promise<Inbou
 
 async function fetchFacebook(token: string, account: AccountRow): Promise<InboundComment[]> {
   const pageId = account.external_id ?? account.meta?.page_id;
-  if (!pageId) throw new Error("Facebook-Seiten-ID fehlt — bitte Account neu verbinden");
+  if (!pageId) throw new Error("Facebook-Seiten-ID fehlt, bitte Account neu verbinden");
 
   const pres = await fetch(
     `https://graph.facebook.com/v21.0/${pageId}/posts?fields=id,permalink_url&limit=${MAX_POSTS}&access_token=${token}`,
@@ -351,7 +351,7 @@ export async function generateAiReply(
 ): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key)
-    throw new Error("LOVABLE_API_KEY fehlt — KI-Antworten sind ohne Schlüssel nicht möglich");
+    throw new Error("LOVABLE_API_KEY fehlt, KI-Antworten sind ohne Schlüssel nicht möglich");
 
   const prompt = `Du beantwortest einen Kommentar unter einem Social-Media-Video.
 

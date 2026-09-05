@@ -2,7 +2,7 @@
 // Echte Kennzahlen von den Plattformen holen (nur Server).
 //
 // Ersetzt die frueheren Zufallszahlen. Was eine Plattform nicht
-// herausgibt, bleibt 0 — es wird nichts geschaetzt oder erfunden.
+// herausgibt, bleibt 0, es wird nichts geschaetzt oder erfunden.
 // ============================================================
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -128,7 +128,7 @@ async function youtubeMetrics(token: string, account: AccountRow): Promise<Metri
 // ---------- Instagram ----------
 async function instagramMetrics(token: string, account: AccountRow): Promise<MetricsResult> {
   const igId = account.external_id ?? account.meta?.ig_user_id;
-  if (!igId) throw new Error("Instagram-Account-ID fehlt — bitte Account neu verbinden");
+  if (!igId) throw new Error("Instagram-Account-ID fehlt, bitte Account neu verbinden");
 
   const ures = await fetch(
     `https://graph.facebook.com/v21.0/${igId}?fields=followers_count,media_count&access_token=${token}`,
@@ -192,7 +192,7 @@ async function instagramMetrics(token: string, account: AccountRow): Promise<Met
 // ---------- Facebook ----------
 async function facebookMetrics(token: string, account: AccountRow): Promise<MetricsResult> {
   const pageId = account.external_id ?? account.meta?.page_id;
-  if (!pageId) throw new Error("Facebook-Seiten-ID fehlt — bitte Account neu verbinden");
+  if (!pageId) throw new Error("Facebook-Seiten-ID fehlt, bitte Account neu verbinden");
 
   const pres = await fetch(
     `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,followers_count&access_token=${token}`,

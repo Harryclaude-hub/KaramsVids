@@ -10,7 +10,7 @@
 //   Header  x-cron-secret: <CRON_SECRET>
 //   oder    ?secret=<CRON_SECRET>
 //
-// Ist CRON_SECRET nicht gesetzt, bleibt alles wie bisher offen — so bricht
+// Ist CRON_SECRET nicht gesetzt, bleibt alles wie bisher offen. So bricht
 // kein bestehender Zeitplan, sobald diese Version ausgerollt wird.
 // ============================================================
 

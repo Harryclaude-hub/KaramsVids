@@ -237,7 +237,7 @@ function Comments() {
           <p className="font-mono text-xs uppercase tracking-widest text-primary">Community</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">Kommentare</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Alle Kommentare deiner verbundenen Kanäle an einem Ort — von Hand oder automatisch
+            Alle Kommentare deiner verbundenen Kanäle an einem Ort, von Hand oder automatisch
             beantwortet.
           </p>
         </div>
@@ -924,7 +924,7 @@ function RulesPanel({
                 </p>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
                   {r.keywords.length ? `bei: ${r.keywords.join(", ")}` : "bei jedem Kommentar"}
-                  {" — "}
+                  {" · "}
                   {r.mode === "ai" ? r.ai_instruction : r.message_template}
                 </p>
               </div>
