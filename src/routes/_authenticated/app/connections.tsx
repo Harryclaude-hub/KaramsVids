@@ -94,8 +94,11 @@ function Connections() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("social_accounts")
-        .select("id, platform, handle, status, expires_at, last_sync_at, sync_error")
-        .eq("brand_id", brandId!);
+        .select(
+          "id, platform, handle, display_name, avatar_url, follower_count, status, expires_at, last_sync_at, sync_error",
+        )
+        .eq("brand_id", brandId!)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -137,8 +140,8 @@ function Connections() {
         <p className="font-mono text-xs uppercase tracking-widest text-primary">Social</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Plattformen verbinden</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Verbindungen gelten <span className="font-medium text-foreground">pro Brand</span> — jeder Brand kann eigene
-          Accounts haben.
+          Verbindungen gelten <span className="font-medium text-foreground">pro Brand</span>. Jeder Brand kann beliebig
+          viele Kanäle haben, auch mehrere auf derselben Plattform.
         </p>
       </div>
 
@@ -162,7 +165,8 @@ function Connections() {
         {(Object.keys(META) as Platform[]).map((id) => {
           const m = META[id];
           const cfg = platformStatus.find((p) => p.platform === id);
-          const acc = accounts.find((a) => a.platform === id && a.status !== "disconnected");
+          // Pro Plattform können beliebig viele Kanäle hängen.
+          const connected = accounts.filter((a) => a.platform === id && a.status !== "disconnected");
           const configured = cfg?.configured ?? false;
           return (
             <div key={id} className="rounded-xl border border-border bg-card p-4">
@@ -174,9 +178,10 @@ function Connections() {
                   <div>
                     <div className="text-sm font-medium">{m.name}</div>
                     <div className="font-mono text-[10px] text-muted-foreground">
-                      {acc ? (
+                      {connected.length > 0 ? (
                         <span className="inline-flex items-center gap-1 text-primary">
-                          <CheckCircle2 className="h-3 w-3" /> {acc.handle ?? "verbunden"}
+                          <CheckCircle2 className="h-3 w-3" />
+                          {connected.length} {connected.length === 1 ? "Kanal" : "Kanäle"}
                         </span>
                       ) : configured ? (
                         "Nicht verbunden"
@@ -186,29 +191,63 @@ function Connections() {
                     </div>
                   </div>
                 </div>
-                {acc ? (
-                  <button
-                    onClick={() => disconnect(acc.id)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary"
-                  >
-                    <Unplug className="h-3 w-3" /> Trennen
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => connect(id)}
-                    disabled={!brandId || connecting === id || !configured}
-                    title={configured ? undefined : `Secrets ${cfg?.idEnv} & ${cfg?.secretEnv} fehlen noch`}
-                    className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {connecting === id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
-                    Verbinden
-                  </button>
-                )}
+                <button
+                  onClick={() => connect(id)}
+                  disabled={!brandId || connecting === id || !configured}
+                  title={configured ? undefined : `Secrets ${cfg?.idEnv} & ${cfg?.secretEnv} fehlen noch`}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {connecting === id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                  {connected.length > 0 ? "Weiteren verbinden" : "Verbinden"}
+                </button>
               </div>
-              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">{m.hint}</p>
-              {acc?.sync_error && (
-                <p className="mt-2 text-[11px] text-destructive">{acc.sync_error}</p>
+
+              {connected.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {connected.map((a) => (
+                    <li
+                      key={a.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-1.5"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {a.avatar_url ? (
+                          <img src={a.avatar_url} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-[10px]">
+                            {(a.handle ?? a.display_name ?? "?").replace(/^@/, "").slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-medium">
+                            {a.handle ?? a.display_name ?? "Kanal"}
+                          </span>
+                          {a.follower_count > 0 && (
+                            <span className="block font-mono text-[10px] text-muted-foreground">
+                              {a.follower_count.toLocaleString("de-DE")} Follower
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => disconnect(a.id)}
+                        title="Trennen"
+                        className="shrink-0 rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                      >
+                        <Unplug className="h-3 w-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
+
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">{m.hint}</p>
+              {connected
+                .filter((a) => a.sync_error)
+                .map((a) => (
+                  <p key={a.id} className="mt-2 text-[11px] text-destructive">
+                    {a.handle ?? "Kanal"}: {a.sync_error}
+                  </p>
+                ))}
               {!configured && cfg && (
                 <a
                   href={cfg.docsUrl}

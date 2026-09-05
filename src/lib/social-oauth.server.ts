@@ -40,7 +40,10 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     secretEnv: "GOOGLE_CLIENT_SECRET",
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
-    scopes: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly",
+    // force-ssl deckt readonly mit ab und erlaubt zusätzlich das Schreiben von
+    // Kommentar-Antworten. Ohne diesen Scope bleibt die Antwort-Funktion tot.
+    scopes:
+      "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/yt-analytics.readonly",
     docsUrl: "https://console.cloud.google.com/apis/credentials",
     extraAuthParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
   },
@@ -83,6 +86,16 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     usesPkce: true,
   },
 };
+
+/**
+ * Scopes lassen sich pro Plattform per Umgebungsvariable überschreiben, z. B.
+ * TIKTOK_SCOPES, wenn TikTok zusätzliche Rechte (comment.list, comment.create)
+ * für deine App freigeschaltet hat. Ohne Freigabe würde der Login sonst
+ * scheitern, deshalb bleiben sie nicht fest im Code.
+ */
+export function scopesFor(p: Platform): string {
+  return process.env[`${p.toUpperCase()}_SCOPES`] || OAUTH_CONFIG[p].scopes;
+}
 
 export function platformReady(p: Platform) {
   const c = OAUTH_CONFIG[p];
@@ -183,7 +196,7 @@ export function buildAuthorizeUrl(opts: {
   const u = new URL(cfg.authUrl);
   if (platform === "tiktok") {
     u.searchParams.set("client_key", clientId);
-    u.searchParams.set("scope", cfg.scopes);
+    u.searchParams.set("scope", scopesFor(platform));
     u.searchParams.set("response_type", "code");
     u.searchParams.set("redirect_uri", ru);
     u.searchParams.set("state", state);
@@ -192,7 +205,7 @@ export function buildAuthorizeUrl(opts: {
   u.searchParams.set("client_id", clientId);
   u.searchParams.set("redirect_uri", ru);
   u.searchParams.set("response_type", "code");
-  u.searchParams.set("scope", cfg.scopes);
+  u.searchParams.set("scope", scopesFor(platform));
   u.searchParams.set("state", state);
   for (const [k, v] of Object.entries(cfg.extraAuthParams ?? {})) u.searchParams.set(k, v);
   if (cfg.usesPkce && verifier) {
@@ -312,16 +325,17 @@ export async function exchangeCode(
   const longJson: any = await longRes.json();
   const userToken: string = longJson.access_token ?? shortJson.access_token;
 
-  // Page + (bei Instagram) verknüpften IG-Business-Account ermitteln
+  // Alle Seiten holen, auf die der Nutzer Rechte hat. Jede Seite (und der
+  // daran haengende Instagram-Business-Account) wird spaeter zu einem eigenen
+  // Eintrag in social_accounts — so sind beliebig viele Kanaele moeglich.
   const pagesRes = await fetch(
-    `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&access_token=${userToken}`,
+    `https://graph.facebook.com/v21.0/me/accounts?limit=100&fields=id,name,picture{url},access_token,instagram_business_account{id,username,profile_picture_url}&access_token=${userToken}`,
   );
   const pagesJson: any = await pagesRes.json();
   const pages: any[] = Array.isArray(pagesJson.data) ? pagesJson.data : [];
-  const page =
-    platform === "instagram" ? pages.find((p) => p.instagram_business_account) ?? pages[0] : pages[0];
 
-  if (!page) {
+  const usable = platform === "instagram" ? pages.filter((p) => p.instagram_business_account) : pages;
+  if (usable.length === 0) {
     throw new Error(
       platform === "instagram"
         ? "Kein Instagram-Business-Account gefunden. Instagram-Account auf 'Business' umstellen und mit einer Facebook-Seite verknüpfen."
@@ -329,17 +343,136 @@ export async function exchangeCode(
     );
   }
 
+  // Der erste Kanal bleibt der Standard des TokenSet, die vollstaendige Liste
+  // haengt unter meta.pages und wird von resolveAccounts ausgewertet.
+  const first = usable[0];
   return {
-    accessToken: page.access_token ?? userToken,
+    accessToken: first.access_token ?? userToken,
     refreshToken: null,
     expiresAt: longJson.expires_in ? new Date(Date.now() + longJson.expires_in * 1000).toISOString() : null,
     meta: {
-      page_id: page.id,
-      page_name: page.name,
-      ig_user_id: page.instagram_business_account?.id ?? null,
-      ig_username: page.instagram_business_account?.username ?? null,
+      page_id: first.id,
+      page_name: first.name,
+      ig_user_id: first.instagram_business_account?.id ?? null,
+      ig_username: first.instagram_business_account?.username ?? null,
+      user_token: userToken,
+      pages: usable.map((p) => ({
+        page_id: p.id,
+        page_name: p.name,
+        page_picture: p.picture?.data?.url ?? null,
+        page_token: p.access_token ?? userToken,
+        ig_user_id: p.instagram_business_account?.id ?? null,
+        ig_username: p.instagram_business_account?.username ?? null,
+        ig_picture: p.instagram_business_account?.profile_picture_url ?? null,
+      })),
     },
   };
+}
+
+// ---------- Alle verbindbaren Kanaele eines Logins ----------
+export type ResolvedAccount = {
+  externalId: string;
+  handle: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: string | null;
+  meta: Record<string, unknown>;
+};
+
+/**
+ * Ein OAuth-Durchlauf kann mehrere Kanaele freischalten: bei Meta jede Seite
+ * und jeden verknuepften Instagram-Account, bei YouTube jeden Kanal des Kontos.
+ * Diese Funktion macht daraus eine flache Liste, die der Callback wegschreibt.
+ */
+export async function resolveAccounts(platform: Platform, t: TokenSet): Promise<ResolvedAccount[]> {
+  const base = {
+    refreshToken: t.refreshToken ?? null,
+    expiresAt: t.expiresAt ?? null,
+  };
+
+  if (platform === "instagram" || platform === "facebook") {
+    const pages: any[] = ((t.meta as any)?.pages as any[]) ?? [];
+    const list = pages.length ? pages : [t.meta as any];
+    return list
+      .filter((p) => (platform === "instagram" ? p?.ig_user_id : p?.page_id))
+      .map((p) => ({
+        ...base,
+        externalId: platform === "instagram" ? String(p.ig_user_id) : String(p.page_id),
+        handle: platform === "instagram" ? (p.ig_username ? `@${p.ig_username}` : null) : (p.page_name ?? null),
+        displayName: platform === "instagram" ? (p.ig_username ?? null) : (p.page_name ?? null),
+        avatarUrl: platform === "instagram" ? (p.ig_picture ?? null) : (p.page_picture ?? null),
+        accessToken: p.page_token ?? t.accessToken,
+        meta: {
+          page_id: p.page_id,
+          page_name: p.page_name,
+          ig_user_id: p.ig_user_id ?? null,
+          ig_username: p.ig_username ?? null,
+        },
+      }));
+  }
+
+  if (platform === "youtube") {
+    // mine=true liefert die Kanaele des angemeldeten Kontos. Marken-Kanaele
+    // werden ueber einen erneuten Login mit dem jeweiligen Kanal verbunden.
+    const r = await fetch(
+      "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true&maxResults=50",
+      { headers: { Authorization: `Bearer ${t.accessToken}` } },
+    );
+    const j: any = await r.json().catch(() => ({}));
+    const items: any[] = Array.isArray(j.items) ? j.items : [];
+    if (items.length === 0) {
+      return [{ ...base, externalId: "", handle: null, displayName: null, avatarUrl: null, accessToken: t.accessToken, meta: {} }];
+    }
+    return items.map((c) => ({
+      ...base,
+      externalId: String(c.id),
+      handle: c.snippet?.customUrl ?? c.snippet?.title ?? null,
+      displayName: c.snippet?.title ?? null,
+      avatarUrl: c.snippet?.thumbnails?.default?.url ?? null,
+      accessToken: t.accessToken,
+      meta: { channel_id: c.id, subscribers: Number(c.statistics?.subscriberCount ?? 0) },
+    }));
+  }
+
+  if (platform === "tiktok") {
+    const r = await fetch(
+      "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,username,avatar_url,follower_count",
+      { headers: { Authorization: `Bearer ${t.accessToken}` } },
+    );
+    const j: any = await r.json().catch(() => ({}));
+    const u = j.data?.user ?? {};
+    return [
+      {
+        ...base,
+        externalId: String(u.open_id ?? (t.meta as any)?.open_id ?? ""),
+        handle: u.username ? `@${u.username}` : (u.display_name ?? null),
+        displayName: u.display_name ?? null,
+        avatarUrl: u.avatar_url ?? null,
+        accessToken: t.accessToken,
+        meta: { open_id: u.open_id ?? (t.meta as any)?.open_id ?? null, followers: Number(u.follower_count ?? 0) },
+      },
+    ];
+  }
+
+  // X
+  const r = await fetch("https://api.twitter.com/2/users/me?user.fields=profile_image_url,username,name", {
+    headers: { Authorization: `Bearer ${t.accessToken}` },
+  });
+  const j: any = await r.json().catch(() => ({}));
+  const d = j.data ?? {};
+  return [
+    {
+      ...base,
+      externalId: String(d.id ?? ""),
+      handle: d.username ? `@${d.username}` : null,
+      displayName: d.name ?? null,
+      avatarUrl: d.profile_image_url ?? null,
+      accessToken: t.accessToken,
+      meta: { user_id: d.id ?? null },
+    },
+  ];
 }
 
 // ---------- Handle / Profil ----------

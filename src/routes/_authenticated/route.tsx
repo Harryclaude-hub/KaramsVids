@@ -24,6 +24,8 @@ import {
   PanelLeft,
   PanelLeftClose,
   Wallet,
+  MessageSquare,
+  BarChart3,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -106,6 +108,8 @@ function AppShell() {
       | "/app/avatars"
       | "/app/publishing"
       | "/app/connections"
+      | "/app/comments"
+      | "/app/tracking"
       | "/app/profile";
     label: string;
     icon: typeof Scissors;
@@ -117,6 +121,8 @@ function AppShell() {
     { to: "/app/avatars", label: "Avatare", icon: Users },
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Social", icon: Share2 },
+    { to: "/app/comments", label: "Kommentare", icon: MessageSquare },
+    { to: "/app/tracking", label: "Tracking", icon: BarChart3 },
     { to: "/app/profile", label: "Profil & Earnings", icon: Wallet },
   ];
 

@@ -16,11 +16,15 @@ Nutzer klickt „TikTok verbinden" auf der Website
    → Publish-Queue nutzt Token, um Videos hochzuladen
 ```
 
-**Unsere Architektur ist dafür schon gebaut:**
-- `social_accounts` hat `access_token_encrypted`, `refresh_token_encrypted`, `expires_at`, `brand_id`
-- `generated_clips` mit `status='queued'`, `queue_position`, `platform`
-- `publish_schedules` + pg_cron → `/api/public/hooks/process-publish-queue` läuft alle 5 min
-- Fehlt nur: OAuth-Callback-Routen + echte Upload-Adapter pro Plattform (aktuell simuliert)
+**Stand heute ist das gebaut und in Betrieb:**
+- `social_accounts` mit verschlüsselten Tokens, `brand_id` und `external_id`
+- beliebig viele Kanäle pro Plattform und Brand
+- OAuth-Start und Callback für alle fünf Plattformen
+- echte Upload-Adapter (YouTube, Instagram, Facebook, TikTok)
+- Kommentar-Posteingang mit Auto-Antworten
+- echte Kennzahlen statt Schätzungen
+
+Wie das eingerichtet wird, steht in [BETRIEB.md](./BETRIEB.md).
 
 ## Plattform für Plattform
 
@@ -51,16 +55,20 @@ Nutzer klickt „TikTok verbinden" auf der Website
 ### 4. X (Twitter) — überspringen
 - Free-Tier: 500 Posts/Monat, Media-Upload eingeschränkt; sinnvolle Nutzung ab Basic **200 $/Monat** → lohnt für Video-Publishing nicht.
 
-## Was in der Website noch zu bauen ist
+## Was fertig ist
 
-| Baustein | Beschreibung |
+| Baustein | Datei |
 |---|---|
-| `/api/oauth/{platform}/start` | Redirect zur Plattform mit Client-ID, State-Param (brand_id) |
-| `/api/oauth/{platform}/callback` | Code→Token-Tausch, Token verschlüsselt in `social_accounts` speichern |
-| Token-Refresh | Vor jedem Publish: `expires_at` prüfen, ggf. mit Refresh-Token erneuern |
-| Upload-Adapter | `publishYouTube()`, `publishInstagram()`, `publishTikTok()` in process-publish-queue statt Simulation |
-| Connections-Seite | „Verbinden"-Buttons pro Brand statt „Bald" |
-| Secrets | CLIENT_ID/SECRET pro Plattform als Env-Vars in Lovable Cloud |
+| OAuth-Start | `src/lib/social.functions.ts` |
+| OAuth-Callback, legt alle Kanäle eines Logins an | `src/routes/api/public/oauth/$platform/callback.ts` |
+| Token-Refresh vor jedem Zugriff | `src/lib/social-oauth.server.ts` |
+| Upload-Adapter je Plattform | `src/lib/social-publish.server.ts` |
+| Kommentare lesen und beantworten | `src/lib/social-comments.server.ts` |
+| Regelwerk und Durchlauf | `src/lib/comment-sync.server.ts` |
+| Echte Kennzahlen | `src/lib/social-metrics.server.ts` |
+
+Offen bleibt nur, was von außen kommt: die Secrets je Plattform und bei
+TikTok die Freigabe der Kommentar-Rechte.
 
 ## Empfohlene Reihenfolge
 

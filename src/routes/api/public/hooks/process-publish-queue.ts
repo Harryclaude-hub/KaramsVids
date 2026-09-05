@@ -9,7 +9,11 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/hooks/process-publish-queue")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const { checkCronSecret } = await import("@/lib/hook-auth.server");
+        const denied = checkCronSecret(request);
+        if (denied) return denied;
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const now = new Date();
 

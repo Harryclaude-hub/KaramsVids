@@ -69,6 +69,7 @@ export type Database = {
       }
       analytics_snapshots: {
         Row: {
+          source: string
           brand_id: string
           created_at: string
           id: string
@@ -79,6 +80,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          source?: string
           brand_id: string
           created_at?: string
           id?: string
@@ -89,6 +91,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          source?: string
           brand_id?: string
           created_at?: string
           id?: string
@@ -339,6 +342,7 @@ export type Database = {
       }
       earnings: {
         Row: {
+          social_account_id: string | null
           affiliate_program_id: string | null
           amount: number
           brand_id: string | null
@@ -357,6 +361,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          social_account_id?: string | null
           affiliate_program_id?: string | null
           amount?: number
           brand_id?: string | null
@@ -375,6 +380,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          social_account_id?: string | null
           affiliate_program_id?: string | null
           amount?: number
           brand_id?: string | null
@@ -956,10 +962,220 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_reply_rules: {
+        Row: {
+          active: boolean
+          ai_instruction: string | null
+          ai_tone: string
+          brand_id: string | null
+          created_at: string
+          daily_limit: number
+          delay_minutes: number
+          exclude_keywords: string[]
+          id: string
+          keywords: string[]
+          max_length: number
+          message_template: string | null
+          mode: string
+          name: string
+          platform: string | null
+          priority: number
+          social_account_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          ai_instruction?: string | null
+          ai_tone?: string
+          brand_id?: string | null
+          created_at?: string
+          daily_limit?: number
+          delay_minutes?: number
+          exclude_keywords?: string[]
+          id?: string
+          keywords?: string[]
+          max_length?: number
+          message_template?: string | null
+          mode?: string
+          name?: string
+          platform?: string | null
+          priority?: number
+          social_account_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          ai_instruction?: string | null
+          ai_tone?: string
+          brand_id?: string | null
+          created_at?: string
+          daily_limit?: number
+          delay_minutes?: number
+          exclude_keywords?: string[]
+          id?: string
+          keywords?: string[]
+          max_length?: number
+          message_template?: string | null
+          mode?: string
+          name?: string
+          platform?: string | null
+          priority?: number
+          social_account_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_metrics: {
+        Row: {
+          brand_id: string | null
+          comments: number
+          created_at: string
+          external_post_id: string
+          fetched_at: string
+          id: string
+          likes: number
+          platform: string
+          post_url: string | null
+          published_at: string | null
+          reach: number
+          saves: number
+          shares: number
+          social_account_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          views: number
+        }
+        Insert: {
+          brand_id?: string | null
+          comments?: number
+          created_at?: string
+          external_post_id: string
+          fetched_at?: string
+          id?: string
+          likes?: number
+          platform: string
+          post_url?: string | null
+          published_at?: string | null
+          reach?: number
+          saves?: number
+          shares?: number
+          social_account_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          views?: number
+        }
+        Update: {
+          brand_id?: string | null
+          comments?: number
+          created_at?: string
+          external_post_id?: string
+          fetched_at?: string
+          id?: string
+          likes?: number
+          platform?: string
+          post_url?: string | null
+          published_at?: string | null
+          reach?: number
+          saves?: number
+          shares?: number
+          social_account_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      social_comments: {
+        Row: {
+          author_handle: string | null
+          author_name: string | null
+          brand_id: string | null
+          created_at: string
+          error: string | null
+          external_comment_id: string
+          external_post_id: string | null
+          id: string
+          like_count: number
+          platform: string
+          post_url: string | null
+          posted_at: string | null
+          replied_at: string | null
+          reply_mode: string | null
+          reply_text: string | null
+          rule_id: string | null
+          sentiment: string | null
+          social_account_id: string
+          status: string
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_handle?: string | null
+          author_name?: string | null
+          brand_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_comment_id: string
+          external_post_id?: string | null
+          id?: string
+          like_count?: number
+          platform: string
+          post_url?: string | null
+          posted_at?: string | null
+          replied_at?: string | null
+          reply_mode?: string | null
+          reply_text?: string | null
+          rule_id?: string | null
+          sentiment?: string | null
+          social_account_id: string
+          status?: string
+          text?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_handle?: string | null
+          author_name?: string | null
+          brand_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_comment_id?: string
+          external_post_id?: string | null
+          id?: string
+          like_count?: number
+          platform?: string
+          post_url?: string | null
+          posted_at?: string | null
+          replied_at?: string | null
+          reply_mode?: string | null
+          reply_text?: string | null
+          rule_id?: string | null
+          sentiment?: string | null
+          social_account_id?: string
+          status?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_accounts: {
         Row: {
           access_token_encrypted: string | null
           brand_id: string | null
+          last_comment_sync_at: string | null
+          follower_count: number
+          external_id: string | null
+          display_name: string | null
+          avatar_url: string | null
+          auto_reply_enabled: boolean
           created_at: string
           expires_at: string | null
           handle: string | null
@@ -975,6 +1191,12 @@ export type Database = {
         Insert: {
           access_token_encrypted?: string | null
           brand_id?: string | null
+          last_comment_sync_at?: string | null
+          follower_count?: number
+          external_id?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          auto_reply_enabled?: boolean
           created_at?: string
           expires_at?: string | null
           handle?: string | null
@@ -990,6 +1212,12 @@ export type Database = {
         Update: {
           access_token_encrypted?: string | null
           brand_id?: string | null
+          last_comment_sync_at?: string | null
+          follower_count?: number
+          external_id?: string | null
+          display_name?: string | null
+          avatar_url?: string | null
+          auto_reply_enabled?: boolean
           created_at?: string
           expires_at?: string | null
           handle?: string | null

@@ -9,41 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PendingRouteImport } from './routes/pending'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PendingRouteImport } from './routes/pending'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
-import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
-import { Route as AuthenticatedAppTemplatesRouteImport } from './routes/_authenticated/app/templates'
-import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
-import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
-import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
-import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
-import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
 import { Route as AuthenticatedAppAvatarsRouteImport } from './routes/_authenticated/app/avatars'
-import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
-import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
-import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
-import { Route as ApiPublicHooksProcessAutomationsRouteImport } from './routes/api/public/hooks/process-automations'
-import { Route as ApiPublicHooksCreatomateWebhookRouteImport } from './routes/api/public/hooks/creatomate-webhook'
-import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
-import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppClipRouteImport } from './routes/_authenticated/app/clip'
+import { Route as AuthenticatedAppCommentsRouteImport } from './routes/_authenticated/app/comments'
+import { Route as AuthenticatedAppConnectionsRouteImport } from './routes/_authenticated/app/connections'
+import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app/generate'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
+import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authenticated/app/publishing'
+import { Route as AuthenticatedAppTemplatesRouteImport } from './routes/_authenticated/app/templates'
+import { Route as AuthenticatedAppTrackingRouteImport } from './routes/_authenticated/app/tracking'
+import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
+import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
+import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
+import { Route as ApiPublicHooksCreatomateWebhookRouteImport } from './routes/api/public/hooks/creatomate-webhook'
+import { Route as ApiPublicHooksProcessAutomationsRouteImport } from './routes/api/public/hooks/process-automations'
+import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './routes/api/public/hooks/process-generation-queue'
+import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
+import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
+import { Route as ApiPublicHooksSyncCommentsRouteImport } from './routes/api/public/hooks/sync-comments'
 import { Route as ApiPublicOauthPlatformCallbackRouteImport } from './routes/api/public/oauth/$platform/callback'
 
-const PendingRoute = PendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -51,13 +53,14 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -65,14 +68,14 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
-  id: '/api/transcribe',
-  path: '/api/transcribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
@@ -80,32 +83,20 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
-  id: '/app/upload',
-  path: '/app/upload',
+const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
+  id: '/app/avatars',
+  path: '/app/avatars',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppTemplatesRoute =
-  AuthenticatedAppTemplatesRouteImport.update({
-    id: '/app/templates',
-    path: '/app/templates',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppPublishingRoute =
-  AuthenticatedAppPublishingRouteImport.update({
-    id: '/app/publishing',
-    path: '/app/publishing',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
-  id: '/app/profile',
-  path: '/app/profile',
+const AuthenticatedAppClipRoute = AuthenticatedAppClipRouteImport.update({
+  id: '/app/clip',
+  path: '/app/clip',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppGenerateRoute =
-  AuthenticatedAppGenerateRouteImport.update({
-    id: '/app/generate',
-    path: '/app/generate',
+const AuthenticatedAppCommentsRoute =
+  AuthenticatedAppCommentsRouteImport.update({
+    id: '/app/comments',
+    path: '/app/comments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAppConnectionsRoute =
@@ -114,32 +105,59 @@ const AuthenticatedAppConnectionsRoute =
     path: '/app/connections',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAppClipRoute = AuthenticatedAppClipRouteImport.update({
-  id: '/app/clip',
-  path: '/app/clip',
+const AuthenticatedAppGenerateRoute =
+  AuthenticatedAppGenerateRouteImport.update({
+    id: '/app/generate',
+    path: '/app/generate',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/app/profile',
+  path: '/app/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAppAvatarsRoute = AuthenticatedAppAvatarsRouteImport.update({
-  id: '/app/avatars',
-  path: '/app/avatars',
+const AuthenticatedAppPublishingRoute =
+  AuthenticatedAppPublishingRouteImport.update({
+    id: '/app/publishing',
+    path: '/app/publishing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppTemplatesRoute =
+  AuthenticatedAppTemplatesRouteImport.update({
+    id: '/app/templates',
+    path: '/app/templates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppTrackingRoute =
+  AuthenticatedAppTrackingRouteImport.update({
+    id: '/app/tracking',
+    path: '/app/tracking',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
+  id: '/app/upload',
+  path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicHooksSyncAnalyticsRoute =
-  ApiPublicHooksSyncAnalyticsRouteImport.update({
-    id: '/api/public/hooks/sync-analytics',
-    path: '/api/public/hooks/sync-analytics',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksProcessPublishQueueRoute =
-  ApiPublicHooksProcessPublishQueueRouteImport.update({
-    id: '/api/public/hooks/process-publish-queue',
-    path: '/api/public/hooks/process-publish-queue',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksProcessGenerationQueueRoute =
-  ApiPublicHooksProcessGenerationQueueRouteImport.update({
-    id: '/api/public/hooks/process-generation-queue',
-    path: '/api/public/hooks/process-generation-queue',
+const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
+  id: '/app/brand/$id',
+  path: '/app/brand/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
+  id: '/app/job/$id',
+  path: '/app/job/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
+  id: '/app/video/$id',
+  path: '/app/video/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicHooksCreatomateWebhookRoute =
+  ApiPublicHooksCreatomateWebhookRouteImport.update({
+    id: '/api/public/hooks/creatomate-webhook',
+    path: '/api/public/hooks/creatomate-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksProcessAutomationsRoute =
@@ -148,27 +166,30 @@ const ApiPublicHooksProcessAutomationsRoute =
     path: '/api/public/hooks/process-automations',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksCreatomateWebhookRoute =
-  ApiPublicHooksCreatomateWebhookRouteImport.update({
-    id: '/api/public/hooks/creatomate-webhook',
-    path: '/api/public/hooks/creatomate-webhook',
+const ApiPublicHooksProcessGenerationQueueRoute =
+  ApiPublicHooksProcessGenerationQueueRouteImport.update({
+    id: '/api/public/hooks/process-generation-queue',
+    path: '/api/public/hooks/process-generation-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAppVideoIdRoute = AuthenticatedAppVideoIdRouteImport.update({
-  id: '/app/video/$id',
-  path: '/app/video/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppJobIdRoute = AuthenticatedAppJobIdRouteImport.update({
-  id: '/app/job/$id',
-  path: '/app/job/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
-  id: '/app/brand/$id',
-  path: '/app/brand/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const ApiPublicHooksProcessPublishQueueRoute =
+  ApiPublicHooksProcessPublishQueueRouteImport.update({
+    id: '/api/public/hooks/process-publish-queue',
+    path: '/api/public/hooks/process-publish-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksSyncAnalyticsRoute =
+  ApiPublicHooksSyncAnalyticsRouteImport.update({
+    id: '/api/public/hooks/sync-analytics',
+    path: '/api/public/hooks/sync-analytics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksSyncCommentsRoute =
+  ApiPublicHooksSyncCommentsRouteImport.update({
+    id: '/api/public/hooks/sync-comments',
+    path: '/api/public/hooks/sync-comments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicOauthPlatformCallbackRoute =
   ApiPublicOauthPlatformCallbackRouteImport.update({
     id: '/api/public/oauth/$platform/callback',
@@ -186,11 +207,13 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
+  '/app/comments': typeof AuthenticatedAppCommentsRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/templates': typeof AuthenticatedAppTemplatesRoute
+  '/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -201,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -212,11 +236,13 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/app/clip': typeof AuthenticatedAppClipRoute
+  '/app/comments': typeof AuthenticatedAppCommentsRoute
   '/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/app/templates': typeof AuthenticatedAppTemplatesRoute
+  '/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -227,6 +253,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
@@ -241,11 +268,13 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/_authenticated/app/avatars': typeof AuthenticatedAppAvatarsRoute
   '/_authenticated/app/clip': typeof AuthenticatedAppClipRoute
+  '/_authenticated/app/comments': typeof AuthenticatedAppCommentsRoute
   '/_authenticated/app/connections': typeof AuthenticatedAppConnectionsRoute
   '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/publishing': typeof AuthenticatedAppPublishingRoute
   '/_authenticated/app/templates': typeof AuthenticatedAppTemplatesRoute
+  '/_authenticated/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
@@ -256,6 +285,7 @@ export interface FileRoutesById {
   '/api/public/hooks/process-generation-queue': typeof ApiPublicHooksProcessGenerationQueueRoute
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
+  '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
@@ -270,11 +300,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/app/avatars'
     | '/app/clip'
+    | '/app/comments'
     | '/app/connections'
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
     | '/app/templates'
+    | '/app/tracking'
     | '/app/upload'
     | '/app/'
     | '/app/brand/$id'
@@ -285,6 +317,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/hooks/sync-comments'
     | '/api/public/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -296,11 +329,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app/avatars'
     | '/app/clip'
+    | '/app/comments'
     | '/app/connections'
     | '/app/generate'
     | '/app/profile'
     | '/app/publishing'
     | '/app/templates'
+    | '/app/tracking'
     | '/app/upload'
     | '/app'
     | '/app/brand/$id'
@@ -311,6 +346,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/hooks/sync-comments'
     | '/api/public/oauth/$platform/callback'
   id:
     | '__root__'
@@ -324,11 +360,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/_authenticated/app/avatars'
     | '/_authenticated/app/clip'
+    | '/_authenticated/app/comments'
     | '/_authenticated/app/connections'
     | '/_authenticated/app/generate'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/publishing'
     | '/_authenticated/app/templates'
+    | '/_authenticated/app/tracking'
     | '/_authenticated/app/upload'
     | '/_authenticated/app/'
     | '/_authenticated/app/brand/$id'
@@ -339,6 +377,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-generation-queue'
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
+    | '/api/public/hooks/sync-comments'
     | '/api/public/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
@@ -355,30 +394,17 @@ export interface RootRouteChildren {
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
+  ApiPublicHooksSyncCommentsRoute: typeof ApiPublicHooksSyncCommentsRoute
   ApiPublicOauthPlatformCallbackRoute: typeof ApiPublicOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/pending': {
-      id: '/pending'
-      path: '/pending'
-      fullPath: '/pending'
-      preLoaderRoute: typeof PendingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -388,11 +414,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -402,18 +442,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/api/transcribe': {
-      id: '/api/transcribe'
-      path: '/api/transcribe'
-      fullPath: '/api/transcribe'
-      preLoaderRoute: typeof ApiTranscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
@@ -423,46 +463,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/upload': {
-      id: '/_authenticated/app/upload'
-      path: '/app/upload'
-      fullPath: '/app/upload'
-      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/templates': {
-      id: '/_authenticated/app/templates'
-      path: '/app/templates'
-      fullPath: '/app/templates'
-      preLoaderRoute: typeof AuthenticatedAppTemplatesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/publishing': {
-      id: '/_authenticated/app/publishing'
-      path: '/app/publishing'
-      fullPath: '/app/publishing'
-      preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/profile': {
-      id: '/_authenticated/app/profile'
-      path: '/app/profile'
-      fullPath: '/app/profile'
-      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/generate': {
-      id: '/_authenticated/app/generate'
-      path: '/app/generate'
-      fullPath: '/app/generate'
-      preLoaderRoute: typeof AuthenticatedAppGenerateRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/app/connections': {
-      id: '/_authenticated/app/connections'
-      path: '/app/connections'
-      fullPath: '/app/connections'
-      preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
+    '/_authenticated/app/avatars': {
+      id: '/_authenticated/app/avatars'
+      path: '/app/avatars'
+      fullPath: '/app/avatars'
+      preLoaderRoute: typeof AuthenticatedAppAvatarsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/clip': {
@@ -472,53 +477,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppClipRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/avatars': {
-      id: '/_authenticated/app/avatars'
-      path: '/app/avatars'
-      fullPath: '/app/avatars'
-      preLoaderRoute: typeof AuthenticatedAppAvatarsRouteImport
+    '/_authenticated/app/comments': {
+      id: '/_authenticated/app/comments'
+      path: '/app/comments'
+      fullPath: '/app/comments'
+      preLoaderRoute: typeof AuthenticatedAppCommentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/sync-analytics': {
-      id: '/api/public/hooks/sync-analytics'
-      path: '/api/public/hooks/sync-analytics'
-      fullPath: '/api/public/hooks/sync-analytics'
-      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/connections': {
+      id: '/_authenticated/app/connections'
+      path: '/app/connections'
+      fullPath: '/app/connections'
+      preLoaderRoute: typeof AuthenticatedAppConnectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/process-publish-queue': {
-      id: '/api/public/hooks/process-publish-queue'
-      path: '/api/public/hooks/process-publish-queue'
-      fullPath: '/api/public/hooks/process-publish-queue'
-      preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/generate': {
+      id: '/_authenticated/app/generate'
+      path: '/app/generate'
+      fullPath: '/app/generate'
+      preLoaderRoute: typeof AuthenticatedAppGenerateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/process-generation-queue': {
-      id: '/api/public/hooks/process-generation-queue'
-      path: '/api/public/hooks/process-generation-queue'
-      fullPath: '/api/public/hooks/process-generation-queue'
-      preLoaderRoute: typeof ApiPublicHooksProcessGenerationQueueRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/app/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/process-automations': {
-      id: '/api/public/hooks/process-automations'
-      path: '/api/public/hooks/process-automations'
-      fullPath: '/api/public/hooks/process-automations'
-      preLoaderRoute: typeof ApiPublicHooksProcessAutomationsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/publishing': {
+      id: '/_authenticated/app/publishing'
+      path: '/app/publishing'
+      fullPath: '/app/publishing'
+      preLoaderRoute: typeof AuthenticatedAppPublishingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/creatomate-webhook': {
-      id: '/api/public/hooks/creatomate-webhook'
-      path: '/api/public/hooks/creatomate-webhook'
-      fullPath: '/api/public/hooks/creatomate-webhook'
-      preLoaderRoute: typeof ApiPublicHooksCreatomateWebhookRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/templates': {
+      id: '/_authenticated/app/templates'
+      path: '/app/templates'
+      fullPath: '/app/templates'
+      preLoaderRoute: typeof AuthenticatedAppTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/video/$id': {
-      id: '/_authenticated/app/video/$id'
-      path: '/app/video/$id'
-      fullPath: '/app/video/$id'
-      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
+    '/_authenticated/app/tracking': {
+      id: '/_authenticated/app/tracking'
+      path: '/app/tracking'
+      fullPath: '/app/tracking'
+      preLoaderRoute: typeof AuthenticatedAppTrackingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/upload': {
+      id: '/_authenticated/app/upload'
+      path: '/app/upload'
+      fullPath: '/app/upload'
+      preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/app/brand/$id': {
+      id: '/_authenticated/app/brand/$id'
+      path: '/app/brand/$id'
+      fullPath: '/app/brand/$id'
+      preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/app/job/$id': {
@@ -528,12 +547,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppJobIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/app/brand/$id': {
-      id: '/_authenticated/app/brand/$id'
-      path: '/app/brand/$id'
-      fullPath: '/app/brand/$id'
-      preLoaderRoute: typeof AuthenticatedAppBrandIdRouteImport
+    '/_authenticated/app/video/$id': {
+      id: '/_authenticated/app/video/$id'
+      path: '/app/video/$id'
+      fullPath: '/app/video/$id'
+      preLoaderRoute: typeof AuthenticatedAppVideoIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/hooks/creatomate-webhook': {
+      id: '/api/public/hooks/creatomate-webhook'
+      path: '/api/public/hooks/creatomate-webhook'
+      fullPath: '/api/public/hooks/creatomate-webhook'
+      preLoaderRoute: typeof ApiPublicHooksCreatomateWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/process-automations': {
+      id: '/api/public/hooks/process-automations'
+      path: '/api/public/hooks/process-automations'
+      fullPath: '/api/public/hooks/process-automations'
+      preLoaderRoute: typeof ApiPublicHooksProcessAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/process-generation-queue': {
+      id: '/api/public/hooks/process-generation-queue'
+      path: '/api/public/hooks/process-generation-queue'
+      fullPath: '/api/public/hooks/process-generation-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessGenerationQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/process-publish-queue': {
+      id: '/api/public/hooks/process-publish-queue'
+      path: '/api/public/hooks/process-publish-queue'
+      fullPath: '/api/public/hooks/process-publish-queue'
+      preLoaderRoute: typeof ApiPublicHooksProcessPublishQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/sync-analytics': {
+      id: '/api/public/hooks/sync-analytics'
+      path: '/api/public/hooks/sync-analytics'
+      fullPath: '/api/public/hooks/sync-analytics'
+      preLoaderRoute: typeof ApiPublicHooksSyncAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/sync-comments': {
+      id: '/api/public/hooks/sync-comments'
+      path: '/api/public/hooks/sync-comments'
+      fullPath: '/api/public/hooks/sync-comments'
+      preLoaderRoute: typeof ApiPublicHooksSyncCommentsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/oauth/$platform/callback': {
       id: '/api/public/oauth/$platform/callback'
@@ -548,11 +609,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppAvatarsRoute: typeof AuthenticatedAppAvatarsRoute
   AuthenticatedAppClipRoute: typeof AuthenticatedAppClipRoute
+  AuthenticatedAppCommentsRoute: typeof AuthenticatedAppCommentsRoute
   AuthenticatedAppConnectionsRoute: typeof AuthenticatedAppConnectionsRoute
   AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppPublishingRoute: typeof AuthenticatedAppPublishingRoute
   AuthenticatedAppTemplatesRoute: typeof AuthenticatedAppTemplatesRoute
+  AuthenticatedAppTrackingRoute: typeof AuthenticatedAppTrackingRoute
   AuthenticatedAppUploadRoute: typeof AuthenticatedAppUploadRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppBrandIdRoute: typeof AuthenticatedAppBrandIdRoute
@@ -563,11 +626,13 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppAvatarsRoute: AuthenticatedAppAvatarsRoute,
   AuthenticatedAppClipRoute: AuthenticatedAppClipRoute,
+  AuthenticatedAppCommentsRoute: AuthenticatedAppCommentsRoute,
   AuthenticatedAppConnectionsRoute: AuthenticatedAppConnectionsRoute,
   AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppPublishingRoute: AuthenticatedAppPublishingRoute,
   AuthenticatedAppTemplatesRoute: AuthenticatedAppTemplatesRoute,
+  AuthenticatedAppTrackingRoute: AuthenticatedAppTrackingRoute,
   AuthenticatedAppUploadRoute: AuthenticatedAppUploadRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppBrandIdRoute: AuthenticatedAppBrandIdRoute,
@@ -603,6 +668,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksProcessPublishQueueRoute:
     ApiPublicHooksProcessPublishQueueRoute,
   ApiPublicHooksSyncAnalyticsRoute: ApiPublicHooksSyncAnalyticsRoute,
+  ApiPublicHooksSyncCommentsRoute: ApiPublicHooksSyncCommentsRoute,
   ApiPublicOauthPlatformCallbackRoute: ApiPublicOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport
