@@ -50,6 +50,8 @@ class Settings:
 
     supabase_url: str | None
     service_role_key: str | None
+    karamsvids_url: str | None
+    worker_secret: str | None
     groq_api_key: str | None
     lovable_api_key: str | None
     whisper_model: str
@@ -66,12 +68,33 @@ class Settings:
     ffmpeg_path: str | None = None
     # Arbeitsordner nach Erfolg behalten (zum Nachschauen)
     keep_work: bool = False
+    # file://-Adressen als Quelle und als Upload-Ziel zulassen (nur fuer Tests
+    # mit einem lokalen Nachbau der API, im Normalbetrieb aus)
+    allow_file_urls: bool = False
     # Wo die .env gefunden wurde (nur fuer die Ausgabe)
     env_files: list[Path] = field(default_factory=list)
 
     @property
+    def has_api(self) -> bool:
+        """API-Modus: der Worker spricht ueber HTTP mit der Web-App."""
+        return bool(self.karamsvids_url and self.worker_secret)
+
+    @property
     def has_supabase(self) -> bool:
+        """Direktmodus: der Worker greift selbst auf Supabase zu."""
         return bool(self.supabase_url and self.service_role_key)
+
+    @property
+    def transport(self) -> str:
+        """'api' oder 'direkt'. Wirft, wenn beides fehlt."""
+        if self.has_api:
+            return "api"
+        if self.has_supabase:
+            return "direkt"
+        raise ConfigError(_no_transport_message(self))
+
+    def require_transport(self) -> str:
+        return self.transport
 
     def require_supabase(self) -> None:
         """Wirft einen klaren Fehler, wenn die Supabase-Zugangsdaten fehlen."""
@@ -86,6 +109,33 @@ class Settings:
                 + ", ".join(missing)
                 + ". Trage sie in worker/.env ein (Vorlage: worker/.env.example)."
             )
+
+
+def _no_transport_message(s: Settings) -> str:
+    """Erklaert beide Moeglichkeiten und sagt, was gerade fehlt."""
+    lines = [
+        "Der Worker weiss nicht, wohin er sich verbinden soll. Es gibt zwei Wege:",
+        "",
+        "  1) Ueber die Web-App (Standard bei Lovable Cloud):",
+        "     KARAMSVIDS_URL = Adresse der veroeffentlichten App, z. B. https://karamsvids.lovable.app",
+        "     WORKER_SECRET  = derselbe Wert wie das Secret WORKER_SECRET in Lovable",
+    ]
+    fehlt_api = [n for n, v in (("KARAMSVIDS_URL", s.karamsvids_url), ("WORKER_SECRET", s.worker_secret)) if not v]
+    if len(fehlt_api) == 1:
+        lines.append(f"     Gerade fehlt: {fehlt_api[0]}")
+    lines += [
+        "",
+        "  2) Direkt auf ein eigenes Supabase-Projekt:",
+        "     SUPABASE_URL und SUPABASE_SERVICE_ROLE_KEY",
+    ]
+    fehlt_direkt = [n for n, v in (("SUPABASE_URL", s.supabase_url), ("SUPABASE_SERVICE_ROLE_KEY", s.service_role_key)) if not v]
+    if len(fehlt_direkt) == 1:
+        lines.append(f"     Gerade fehlt: {fehlt_direkt[0]}")
+    lines += [
+        "",
+        "Trage einen der beiden Wege in worker/.env ein (Vorlage: worker/.env.example).",
+    ]
+    return "\n".join(lines)
 
 
 def _int_env(name: str, default: int) -> int:
@@ -123,6 +173,8 @@ def load_settings() -> Settings:
     return Settings(
         supabase_url=(os.environ.get("SUPABASE_URL") or "").strip().rstrip("/") or None,
         service_role_key=(os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip() or None,
+        karamsvids_url=(os.environ.get("KARAMSVIDS_URL") or "").strip().rstrip("/") or None,
+        worker_secret=(os.environ.get("WORKER_SECRET") or "").strip() or None,
         groq_api_key=(os.environ.get("GROQ_API_KEY") or "").strip() or None,
         lovable_api_key=(os.environ.get("LOVABLE_API_KEY") or "").strip() or None,
         whisper_model=(os.environ.get("WHISPER_MODEL") or "small").strip(),
@@ -134,5 +186,6 @@ def load_settings() -> Settings:
         whisper_beam=beam,
         ffmpeg_path=(os.environ.get("FFMPEG_PATH") or "").strip() or None,
         keep_work=_bool_env("KEEP_WORK", False),
+        allow_file_urls=_bool_env("WORKER_ALLOW_FILE_URLS", False),
         env_files=env_files,
     )

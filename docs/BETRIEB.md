@@ -43,6 +43,7 @@ Schnittstellen.
 | `SOCIAL_TOKEN_KEY` | Verschlüsselt die Zugangs-Tokens in der Datenbank | ja |
 | `SOCIAL_STATE_SECRET` | Signiert den OAuth-State | ja |
 | `CRON_SECRET` | Schützt `/api/public/hooks/*` vor fremden Aufrufen | dringend empfohlen |
+| `WORKER_SECRET` | Ausweis des lokalen Schnitt-Workers gegenüber `/api/worker/*` | ja, sobald der Worker läuft |
 | `LOVABLE_API_KEY` | KI-Antworten auf Kommentare und Direktnachrichten | nur für KI-Regeln |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | YouTube | pro Plattform |
 | `META_APP_ID` / `META_APP_SECRET` | Instagram + Facebook | pro Plattform |
@@ -200,6 +201,77 @@ die Meldung steht an der Nachricht; ein neuer Versuch geht nur von Hand).
 **Längen:** Instagram erlaubt 1000 Zeichen je Nachricht, Messenger 2000. Die
 Oberfläche bleibt beim kleineren Wert, dann passt es überall.
 
+## Worker anbinden
+
+Das eigentliche Schneiden macht der lokale Python-Worker (`worker/`, siehe
+`docs/WORKER.md`). Er braucht ffmpeg und Python, beides gibt es in der Cloud
+nicht. Für den Zugriff auf Datenbank und Storage gibt es zwei Betriebsarten:
+
+1. **Über die App** (Standard auf Lovable Cloud). Lovable Cloud gibt den
+   Service-Role-Schlüssel und die Datenbank-URL nicht nach außen. Der Worker
+   redet deshalb über HTTP mit der App und weist sich mit einem gemeinsamen
+   Geheimnis aus. Die Datenbankarbeit macht die App mit ihrem Admin-Client.
+2. **Direkt** (nur mit eigenem Supabase). Der Worker greift wie bisher mit
+   `SUPABASE_SERVICE_ROLE_KEY` selbst auf `edit_jobs`, `generated_clips` und
+   den Storage zu. Diese Betriebsart bleibt erhalten.
+
+### Einrichten in drei Schritten
+
+**1. Geheimnis erzeugen.** Irgendein langer Zufallswert, zum Beispiel:
+
+```bash
+openssl rand -hex 32
+```
+
+**2. In Lovable hinterlegen.** Im Lovable-Projekt unter *Cloud*, *Secrets* ein
+neues Secret `WORKER_SECRET` mit diesem Wert anlegen und die App neu ausrollen.
+Secrets landen in der Server-Umgebung; im Browser taucht der Wert nie auf.
+
+**3. Beim Worker eintragen.** Denselben Wert in `worker/.env` schreiben:
+
+```
+WORKER_SECRET=<derselbe Wert wie in Lovable>
+```
+
+Dazu braucht der Worker die Adresse der App, damit er weiß, wohin er sich
+melden soll. Welche Variable das ist, steht in `docs/WORKER.md`.
+
+### Die Schnittstelle
+
+Alle Routen liegen unter `/api/worker/*`, sind `POST`, sprechen JSON und
+verlangen den Header `Authorization: Bearer <WORKER_SECRET>`.
+
+| Route | Wofür |
+|---|---|
+| `/api/worker/claim` | Auftrag beanspruchen, liefert Quelle als signierte URL oder Link |
+| `/api/worker/progress` | Fortschritt und Phase melden |
+| `/api/worker/analysis` | Schnittplan ablegen, nur solange noch keiner da ist |
+| `/api/worker/upload-url` | Signierte Upload-URL für einen fertigen Clip |
+| `/api/worker/clip` | Fertigen Clip in `generated_clips` eintragen |
+| `/api/worker/finish` | Auftrag auf `done` oder `failed` setzen |
+| `/api/worker/reset-clips` | Worker-Clips eines Auftrags löschen, für erneutes Anstoßen |
+
+Antworten:
+
+| Fall | Antwort |
+|---|---|
+| Alles in Ordnung | `200 {"ok":true, ...}` |
+| Falsches oder fehlendes Secret | `401 {"ok":false,"error":"Nicht autorisiert"}` |
+| `WORKER_SECRET` am Server nicht gesetzt | `503 {"ok":false,"error":"WORKER_SECRET fehlt"}` |
+| Auftrag unbekannt oder gehört einem anderen Worker | `409` mit Meldung |
+| Pflichtfeld fehlt oder hat den falschen Typ | `400` mit Meldung |
+
+Ohne gesetztes `WORKER_SECRET` ist die Schnittstelle **geschlossen**, nicht
+offen. Das ist Absicht: eine halb eingerichtete Umgebung soll niemandem
+erlauben, Aufträge zu beanspruchen oder Clips einzutragen. Anders als bei
+`CRON_SECRET` gibt es hier also keinen Übergangszustand.
+
+Ein Auftrag gehört immer genau einem Worker. Beim Beanspruchen wird
+`options.worker_id` in einem einzigen bedingten Update gesetzt, das nur greift,
+solange das Feld leer ist. Zwei Worker holen sich deshalb nie denselben
+Auftrag. Alle weiteren Aufrufe schicken ihre `workerId` mit; passt sie nicht
+zum Auftrag, kommt `409`.
+
 ## Tracking
 
 Die Seite *Tracking* zeigt Follower, Aufrufe, Likes, Kommentare und erfasste
@@ -225,3 +297,7 @@ einem einzelnen Kanal.
 | „scope_not_authorized" bei TikTok | Die beantragten Rechte sind noch nicht freigegeben. |
 | „SOCIAL_TOKEN_KEY fehlt" | Umgebungsvariable setzen und neu ausrollen. |
 | Kanal steht auf „error" | Die genaue Meldung steht unter *Social* und *Tracking* am Kanal. |
+| „WORKER_SECRET fehlt" (503 beim Worker) | Das Secret ist in Lovable nicht angelegt oder die App wurde danach nicht neu ausgerollt. |
+| „Nicht autorisiert" (401 beim Worker) | Die Werte in Lovable und in `worker/.env` sind nicht identisch. Auf Leerzeichen am Ende achten. |
+| „Auftrag gehört einem anderen Worker" (409) | Ein zweiter Worker hat den Auftrag zuerst beansprucht. In der App neu anstoßen, dann ist `options.worker_id` wieder leer. |
+| „Quelle fehlt: weder storage_path noch source_url gesetzt" | Das Rohvideo hat weder Datei noch Link. Der Auftrag wird auf `failed` gesetzt. Video neu hochladen. |

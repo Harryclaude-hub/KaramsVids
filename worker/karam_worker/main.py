@@ -1,9 +1,14 @@
 """Schleife und Pipeline des Workers.
 
-  python -m karam_worker                       Endlosschleife, holt Auftraege aus Supabase
+  python -m karam_worker                       Endlosschleife, holt Auftraege ab
   python -m karam_worker --once                einen Auftrag verarbeiten, dann Ende
-  python -m karam_worker --job <id>            einen bestimmten Auftrag (auch schon beanspruchten) neu verarbeiten
-  python -m karam_worker --local pfad.mp4 --clips 3 [--transcript t.json]   ohne Supabase, Ergebnis in WORK_DIR
+  python -m karam_worker --job <id>            einen bestimmten Auftrag neu verarbeiten (nur Direktmodus)
+  python -m karam_worker --local pfad.mp4 --clips 3 [--transcript t.json]   ohne Server, Ergebnis in WORK_DIR
+
+Woher die Auftraege kommen, entscheidet die Konfiguration: ueber die Web-App
+(KARAMSVIDS_URL + WORKER_SECRET) oder direkt aus Supabase (SUPABASE_URL +
+SUPABASE_SERVICE_ROLE_KEY). Die Pipeline sieht davon nichts, sie kennt nur den
+JobStore aus db.py.
 
 Fortschritt in edit_jobs.progress: 5 Quelle laden, 20 Audio und Transkription,
 50 Transkript fertig, 70 Auswahl und Analyse geschrieben, 70 bis 90 Rendern,
@@ -30,6 +35,7 @@ from rich.logging import RichHandler
 
 from . import __version__
 from .config import ConfigError, Settings, load_settings
+from .errors import WorkerError
 from .media import MediaError, MediaInfo, download_from_storage, download_with_ytdlp, extract_audio, ffmpeg_exe, probe
 from .render import detect_encoder, ensure_fontconfig, render_clip
 from .select import SelectError, SelectionOptions, analysis_payload, select_clips
@@ -61,15 +67,15 @@ class ConsoleReporter:
         log.info("[%3d%%] %s%s", pct, phase, f": {detail}" if detail else "")
 
 
-class DbReporter:
+class StoreReporter:
     """Fortschritt in edit_jobs (progress, options.worker_phase, Herzschlag).
 
     Feine Zwischenwerte (z. B. Download-Prozent) werden hoechstens alle 3 s
-    geschrieben, damit die Datenbank nicht mit Updates geflutet wird.
+    gemeldet, damit weder die Datenbank noch die App geflutet werden.
     """
 
-    def __init__(self, db: Any, job_id: str) -> None:
-        self.db = db
+    def __init__(self, store: Any, job_id: str) -> None:
+        self.store = store
         self.job_id = job_id
         self._last_write = 0.0
         self._last_pct = -1
@@ -81,7 +87,7 @@ class DbReporter:
             return
         self._last_write, self._last_pct = now, pct
         try:
-            self.db.set_progress(self.job_id, pct, phase)
+            self.store.set_progress(self.job_id, pct, phase)
         except Exception as e:  # noqa: BLE001 - Fortschritt ist nicht kritisch
             log.warning("Fortschritt konnte nicht geschrieben werden: %s", e)
 
@@ -100,9 +106,13 @@ class JobSpec:
     options: dict[str, Any]
     desired_count: int | None
     title: str
-    storage_path: str | None = None
+    # Quelle: "storage" (fertige Download-Adresse), "url" (Link fuer yt-dlp) oder "local"
+    source_kind: str = "local"
     source_url: str | None = None
-    raw_video_id: str | None = None
+    # gesetzt, wenn schon beim Beanspruchen klar war, dass die Quelle fehlt
+    source_error: str | None = None
+    # gleichbleibender Name im Zwischenspeicher
+    cache_key: str | None = None
     local_source: Path | None = None
     transcript_file: Path | None = None
     extra: dict[str, Any] = field(default_factory=dict)
@@ -141,22 +151,32 @@ class JobSpec:
         return SelectionOptions(min_len_s=num("min_len_s", 20.0), max_len_s=num("max_len_s", 60.0), count=count, mode=self.mode, title_hint=self.title)
 
 
-def job_from_row(row: dict[str, Any]) -> JobSpec:
-    raw = row.get("raw_videos") or {}
-    if isinstance(raw, list):
-        raw = raw[0] if raw else {}
+def job_from_claim(job: Any) -> JobSpec:
+    """Baut die Pipeline-Sicht aus einem beanspruchten Auftrag (db.ClaimedJob).
+
+    Der API-Modus liefert weniger Felder als der Direktmodus (kein brand_id,
+    kein desired_clip_count als Spalte); beides ist optional, die Anzahl steht
+    dann in options.desired_clip_count.
+    """
+    row = job.row
     options = dict(row.get("options") or {})
+    anzahl = row.get("desired_clip_count")
+    try:
+        anzahl = int(anzahl) if anzahl else None
+    except (TypeError, ValueError):
+        anzahl = None
     return JobSpec(
         job_id=str(row["id"]),
-        user_id=str(row["user_id"]),
+        user_id=str(row.get("user_id") or ""),
         brand_id=str(row["brand_id"]) if row.get("brand_id") else None,
         mode=str(row.get("mode") or "long_to_many"),
         options=options,
-        desired_count=int(row["desired_clip_count"]) if row.get("desired_clip_count") else None,
-        title=str(raw.get("title") or ""),
-        storage_path=raw.get("storage_path") or None,
-        source_url=raw.get("source_url") or None,
-        raw_video_id=str(raw.get("id")) if raw.get("id") else None,
+        desired_count=anzahl,
+        title=job.source.title or "",
+        source_kind=job.source.kind or "",
+        source_url=job.source.url or None,
+        source_error=job.source.error,
+        cache_key=job.source.cache_key or None,
     )
 
 
@@ -191,18 +211,20 @@ def _safe_name(text: str) -> str:
 
 def _source_cache_path(spec: JobSpec, settings: Settings) -> Path:
     base = settings.work_dir / "sources"
-    if spec.raw_video_id:
-        return base / f"{spec.raw_video_id}.mp4"
-    key = hashlib.sha1((spec.source_url or spec.storage_path or spec.job_id).encode("utf-8")).hexdigest()[:16]
+    if spec.cache_key:
+        return base / f"{_safe_name(spec.cache_key)}.mp4"
+    key = hashlib.sha1((spec.source_url or spec.job_id).encode("utf-8")).hexdigest()[:16]
     return base / f"{key}.mp4"
 
 
-def obtain_source(spec: JobSpec, settings: Settings, db: Any | None, report: Reporter) -> Path:
-    """Quelle bereitstellen: lokale Datei, Storage-Bucket oder yt-dlp."""
+def obtain_source(spec: JobSpec, settings: Settings, report: Reporter) -> Path:
+    """Quelle bereitstellen: lokale Datei, signierte Adresse oder yt-dlp."""
     if spec.local_source:
         if not spec.local_source.is_file():
             raise MediaError(f"Datei nicht gefunden: {spec.local_source}")
         return spec.local_source
+    if spec.source_error:
+        raise MediaError(spec.source_error)
     dest = _source_cache_path(spec, settings)
     if dest.is_file() and dest.stat().st_size > 10_000:
         log.info("Quelle aus dem Zwischenspeicher: %s", dest)
@@ -211,14 +233,11 @@ def obtain_source(spec: JobSpec, settings: Settings, db: Any | None, report: Rep
     def on_progress(frac: float, text: str) -> None:
         report.progress(5 + int(frac * 12), "Quelle laden", text)
 
-    if spec.storage_path:
-        if db is None:
-            raise MediaError("Storage-Pfad ohne Datenbankverbindung")
-        url = db.signed_download_url("raw-videos", spec.storage_path)
-        return download_from_storage(url, dest, on_progress)
-    if spec.source_url:
+    if spec.source_kind == "storage" and spec.source_url:
+        return download_from_storage(spec.source_url, dest, on_progress, allow_file_urls=settings.allow_file_urls)
+    if spec.source_kind == "url" and spec.source_url:
         return download_with_ytdlp(spec.source_url, dest, on_progress, settings.ffmpeg_path)
-    raise MediaError("Das Rohvideo hat weder storage_path noch source_url")
+    raise MediaError("Der Auftrag hat keine Quelle: weder Datei im Bucket raw-videos noch Link")
 
 
 def get_transcript(spec: JobSpec, source: Path, info: MediaInfo, settings: Settings, report: Reporter, job_dir: Path) -> Transcript:
@@ -257,15 +276,15 @@ def get_transcript(spec: JobSpec, source: Path, info: MediaInfo, settings: Setti
     return t
 
 
-def run_pipeline(spec: JobSpec, settings: Settings, db: Any | None, report: Reporter, on_analysis: Callable[[dict[str, Any]], None] | None = None) -> PipelineResult:
+def run_pipeline(spec: JobSpec, settings: Settings, report: Reporter, on_analysis: Callable[[dict[str, Any]], None] | None = None) -> PipelineResult:
     """Die komplette Verarbeitung eines Auftrags. Wirft bei jedem Fehler."""
     job_dir = settings.work_dir / "jobs" / _safe_name(spec.job_id)
     job_dir.mkdir(parents=True, exist_ok=True)
     ffmpeg_exe(settings.ffmpeg_path)  # frueh pruefen, klarer Fehler statt spaeter Ueberraschung
 
     # 1) Quelle
-    report.progress(5, "Quelle laden", spec.title or spec.source_url or spec.storage_path)
-    source = obtain_source(spec, settings, db, report)
+    report.progress(5, "Quelle laden", spec.title or spec.source_url or spec.source_kind)
+    source = obtain_source(spec, settings, report)
     info = probe(source, settings.ffmpeg_path)
     log.info("Quelle: %dx%d, %.1f fps, %.1f s, Ton: %s", info.width, info.height, info.fps, info.duration_s, "ja" if info.has_audio else "nein")
 
@@ -335,33 +354,30 @@ def run_pipeline(spec: JobSpec, settings: Settings, db: Any | None, report: Repo
     return PipelineResult(analysis=analysis, clips=outputs, transcript=transcript, info=info, job_dir=job_dir)
 
 
-# ------------------------------------------------------ Supabase-Modus
+# --------------------------------------------------------- Auftragslauf
 
 
-def process_job(db: Any, row: dict[str, Any], settings: Settings) -> int:
+def process_job(store: Any, job: Any, settings: Settings) -> int:
     """Verarbeitet einen beanspruchten Auftrag von Anfang bis Ende. Gibt die Clipanzahl zurueck."""
-    from .storage import clip_storage_path, upload_clip
-
-    spec = job_from_row(row)
-    report = DbReporter(db, spec.job_id)
-    log.info("Auftrag %s: Modus %s, %s Clips gewuenscht, Quelle %s", spec.job_id, spec.mode, spec.desired_count or "auto", spec.storage_path or spec.source_url)
+    spec = job_from_claim(job)
+    report = StoreReporter(store, spec.job_id)
+    log.info("Auftrag %s: Modus %s, %s Clips gewuenscht, Quelle %s", spec.job_id, spec.mode, spec.desired_count or "auto", spec.source_kind or "?")
     t0 = time.time()
 
     def write_analysis(analysis: dict[str, Any]) -> None:
-        db.write_analysis(spec.job_id, analysis, 70)
+        store.write_analysis(spec.job_id, analysis, 70)
 
-    result = run_pipeline(spec, settings, db, report, on_analysis=write_analysis)
+    result = run_pipeline(spec, settings, report, on_analysis=write_analysis)
 
-    removed = db.delete_worker_clips(spec.job_id)
+    removed = store.reset_clips(spec.job_id)
     if removed:
         log.info("%d alte Worker-Clips dieses Auftrags entfernt", removed)
 
     total = len(result.clips)
     for out in result.clips:
         report.progress(90 + int(5 * (out.index - 1) / max(total, 1)), "Hochladen", f"Clip {out.index}/{total}")
-        path = clip_storage_path(spec.user_id, spec.job_id, out.index)
-        upload_clip(db, out.path, path)
-        db.insert_clip(
+        path = store.upload_clip(spec.job_id, spec.user_id, out.index, out.path)
+        store.add_clip(
             job_id=spec.job_id,
             user_id=spec.user_id,
             brand_id=spec.brand_id,
@@ -384,7 +400,7 @@ def process_job(db: Any, row: dict[str, Any], settings: Settings) -> int:
             },
         )
     report.progress(95, "Hochgeladen", f"{total} Clips")
-    db.finish_job(spec.job_id, total)
+    store.finish(spec.job_id, total)
     log.info("Auftrag %s fertig: %d Clips in %.0f s", spec.job_id, total, time.time() - t0)
     if not settings.keep_work:
         shutil.rmtree(result.job_dir, ignore_errors=True)
@@ -392,70 +408,69 @@ def process_job(db: Any, row: dict[str, Any], settings: Settings) -> int:
 
 
 def run_loop(settings: Settings, once: bool, job_id: str | None) -> int:
-    from .db import Database, DbError
+    from .db import DbError, create_store
 
-    settings.require_supabase()
-    db = Database(settings.supabase_url or "", settings.service_role_key or "")
-    log.info("Worker %s verbunden mit %s", settings.worker_id, settings.supabase_url)
+    transport = settings.require_transport()
+    store = create_store(settings)
+    if transport == "api":
+        log.info("Worker %s spricht mit der App unter %s", settings.worker_id, settings.karamsvids_url)
+    else:
+        log.info("Worker %s verbunden mit %s (Direktmodus)", settings.worker_id, settings.supabase_url)
     log.info("Transkription: %s | Auswahl: %s | Arbeitsordner: %s",
              f"Groq {settings.groq_model}" if settings.groq_api_key else f"faster-whisper {settings.whisper_model} (lokal)",
              "Lovable AI" if settings.lovable_api_key else "Heuristik (kein LOVABLE_API_KEY)",
              settings.work_dir)
 
-    if job_id:
-        row = db.claim_job(job_id, settings.worker_id, force=True)
-        if row is None:
-            raise DbError(f"Auftrag {job_id} konnte nicht beansprucht werden")
-        return _process_guarded(db, row, settings)
-
-    idle_logged = False
-    while True:
-        try:
-            rows = db.fetch_open_jobs()
-        except Exception as e:  # noqa: BLE001 - Netzfehler nicht toedlich
-            log.warning("Abfrage der Auftraege fehlgeschlagen: %s", e)
-            rows = []
-        handled = 0
-        for row in rows:
-            try:
-                claimed = db.claim_job(str(row["id"]), settings.worker_id)
-            except Exception as e:  # noqa: BLE001 - beim naechsten Durchlauf erneut versuchen
-                log.warning("Auftrag %s konnte nicht beansprucht werden: %s", row["id"], e)
-                continue
-            if claimed is None:
-                log.info("Auftrag %s hat sich ein anderer Worker geholt", row["id"])
-                continue
-            _process_guarded(db, claimed, settings)
-            handled += 1
-            idle_logged = False
-            if once:
-                return 0
-        if once:
-            log.info("Kein offener Auftrag, --once beendet sich.")
-            return 0
-        if not handled and not idle_logged:
-            log.info("Kein offener Auftrag, warte (alle %d s) ...", settings.poll_seconds)
-            idle_logged = True
-        time.sleep(settings.poll_seconds)
-
-
-def _process_guarded(db: Any, row: dict[str, Any], settings: Settings) -> int:
-    job_id = str(row["id"])
     try:
-        process_job(db, row, settings)
+        if job_id:
+            job = store.claim_specific(job_id)
+            if job is None:
+                raise DbError(f"Auftrag {job_id} konnte nicht beansprucht werden")
+            return _process_guarded(store, job, settings)
+
+        idle_logged = False
+        while True:
+            try:
+                job = store.claim_next()
+            except Exception as e:  # noqa: BLE001 - Netzfehler nicht toedlich
+                log.warning("Abfrage der Auftraege fehlgeschlagen: %s", e)
+                if once:
+                    return 1  # bei --once ist ein Fehlversuch das Ergebnis
+                job = None
+            if job is not None:
+                _process_guarded(store, job, settings)
+                idle_logged = False
+                if once:
+                    return 0
+                continue
+            if once:
+                log.info("Kein offener Auftrag, --once beendet sich.")
+                return 0
+            if not idle_logged:
+                log.info("Kein offener Auftrag, warte (alle %d s) ...", settings.poll_seconds)
+                idle_logged = True
+            time.sleep(settings.poll_seconds)
+    finally:
+        store.close()
+
+
+def _process_guarded(store: Any, job: Any, settings: Settings) -> int:
+    job_id = str(job.row["id"])
+    try:
+        process_job(store, job, settings)
         return 0
     except KeyboardInterrupt:
         log.warning("Abbruch durch Nutzer, Auftrag %s wird als fehlgeschlagen markiert", job_id)
-        db.fail_job(job_id, "Worker wurde waehrend der Verarbeitung beendet. Bitte erneut anstossen.")
+        store.fail(job_id, "Worker wurde waehrend der Verarbeitung beendet. Bitte erneut anstossen.")
         raise
     except Exception as e:  # noqa: BLE001 - jeder Fehler landet im Auftrag
         msg = f"{type(e).__name__}: {e}"
         log.error("Auftrag %s fehlgeschlagen: %s", job_id, msg)
         log.debug("%s", traceback.format_exc())
         try:
-            db.fail_job(job_id, msg)
+            store.fail(job_id, msg)
         except Exception as e2:  # noqa: BLE001
-            log.error("Fehler konnte nicht in die Datenbank geschrieben werden: %s", e2)
+            log.error("Fehler konnte nicht gemeldet werden: %s", e2)
         return 1
 
 
@@ -463,7 +478,7 @@ def _process_guarded(db: Any, row: dict[str, Any], settings: Settings) -> int:
 
 
 def run_local(settings: Settings, source: Path, clips: int | None, transcript: Path | None, args: argparse.Namespace) -> int:
-    """Ohne Supabase: Ergebnis landet in WORK_DIR/local/<name>/."""
+    """Ohne Server: Ergebnis landet im Arbeitsordner unter jobs/local-<name>/."""
     source = source.resolve()
     name = _safe_name(source.stem)
     options: dict[str, Any] = {"captions": not args.no_captions, "aspect": args.aspect}
@@ -483,7 +498,7 @@ def run_local(settings: Settings, source: Path, clips: int | None, transcript: P
     )
     settings.keep_work = True
     t0 = time.time()
-    result = run_pipeline(spec, settings, None, ConsoleReporter())
+    result = run_pipeline(spec, settings, ConsoleReporter())
     out_dir = result.job_dir
     import json
 
@@ -512,10 +527,10 @@ def _setup_logging(verbose: bool) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="karam_worker", description="KaramsVids Worker: Auftraege aus Supabase abarbeiten.")
+    p = argparse.ArgumentParser(prog="karam_worker", description="KaramsVids Worker: Auftraege der Web-App abarbeiten.")
     p.add_argument("--once", action="store_true", help="einen Auftrag verarbeiten, dann beenden")
-    p.add_argument("--job", metavar="ID", help="einen bestimmten Auftrag (neu) verarbeiten, auch wenn er schon beansprucht ist")
-    p.add_argument("--local", metavar="VIDEO", help="lokale Datei ohne Supabase verarbeiten (Test)")
+    p.add_argument("--job", metavar="ID", help="einen bestimmten Auftrag (neu) verarbeiten, auch wenn er schon beansprucht ist (nur Direktmodus)")
+    p.add_argument("--local", metavar="VIDEO", help="lokale Datei ohne Server verarbeiten (Test)")
     p.add_argument("--clips", type=int, default=None, help="gewuenschte Clipanzahl im lokalen Modus")
     p.add_argument("--transcript", metavar="JSON", help="Transkript aus Datei statt Whisper (ueberspringt die Transkription)")
     p.add_argument("--mode", default="long_to_many", choices=["auto_cut", "ugc_shorts", "long_to_many", "manual"], help="Schnittmodus im lokalen Modus")
@@ -549,7 +564,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         log.info("Beendet.")
         return 130
-    except (ConfigError, MediaError, TranscribeError, SelectError) as e:
+    except (ConfigError, MediaError, TranscribeError, SelectError, WorkerError) as e:
         log.error("%s", e)
         return 2
     except Exception as e:  # noqa: BLE001 - letzter Fang mit Traceback

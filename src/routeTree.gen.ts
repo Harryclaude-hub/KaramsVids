@@ -28,6 +28,13 @@ import { Route as AuthenticatedAppPublishingRouteImport } from './routes/_authen
 import { Route as AuthenticatedAppTemplatesRouteImport } from './routes/_authenticated/app/templates'
 import { Route as AuthenticatedAppTrackingRouteImport } from './routes/_authenticated/app/tracking'
 import { Route as AuthenticatedAppUploadRouteImport } from './routes/_authenticated/app/upload'
+import { Route as ApiWorkerAnalysisRouteImport } from './routes/api/worker/analysis'
+import { Route as ApiWorkerClaimRouteImport } from './routes/api/worker/claim'
+import { Route as ApiWorkerClipRouteImport } from './routes/api/worker/clip'
+import { Route as ApiWorkerFinishRouteImport } from './routes/api/worker/finish'
+import { Route as ApiWorkerProgressRouteImport } from './routes/api/worker/progress'
+import { Route as ApiWorkerResetClipsRouteImport } from './routes/api/worker/reset-clips'
+import { Route as ApiWorkerUploadUrlRouteImport } from './routes/api/worker/upload-url'
 import { Route as AuthenticatedAppBrandIdRouteImport } from './routes/_authenticated/app/brand.$id'
 import { Route as AuthenticatedAppJobIdRouteImport } from './routes/_authenticated/app/job.$id'
 import { Route as AuthenticatedAppVideoIdRouteImport } from './routes/_authenticated/app/video.$id'
@@ -140,6 +147,41 @@ const AuthenticatedAppUploadRoute = AuthenticatedAppUploadRouteImport.update({
   path: '/app/upload',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiWorkerAnalysisRoute = ApiWorkerAnalysisRouteImport.update({
+  id: '/api/worker/analysis',
+  path: '/api/worker/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerClaimRoute = ApiWorkerClaimRouteImport.update({
+  id: '/api/worker/claim',
+  path: '/api/worker/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerClipRoute = ApiWorkerClipRouteImport.update({
+  id: '/api/worker/clip',
+  path: '/api/worker/clip',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerFinishRoute = ApiWorkerFinishRouteImport.update({
+  id: '/api/worker/finish',
+  path: '/api/worker/finish',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerProgressRoute = ApiWorkerProgressRouteImport.update({
+  id: '/api/worker/progress',
+  path: '/api/worker/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerResetClipsRoute = ApiWorkerResetClipsRouteImport.update({
+  id: '/api/worker/reset-clips',
+  path: '/api/worker/reset-clips',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkerUploadUrlRoute = ApiWorkerUploadUrlRouteImport.update({
+  id: '/api/worker/upload-url',
+  path: '/api/worker/upload-url',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAppBrandIdRoute = AuthenticatedAppBrandIdRouteImport.update({
   id: '/app/brand/$id',
   path: '/app/brand/$id',
@@ -221,6 +263,13 @@ export interface FileRoutesByFullPath {
   '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
+  '/api/worker/analysis': typeof ApiWorkerAnalysisRoute
+  '/api/worker/claim': typeof ApiWorkerClaimRoute
+  '/api/worker/clip': typeof ApiWorkerClipRoute
+  '/api/worker/finish': typeof ApiWorkerFinishRoute
+  '/api/worker/progress': typeof ApiWorkerProgressRoute
+  '/api/worker/reset-clips': typeof ApiWorkerResetClipsRoute
+  '/api/worker/upload-url': typeof ApiWorkerUploadUrlRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -251,6 +300,13 @@ export interface FileRoutesByTo {
   '/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/app/upload': typeof AuthenticatedAppUploadRoute
+  '/api/worker/analysis': typeof ApiWorkerAnalysisRoute
+  '/api/worker/claim': typeof ApiWorkerClaimRoute
+  '/api/worker/clip': typeof ApiWorkerClipRoute
+  '/api/worker/finish': typeof ApiWorkerFinishRoute
+  '/api/worker/progress': typeof ApiWorkerProgressRoute
+  '/api/worker/reset-clips': typeof ApiWorkerResetClipsRoute
+  '/api/worker/upload-url': typeof ApiWorkerUploadUrlRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -284,6 +340,13 @@ export interface FileRoutesById {
   '/_authenticated/app/templates': typeof AuthenticatedAppTemplatesRoute
   '/_authenticated/app/tracking': typeof AuthenticatedAppTrackingRoute
   '/_authenticated/app/upload': typeof AuthenticatedAppUploadRoute
+  '/api/worker/analysis': typeof ApiWorkerAnalysisRoute
+  '/api/worker/claim': typeof ApiWorkerClaimRoute
+  '/api/worker/clip': typeof ApiWorkerClipRoute
+  '/api/worker/finish': typeof ApiWorkerFinishRoute
+  '/api/worker/progress': typeof ApiWorkerProgressRoute
+  '/api/worker/reset-clips': typeof ApiWorkerResetClipsRoute
+  '/api/worker/upload-url': typeof ApiWorkerUploadUrlRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/brand/$id': typeof AuthenticatedAppBrandIdRoute
   '/_authenticated/app/job/$id': typeof AuthenticatedAppJobIdRoute
@@ -317,6 +380,13 @@ export interface FileRouteTypes {
     | '/app/templates'
     | '/app/tracking'
     | '/app/upload'
+    | '/api/worker/analysis'
+    | '/api/worker/claim'
+    | '/api/worker/clip'
+    | '/api/worker/finish'
+    | '/api/worker/progress'
+    | '/api/worker/reset-clips'
+    | '/api/worker/upload-url'
     | '/app/'
     | '/app/brand/$id'
     | '/app/job/$id'
@@ -347,6 +417,13 @@ export interface FileRouteTypes {
     | '/app/templates'
     | '/app/tracking'
     | '/app/upload'
+    | '/api/worker/analysis'
+    | '/api/worker/claim'
+    | '/api/worker/clip'
+    | '/api/worker/finish'
+    | '/api/worker/progress'
+    | '/api/worker/reset-clips'
+    | '/api/worker/upload-url'
     | '/app'
     | '/app/brand/$id'
     | '/app/job/$id'
@@ -379,6 +456,13 @@ export interface FileRouteTypes {
     | '/_authenticated/app/templates'
     | '/_authenticated/app/tracking'
     | '/_authenticated/app/upload'
+    | '/api/worker/analysis'
+    | '/api/worker/claim'
+    | '/api/worker/clip'
+    | '/api/worker/finish'
+    | '/api/worker/progress'
+    | '/api/worker/reset-clips'
+    | '/api/worker/upload-url'
     | '/_authenticated/app/'
     | '/_authenticated/app/brand/$id'
     | '/_authenticated/app/job/$id'
@@ -401,6 +485,13 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiWorkerAnalysisRoute: typeof ApiWorkerAnalysisRoute
+  ApiWorkerClaimRoute: typeof ApiWorkerClaimRoute
+  ApiWorkerClipRoute: typeof ApiWorkerClipRoute
+  ApiWorkerFinishRoute: typeof ApiWorkerFinishRoute
+  ApiWorkerProgressRoute: typeof ApiWorkerProgressRoute
+  ApiWorkerResetClipsRoute: typeof ApiWorkerResetClipsRoute
+  ApiWorkerUploadUrlRoute: typeof ApiWorkerUploadUrlRoute
   ApiPublicHooksCreatomateWebhookRoute: typeof ApiPublicHooksCreatomateWebhookRoute
   ApiPublicHooksProcessAutomationsRoute: typeof ApiPublicHooksProcessAutomationsRoute
   ApiPublicHooksProcessGenerationQueueRoute: typeof ApiPublicHooksProcessGenerationQueueRoute
@@ -546,6 +637,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppUploadRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/worker/analysis': {
+      id: '/api/worker/analysis'
+      path: '/api/worker/analysis'
+      fullPath: '/api/worker/analysis'
+      preLoaderRoute: typeof ApiWorkerAnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/claim': {
+      id: '/api/worker/claim'
+      path: '/api/worker/claim'
+      fullPath: '/api/worker/claim'
+      preLoaderRoute: typeof ApiWorkerClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/clip': {
+      id: '/api/worker/clip'
+      path: '/api/worker/clip'
+      fullPath: '/api/worker/clip'
+      preLoaderRoute: typeof ApiWorkerClipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/finish': {
+      id: '/api/worker/finish'
+      path: '/api/worker/finish'
+      fullPath: '/api/worker/finish'
+      preLoaderRoute: typeof ApiWorkerFinishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/progress': {
+      id: '/api/worker/progress'
+      path: '/api/worker/progress'
+      fullPath: '/api/worker/progress'
+      preLoaderRoute: typeof ApiWorkerProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/reset-clips': {
+      id: '/api/worker/reset-clips'
+      path: '/api/worker/reset-clips'
+      fullPath: '/api/worker/reset-clips'
+      preLoaderRoute: typeof ApiWorkerResetClipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worker/upload-url': {
+      id: '/api/worker/upload-url'
+      path: '/api/worker/upload-url'
+      fullPath: '/api/worker/upload-url'
+      preLoaderRoute: typeof ApiWorkerUploadUrlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/brand/$id': {
       id: '/_authenticated/app/brand/$id'
       path: '/app/brand/$id'
@@ -681,6 +821,13 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiWorkerAnalysisRoute: ApiWorkerAnalysisRoute,
+  ApiWorkerClaimRoute: ApiWorkerClaimRoute,
+  ApiWorkerClipRoute: ApiWorkerClipRoute,
+  ApiWorkerFinishRoute: ApiWorkerFinishRoute,
+  ApiWorkerProgressRoute: ApiWorkerProgressRoute,
+  ApiWorkerResetClipsRoute: ApiWorkerResetClipsRoute,
+  ApiWorkerUploadUrlRoute: ApiWorkerUploadUrlRoute,
   ApiPublicHooksCreatomateWebhookRoute: ApiPublicHooksCreatomateWebhookRoute,
   ApiPublicHooksProcessAutomationsRoute: ApiPublicHooksProcessAutomationsRoute,
   ApiPublicHooksProcessGenerationQueueRoute:

@@ -19,6 +19,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import unquote, urlparse
 
 import httpx
 
@@ -191,11 +192,33 @@ def probe(path: Path, ffmpeg_path: str | None = None) -> MediaInfo:
 # ---------------------------------------------------------------- Quelle
 
 
-def download_from_storage(url: str, dest: Path, progress: ProgressFn | None = None) -> Path:
-    """Laedt eine Datei ueber eine (signierte) URL gestreamt auf die Platte."""
+def download_from_storage(
+    url: str,
+    dest: Path,
+    progress: ProgressFn | None = None,
+    allow_file_urls: bool = False,
+) -> Path:
+    """Laedt eine Datei ueber eine (signierte) URL gestreamt auf die Platte.
+
+    Die Adresse kommt im Direktmodus von Supabase und im API-Modus aus der
+    claim-Antwort der Web-App. Mit allow_file_urls wird zusaetzlich eine
+    file://-Adresse angenommen; das braucht nur der lokale Testaufbau
+    (Schalter WORKER_ALLOW_FILE_URLS, im Normalbetrieb aus).
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
     started = time.time()
+
+    if url.startswith("file://"):
+        if not allow_file_urls:
+            raise MediaError("file://-Adressen sind als Quelle nicht erlaubt (WORKER_ALLOW_FILE_URLS ist aus)")
+        quelle = Path(unquote(urlparse(url).path.lstrip("/")))
+        if not quelle.is_file():
+            raise MediaError(f"Quelle nicht gefunden: {quelle}")
+        shutil.copyfile(quelle, dest)
+        log.info("Quelle kopiert: %s (%.1f MB)", dest.name, dest.stat().st_size / 1_048_576)
+        return dest
+
     with httpx.Client(timeout=httpx.Timeout(60.0, read=300.0), follow_redirects=True) as client:
         with client.stream("GET", url) as resp:
             if resp.status_code != 200:

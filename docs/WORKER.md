@@ -2,23 +2,42 @@
 
 Stand: September 2026
 
-Die Web-App läuft auf Cloudflare Workers (über Lovable). Dort gibt es kein
-ffmpeg und kein Python, also kann sie Videos weder anhören noch schneiden.
-Das intelligente Schneiden übernimmt deshalb ein kleines Programm auf deinem
-Windows-Rechner: der **Worker** unter `worker/`. Die Web-App ist das Steuerpult,
-der Worker der Maschinenraum.
+Die Web-App läuft auf Lovable Cloud. Dort gibt es kein ffmpeg und kein Python,
+also kann sie Videos weder anhören noch schneiden. Das intelligente Schneiden
+übernimmt deshalb ein kleines Programm auf deinem Windows-Rechner: der
+**Worker** unter `worker/`. Die Web-App ist das Steuerpult, der Worker der
+Maschinenraum.
+
+Der Worker kennt zwei Wege zu den Aufträgen. Welcher gilt, entscheidet allein
+die `.env`:
+
+| Weg | Wann | Was der Worker braucht |
+| --- | --- | --- |
+| **API-Modus** (Standard) | die App läuft auf Lovable Cloud | `KARAMSVIDS_URL` und `WORKER_SECRET` |
+| **Direktmodus** | eigenes Supabase-Projekt | `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` |
+
+Der API-Modus ist der Standard, weil Lovable Cloud den Service-Role-Schlüssel
+und die Datenbankadresse nicht herausgibt. Der Worker redet dann nur mit der
+App; die App hat serverseitig den Admin-Client und erledigt die Datenbankarbeit.
+Auf deinem Rechner liegt kein Datenbankschlüssel, nur das gemeinsame Geheimnis.
 
 ```
-Web-App (Cloudflare)                 Supabase                    Dein Rechner
---------------------                 --------                    ------------
-Clip-Seite: "10 Clips"  ──insert──▶  edit_jobs                   worker/ (Python)
-analyzeVideo()          ──update──▶  status = analyzing   ◀─poll─  holt Aufträge alle 10 s
-                                     options.engine = worker      beansprucht (worker_id)
-Editor zeigt Fortschritt ◀─────────  progress 5..100      ◀──────  schreibt Fortschritt
-Editor lädt Segmente     ◀─────────  analysis             ◀──────  Transkript + Auswahl
-Warteschlange / Galerie  ◀─────────  generated_clips      ◀──────  fertige MP4 hochgeladen
-                                     rendered-clips (Bucket)
+API-Modus                            Web-App (Lovable)            Dein Rechner
+---------                            -----------------            ------------
+Clip-Seite: "10 Clips"  ──insert──▶  edit_jobs (Supabase)         worker/ (Python)
+                                     POST /api/worker/claim  ◀───  holt Aufträge alle 10 s
+Editor zeigt Fortschritt ◀─────────  POST .../progress       ◀───  schreibt Fortschritt
+Editor lädt Segmente     ◀─────────  POST .../analysis       ◀───  Transkript + Auswahl
+                                     POST .../upload-url     ◀───  signiertes Ziel holen
+Warteschlange / Galerie  ◀─────────  POST .../clip           ◀───  fertige MP4 hochgeladen
+                                     POST .../finish         ◀───  fertig oder gescheitert
 ```
+
+Alle sieben Routen liegen unter `/api/worker/*`, sind POST mit JSON und tragen
+den Header `Authorization: Bearer <WORKER_SECRET>`. Ohne oder mit falschem
+Secret antwortet die App mit 401, ist auf dem Server gar kein Secret angelegt
+mit 503. Im Direktmodus fällt diese Zwischenschicht weg, der Worker schreibt
+dann selbst in `edit_jobs`, `generated_clips` und den Bucket.
 
 ## Was der Worker tut
 
@@ -52,14 +71,59 @@ Je Auftrag, in dieser Reihenfolge (Fortschritt in Klammern):
 7. **Hochladen** (90 bis 95): nach `rendered-clips/{user_id}/{job_id}/{n}.mp4`,
    dann je Clip eine Zeile in `generated_clips` (Status `draft`, `aspect`,
    `duration_s`, `title`, `caption_srt`, `meta` mit `start_s`, `end_s`, `hook`).
+   Im API-Modus holt der Worker dafür je Clip ein signiertes Upload-Ziel von der
+   App und meldet den fertigen Clip zurück; er schreibt nie selbst in die
+   Datenbank.
 8. **Fertig** (100): `status = done`. Bei jedem Fehler: `status = failed` und der
    Fehlertext in `edit_jobs.error`, sichtbar im Editor.
 
-## Einrichtung in 5 Schritten
+## Einrichtung in 5 Schritten (Lovable Cloud)
 
 Voraussetzungen: Windows 10/11, Python 3.12, ffmpeg (Gyan-Build), Internet.
+Vorher einmal ffmpeg installieren und die Python-Umgebung anlegen, siehe
+"Einmalige Vorbereitung" weiter unten.
 
-1. **ffmpeg installieren** (einmalig, falls noch nicht da):
+1. **Geheimnis erzeugen und in Lovable anlegen.** Einen langen Zufallswert
+   bilden, zum Beispiel in PowerShell:
+   ```
+   [guid]::NewGuid().ToString() + [guid]::NewGuid().ToString()
+   ```
+   In Lovable im Projekt unter **Secrets** einen Eintrag `WORKER_SECRET` anlegen
+   und diesen Wert einsetzen. Fehlt das Secret auf dem Server, antworten alle
+   Worker-Routen mit 503; das ist Absicht, damit nie offen steht, was geschlossen
+   sein soll.
+
+2. **App veröffentlichen** (Publish). Erst danach existieren die Routen
+   `/api/worker/*` unter der öffentlichen Adresse. Die Adresse merken, zum
+   Beispiel `https://karamsvids.lovable.app`.
+
+3. **`.env` ausfüllen**: `worker\.env.example` nach `worker\.env` kopieren und
+   die beiden Zeilen setzen:
+   ```
+   KARAMSVIDS_URL=https://karamsvids.lovable.app
+   WORKER_SECRET=<derselbe Wert wie in Lovable>
+   ```
+   `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` bleiben leer. Die `.env` steht
+   in `worker/.gitignore` und bleibt auf diesem Rechner.
+
+4. **Probelauf**: einen Auftrag in der Web-App anstoßen und dann
+   ```
+   .venv\Scripts\python -m karam_worker --once
+   ```
+   Der Worker meldet "spricht mit der App unter ...", holt den Auftrag, zeigt
+   Fortschritt und beendet sich nach dem Auftrag. Beim ersten Lauf lädt Whisper
+   sein Modell (`small`, etwa 480 MB) herunter.
+
+5. **Worker starten**: Doppelklick auf `worker\start-worker.cmd` oder im Terminal
+   `python -m karam_worker`. Er meldet sich mit Modell, Auswahlmethode und
+   Arbeitsordner, holt dann alle 10 Sekunden offene Aufträge. Fenster offen lassen.
+   Für Dauerbetrieb `start-worker.cmd` in die Aufgabenplanung legen (Trigger
+   "Bei Anmeldung", Aktion "Programm starten", "Starten in" = `C:\kv\KaramsVids\worker`).
+   Die Schleife in der CMD startet den Worker nach einem Absturz von selbst neu.
+
+### Einmalige Vorbereitung
+
+1. **ffmpeg installieren** (falls noch nicht da):
    ```
    winget install Gyan.FFmpeg
    ```
@@ -76,27 +140,28 @@ Voraussetzungen: Windows 10/11, Python 3.12, ffmpeg (Gyan-Build), Internet.
    Das zieht `faster-whisper`, `yt-dlp`, `supabase` und ein paar kleine Helfer.
    Alles läuft auf der CPU, eine Grafikkarte ist nicht nötig.
 
-3. **Zugangsdaten eintragen**: `.env.example` nach `.env` kopieren und
-   `SUPABASE_URL` sowie `SUPABASE_SERVICE_ROLE_KEY` ausfüllen (Supabase-Dashboard,
-   Project Settings, API). Der Service-Role-Schlüssel umgeht die Zeilen-Sicherheit,
-   deshalb bleibt er nur auf diesem Rechner und kommt nie in die Web-App oder ins
-   Repo (`.env` steht in `worker/.gitignore`).
-
-4. **Probelauf ohne Supabase** mit einer eigenen Videodatei:
+3. **Trockenübung ohne Server** mit einer eigenen Videodatei:
    ```
    .venv\Scripts\python -m karam_worker --local C:\Pfad\video.mp4 --clips 3
    ```
-   Beim ersten Lauf lädt Whisper das Modell (`small`, etwa 480 MB) herunter. Das
-   Ergebnis liegt unter `%LOCALAPPDATA%\KaramsVids\work\jobs\local-<name>\`:
+   Das Ergebnis liegt unter `%LOCALAPPDATA%\KaramsVids\work\jobs\local-<name>\`:
    `clip_1.mp4` bis `clip_3.mp4`, dazu `.srt`, `.ass`, `transcript.json` und
-   `analysis.json`.
+   `analysis.json`. Dafür braucht es weder Lovable noch Supabase.
 
-5. **Worker starten**: Doppelklick auf `worker\start-worker.cmd` oder im Terminal
-   `python -m karam_worker`. Er meldet sich mit Modell, Auswahlmethode und
-   Arbeitsordner, holt dann alle 10 Sekunden offene Aufträge. Fenster offen lassen.
-   Für Dauerbetrieb `start-worker.cmd` in die Aufgabenplanung legen (Trigger
-   "Bei Anmeldung", Aktion "Programm starten", "Starten in" = `C:\kv\KaramsVids\worker`).
-   Die Schleife in der CMD startet den Worker nach einem Absturz von selbst neu.
+## Alternative: Direktmodus mit eigenem Supabase
+
+Wer ein eigenes Supabase-Projekt betreibt (nicht Lovable Cloud), kann den Worker
+wie bisher direkt anschließen: in der `.env` `SUPABASE_URL` und
+`SUPABASE_SERVICE_ROLE_KEY` setzen (Supabase-Dashboard, Project Settings, API)
+und `KARAMSVIDS_URL` sowie `WORKER_SECRET` leer lassen. Der Service-Role-Schlüssel
+umgeht die Zeilen-Sicherheit, deshalb bleibt er nur auf diesem Rechner.
+
+Sind beide Wege ausgefüllt, gewinnt der API-Modus. Fehlt beides, sagt der Worker
+beim Start, welche Angaben er für welchen Weg braucht.
+
+Der Direktmodus kann zusätzlich `--job <id>`, weil er beliebige Aufträge selbst
+aus der Datenbank holen darf. Im API-Modus gibt es das nicht: dort stößt du den
+Auftrag in der Web-App erneut an, der Worker holt ihn dann von selbst.
 
 ## Aufrufe
 
@@ -104,8 +169,8 @@ Voraussetzungen: Windows 10/11, Python 3.12, ffmpeg (Gyan-Build), Internet.
 | --- | --- |
 | `python -m karam_worker` | Endlosschleife: Aufträge holen, abarbeiten, warten |
 | `python -m karam_worker --once` | einen Auftrag verarbeiten, dann beenden |
-| `python -m karam_worker --job <id>` | einen bestimmten Auftrag neu verarbeiten, auch wenn er schon beansprucht oder fertig war |
-| `python -m karam_worker --local video.mp4 --clips 3` | ohne Supabase, Ergebnis im Arbeitsordner |
+| `python -m karam_worker --job <id>` | einen bestimmten Auftrag neu verarbeiten, auch wenn er schon beansprucht oder fertig war (nur Direktmodus) |
+| `python -m karam_worker --local video.mp4 --clips 3` | ohne Server, Ergebnis im Arbeitsordner |
 | `... --local video.mp4 --transcript t.json` | Transkript aus Datei, Whisper wird übersprungen (Tests) |
 | `... --local ... --blur-pad --caption-preset hormozi --aspect 9:16` | Formatoptionen im lokalen Modus |
 | `... --whisper-model tiny` | anderes Whisper-Modell nur für diesen Lauf |
@@ -118,8 +183,10 @@ Die `start-worker.cmd` reicht Argumente durch: `start-worker.cmd --once` oder
 
 | Variable | Pflicht | Bedeutung |
 | --- | --- | --- |
-| `SUPABASE_URL` | ja | Adresse des Supabase-Projekts |
-| `SUPABASE_SERVICE_ROLE_KEY` | ja | Service-Role-Schlüssel (nur lokal) |
+| `KARAMSVIDS_URL` | API-Modus | Adresse der veröffentlichten App, ohne Schrägstrich am Ende |
+| `WORKER_SECRET` | API-Modus | gemeinsames Geheimnis, identisch mit dem Secret in Lovable |
+| `SUPABASE_URL` | Direktmodus | Adresse des Supabase-Projekts |
+| `SUPABASE_SERVICE_ROLE_KEY` | Direktmodus | Service-Role-Schlüssel (nur lokal) |
 | `GROQ_API_KEY` | nein | Transkription bei Groq (whisper-large-v3-turbo) statt lokal |
 | `LOVABLE_API_KEY` | nein | Auswahl der Stellen per Sprachmodell über das Lovable-Gateway; leer = Heuristik |
 | `LOVABLE_MODEL` | nein | Modell hinter dem Gateway, Standard `google/gemini-2.5-flash` |
@@ -130,6 +197,7 @@ Die `start-worker.cmd` reicht Argumente durch: `start-worker.cmd --once` oder
 | `POLL_SECONDS` | nein | Abstand der Abfragen, Standard 10 |
 | `FFMPEG_PATH` | nein | fester Pfad zu `ffmpeg.exe`, falls nicht im PATH |
 | `KEEP_WORK` | nein | `1` = Arbeitsordner eines Auftrags nach Erfolg behalten |
+| `WORKER_ALLOW_FILE_URLS` | nein | nur für den Testaufbau: erlaubt `file://` als Quelle und Upload-Ziel |
 
 ## Was der Auftrag mitbringt
 
@@ -175,6 +243,8 @@ leer bleibt:
 | Render 9:16 `crop` ohne Untertitel, `libx264 veryfast` | 2,4x Echtzeit (88 s Clip in 37 s) |
 | Kompletter Testlauf: 90 s Video, Transkript aus Datei, 3 Clips | 22 bis 23 s inklusive Encoder-Probelauf |
 | Kompletter Testlauf: 34 s echte Sprache, Whisper `tiny`, 2 Clips | 15,7 s |
+| API-Modus gegen den Nachbau: 37,6 s Sprache, Whisper `tiny`, 2 Clips | 20,3 s gesamt; Quelle 0,7 s (34 MB), Whisper 6,4 s, Auswahl 0,8 s, Rendern 10,7 s (17,4 s Clip in 6,0 s, 10,0 s Clip in 4,1 s), Upload und Meldungen unter 0,3 s |
+| Upload über `upload_to_signed_url` (9,3 MB in zwei Clips) | 3,2 s für beide, also etwa 1,5 s je Clip über die Schleife auf `127.0.0.1` |
 
 Faustregel für ein 20-Minuten-Video mit 10 Clips à 40 s: Quelle laden je nach
 Leitung 1 bis 3 Minuten, Whisper `small` 8 bis 12 Minuten, Rendern etwa 2
@@ -213,9 +283,14 @@ der mittlere Posten auf unter eine Minute.
 
 | Symptom | Ursache | Abhilfe |
 | --- | --- | --- |
-| `Pflichtangaben fehlen: SUPABASE_URL, ...` | `.env` fehlt oder ist leer | `.env.example` nach `.env` kopieren und ausfüllen |
+| `Der Worker weiss nicht, wohin er sich verbinden soll` | `.env` fehlt oder ist leer | `.env.example` nach `.env` kopieren und einen der beiden Wege ausfüllen |
+| `WORKER_SECRET stimmt nicht mit dem Secret in Lovable ueberein` (401) | Tippfehler, oder in Lovable steht ein anderer Wert | beide Werte vergleichen, App neu veröffentlichen |
+| `In Lovable ist noch kein WORKER_SECRET angelegt` (503) | Secret fehlt auf dem Server | in Lovable unter Secrets anlegen und neu veröffentlichen |
+| `Die Route /api/worker/claim gibt es unter ... nicht` (404) | App ohne die Worker-Routen veröffentlicht, oder falsche Adresse | `KARAMSVIDS_URL` prüfen, App neu veröffentlichen |
+| `Die App unter ... ist nicht erreichbar` | Adresse falsch, App schläft, kein Internet | Adresse im Browser öffnen |
+| `Der Auftrag gehoert einem anderen Worker` (409) | zwei Worker, oder Auftrag zwischendurch zurückgesetzt | Auftrag in der Web-App erneut anstoßen |
 | `ffmpeg nicht gefunden` | ffmpeg nicht installiert oder Terminal noch mit altem PATH | `winget install Gyan.FFmpeg`, Terminal neu öffnen, oder `FFMPEG_PATH` setzen |
-| Auftrag bleibt bei `analyzing`, Fortschritt 0 | Worker läuft nicht oder ist nicht mit diesem Supabase-Projekt verbunden | Worker starten, `SUPABASE_URL` mit der Web-App vergleichen |
+| Auftrag bleibt bei `analyzing`, Fortschritt 0 | Worker läuft nicht oder hängt an einem anderen Projekt | Worker starten, `KARAMSVIDS_URL` (oder im Direktmodus `SUPABASE_URL`) mit der Web-App vergleichen |
 | `Auftrag ... hat sich ein anderer Worker geholt` | zwei Worker laufen gleichzeitig | erwünscht, nichts tun; Aufträge verteilen sich |
 | `Download aus dem Storage: HTTP 400/404` | `raw_videos.storage_path` zeigt auf eine Datei, die nicht (mehr) im Bucket liegt | Video in der Web-App neu hochladen |
 | `yt-dlp konnte den Link nicht laden` | yt-dlp veraltet, Video privat oder gesperrt | `pip install -U yt-dlp`; sonst Datei hochladen |
@@ -259,12 +334,38 @@ worker/
   karam_worker/
     __main__.py           python -m karam_worker
     main.py               Schleife, Pipeline, lokaler Modus, Kommandozeile
-    config.py             .env und Umgebung einlesen
-    db.py                 Supabase: Aufträge holen, beanspruchen, Fortschritt, Clips
+    config.py             .env und Umgebung einlesen, Wahl des Modus
+    api_client.py         die sieben Routen /api/worker/* über HTTP
+    db.py                 JobStore: ApiStore (über die App) und DirectStore (Supabase)
+    errors.py             gemeinsame Fehlerklasse für Meldungen ohne Traceback
     media.py              ffmpeg finden, Quelle laden, ffprobe, Audio ziehen
     transcribe.py         faster-whisper lokal oder Groq, Sätze aus Wörtern
     select.py             Auswahl per Sprachmodell oder Heuristik, Satzgrenzen
     subtitles.py          ASS zum Einbrennen, SRT für die Datenbank
     render.py             Schnitt, Hochformat, Untertitel, Encoder, fontconfig
-    storage.py            Upload nach rendered-clips
+    storage.py            Upload nach rendered-clips (direkt oder signiert)
+  tests/
+    fake_api.py           Nachbau der sieben Routen als lokaler Server (nur Test)
+    test_api_mode.py      kompletter Durchlauf im API-Modus gegen den Nachbau
 ```
+
+Test des API-Modus ohne Lovable, mit einer echten Videodatei:
+
+```
+cd C:\kv\KaramsVids\worker
+.venv\Scripts\python tests\test_api_mode.py --video C:\Pfad\video.mp4
+```
+
+Der Test startet den Nachbau auf `127.0.0.1`, lässt `python -m karam_worker --once`
+laufen und prüft danach die Reihenfolge der Aufrufe, den Status `done`, die
+gemeldeten Clips und die hochgeladenen Dateien. Er läuft in vier Durchgängen:
+
+1. kompletter Auftrag mit `file://` als Upload-Ziel (der Worker kopiert selbst),
+2. leerer Durchgang, wenn kein Auftrag offen ist (`claim` liefert `job:null`),
+3. kompletter Auftrag über den echten Upload-Weg, also `upload_to_signed_url`
+   von `supabase-py` gegen einen nachgebauten Storage-Endpunkt,
+4. Fehlerfall: die Quelle antwortet mit 404, der Auftrag muss als `failed` mit
+   Text zurückgemeldet werden.
+
+Die Fehlerfälle 401 (falsches Secret) und 503 (kein Secret auf dem Server)
+prüft er vorab direkt am `ApiClient`.

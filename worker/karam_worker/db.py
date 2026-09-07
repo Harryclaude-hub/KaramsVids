@@ -1,4 +1,11 @@
-"""Zugriff auf Supabase mit dem Service-Role-Schluessel.
+"""Zugriff auf Auftraege, Clips und Storage.
+
+Es gibt zwei Wege, und main.py kennt nur die gemeinsame Schnittstelle JobStore:
+
+  ApiStore     spricht ueber HTTP mit der Web-App (/api/worker/*). Standard auf
+               Lovable Cloud, weil es dort keinen Service-Role-Schluessel gibt.
+  DirectStore  greift mit dem Service-Role-Schluessel direkt auf Supabase zu
+               (fuer Nutzer mit eigenem Supabase-Projekt).
 
 Der Worker liest und schreibt nur drei Tabellen:
   edit_jobs        Auftrag, Status, Fortschritt, Analyse, Fehler
@@ -12,18 +19,24 @@ denselben Auftrag.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from pathlib import Path
+from typing import Any, Protocol
 
 from supabase import Client, create_client
+
+from .api_client import ApiClient
+from .errors import WorkerError
 
 log = logging.getLogger("karam.db")
 
 JobRow = dict[str, Any]
 
 
-class DbError(RuntimeError):
+class DbError(WorkerError):
     """Datenbankzugriff fehlgeschlagen."""
 
 
@@ -206,3 +219,344 @@ class Database:
         if not rows:
             raise DbError(f"Auftrag {job_id} nicht gefunden")
         return dict(rows[0].get("options") or {})
+
+
+# ============================================================== Schnittstelle
+#
+# Ab hier die gemeinsame Sicht fuer main.py. Die Pipeline weiss nicht, ob
+# dahinter die Web-App (ApiStore) oder Supabase (DirectStore) steckt.
+
+
+@dataclass
+class JobSource:
+    """Woher das Rohvideo kommt."""
+
+    # "storage" = fertige Download-Adresse (signiert), "url" = Link fuer yt-dlp
+    kind: str
+    url: str
+    title: str = ""
+    duration_s: float | None = None
+    # stabiler Name im Zwischenspeicher, damit ein zweiter Lauf nicht neu laedt
+    cache_key: str = ""
+    # gesetzt, wenn die Quelle nicht ermittelt werden konnte (die Pipeline
+    # bricht dann sauber ab und der Auftrag wird als failed gemeldet)
+    error: str | None = None
+
+
+@dataclass
+class ClaimedJob:
+    """Ein beanspruchter Auftrag mit seiner Quelle."""
+
+    row: JobRow
+    source: JobSource
+
+    @property
+    def id(self) -> str:
+        return str(self.row["id"])
+
+
+def _cache_key(kind: str, url: str, raw_id: str | None, job_id: str) -> str:
+    """Kurzer, gleichbleibender Name fuer die Datei im Zwischenspeicher.
+
+    Bei signierten Storage-Adressen bleibt der Abfrageteil (Token, Ablauf)
+    aussen vor, sonst waere der Name bei jedem Lauf ein anderer.
+    """
+    if raw_id:
+        return str(raw_id)
+    basis = url.split("?", 1)[0] if kind == "storage" else url
+    if not basis:
+        basis = job_id
+    return hashlib.sha1(basis.encode("utf-8")).hexdigest()[:16]
+
+
+class JobStore(Protocol):
+    """Was die Pipeline von der Aussenwelt braucht."""
+
+    kind: str
+
+    def claim_next(self) -> ClaimedJob | None: ...
+    def claim_specific(self, job_id: str) -> ClaimedJob | None: ...
+    def set_progress(self, job_id: str, progress: int, phase: str | None = None) -> None: ...
+    def write_analysis(self, job_id: str, analysis: dict[str, Any], progress: int) -> None: ...
+    def reset_clips(self, job_id: str) -> int: ...
+    def upload_clip(self, job_id: str, user_id: str, n: int, local_file: Path) -> str: ...
+    def add_clip(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+        brand_id: str | None,
+        storage_path: str,
+        duration_s: float,
+        title: str,
+        caption_srt: str | None,
+        meta: dict[str, Any],
+        aspect: str,
+    ) -> str: ...
+    def finish(self, job_id: str, clip_count: int) -> None: ...
+    def fail(self, job_id: str, message: str) -> None: ...
+    def close(self) -> None: ...
+
+
+# --------------------------------------------------------------- Direktmodus
+
+
+class DirectStore:
+    """Direkt auf Supabase, mit dem Service-Role-Schluessel."""
+
+    kind = "direkt"
+
+    def __init__(self, url: str, service_role_key: str, worker_id: str, *, source_expires_s: int = 3 * 3600) -> None:
+        self.db = Database(url, service_role_key)
+        self.worker_id = worker_id
+        self.url = url
+        self.source_expires_s = source_expires_s
+
+    # ------------------------------------------------------- beanspruchen
+
+    def claim_next(self) -> ClaimedJob | None:
+        for row in self.db.fetch_open_jobs():
+            job_id = str(row["id"])
+            try:
+                claimed = self.db.claim_job(job_id, self.worker_id)
+            except Exception as e:  # noqa: BLE001 - beim naechsten Durchlauf erneut versuchen
+                log.warning("Auftrag %s konnte nicht beansprucht werden: %s", job_id, e)
+                continue
+            if claimed is None:
+                log.info("Auftrag %s hat sich ein anderer Worker geholt", job_id)
+                continue
+            return ClaimedJob(row=claimed, source=self._source(claimed))
+        return None
+
+    def claim_specific(self, job_id: str) -> ClaimedJob | None:
+        claimed = self.db.claim_job(job_id, self.worker_id, force=True)
+        if claimed is None:
+            return None
+        return ClaimedJob(row=claimed, source=self._source(claimed))
+
+    def _source(self, row: JobRow) -> JobSource:
+        """Quelle aus raw_videos: Storage-Pfad wird zur signierten Adresse (3 h)."""
+        raw = row.get("raw_videos") or {}
+        if isinstance(raw, list):
+            raw = raw[0] if raw else {}
+        titel = str(raw.get("title") or "")
+        dauer_roh = raw.get("duration_s")
+        try:
+            dauer = float(dauer_roh) if dauer_roh is not None else None
+        except (TypeError, ValueError):
+            dauer = None
+        raw_id = str(raw.get("id")) if raw.get("id") else None
+        pfad = raw.get("storage_path") or None
+        link = raw.get("source_url") or None
+        job_id = str(row["id"])
+
+        if pfad:
+            try:
+                url = self.db.signed_download_url("raw-videos", str(pfad), self.source_expires_s)
+            except Exception as e:  # noqa: BLE001 - Fehler erst in der Pipeline melden, damit der Auftrag failed wird
+                return JobSource(
+                    kind="storage", url="", title=titel, duration_s=dauer,
+                    error=f"Signierte Adresse fuer raw-videos/{pfad} nicht erhalten: {e}",
+                )
+            return JobSource(
+                kind="storage", url=url, title=titel, duration_s=dauer,
+                cache_key=_cache_key("storage", url, raw_id, job_id),
+            )
+        if link:
+            return JobSource(
+                kind="url", url=str(link), title=titel, duration_s=dauer,
+                cache_key=_cache_key("url", str(link), raw_id, job_id),
+            )
+        return JobSource(
+            kind="", url="", title=titel, duration_s=dauer,
+            error="Das Rohvideo hat weder storage_path noch source_url",
+        )
+
+    # -------------------------------------------------- Fortschritt und Ende
+
+    def set_progress(self, job_id: str, progress: int, phase: str | None = None) -> None:
+        self.db.set_progress(job_id, progress, phase)
+
+    def write_analysis(self, job_id: str, analysis: dict[str, Any], progress: int) -> None:
+        self.db.write_analysis(job_id, analysis, progress)
+
+    def reset_clips(self, job_id: str) -> int:
+        return self.db.delete_worker_clips(job_id)
+
+    def upload_clip(self, job_id: str, user_id: str, n: int, local_file: Path) -> str:
+        from .storage import clip_storage_path, upload_clip_direct
+
+        pfad = clip_storage_path(user_id, job_id, n)
+        upload_clip_direct(self.db, local_file, pfad)
+        return pfad
+
+    def add_clip(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+        brand_id: str | None,
+        storage_path: str,
+        duration_s: float,
+        title: str,
+        caption_srt: str | None,
+        meta: dict[str, Any],
+        aspect: str,
+    ) -> str:
+        return self.db.insert_clip(
+            job_id=job_id,
+            user_id=user_id,
+            brand_id=brand_id,
+            storage_path=storage_path,
+            duration_s=duration_s,
+            title=title,
+            caption_srt=caption_srt,
+            meta=meta,
+            aspect=aspect,
+        )
+
+    def finish(self, job_id: str, clip_count: int) -> None:
+        self.db.finish_job(job_id, clip_count)
+
+    def fail(self, job_id: str, message: str) -> None:
+        self.db.fail_job(job_id, message)
+
+    def close(self) -> None:
+        return None
+
+
+# ----------------------------------------------------------------- API-Modus
+
+
+class ApiStore:
+    """Ueber die Web-App. Auf diesem Rechner liegt nur das WORKER_SECRET."""
+
+    kind = "api"
+
+    def __init__(self, base_url: str, secret: str, worker_id: str, *, allow_file_urls: bool = False) -> None:
+        self.api = ApiClient(base_url, secret, worker_id)
+        self.worker_id = worker_id
+        self.url = base_url
+        self.allow_file_urls = allow_file_urls
+        # Storage-Zugang je Auftrag aus der claim-Antwort (supabaseUrl, publishableKey)
+        self._storage: dict[str, dict[str, Any]] = {}
+
+    # ------------------------------------------------------- beanspruchen
+
+    def claim_next(self) -> ClaimedJob | None:
+        data = self.api.claim()
+        if data is None:
+            return None
+        row = dict(data.get("job") or {})
+        if not row.get("id"):
+            raise DbError("claim: die Antwort enthaelt keinen Auftrag mit id")
+        job_id = str(row["id"])
+        self._storage[job_id] = dict(data.get("storage") or {})
+        quelle = dict(data.get("source") or {})
+        art = str(quelle.get("kind") or "")
+        url = str(quelle.get("url") or "")
+        titel = str(quelle.get("title") or "")
+        dauer_roh = quelle.get("duration_s")
+        try:
+            dauer = float(dauer_roh) if dauer_roh is not None else None
+        except (TypeError, ValueError):
+            dauer = None
+        if art not in ("storage", "url") or not url:
+            return ClaimedJob(
+                row=row,
+                source=JobSource(
+                    kind=art, url=url, title=titel, duration_s=dauer,
+                    error="Die App hat zu diesem Auftrag keine brauchbare Quelle geliefert "
+                          f"(kind={art or 'leer'}, url={'gesetzt' if url else 'leer'})",
+                ),
+            )
+        return ClaimedJob(
+            row=row,
+            source=JobSource(
+                kind=art, url=url, title=titel, duration_s=dauer,
+                cache_key=_cache_key(art, url, None, job_id),
+            ),
+        )
+
+    def claim_specific(self, job_id: str) -> ClaimedJob | None:
+        raise DbError(
+            "--job gibt es nur im Direktmodus. Im API-Modus stoesst du den Auftrag in der Web-App "
+            "erneut an, der Worker holt ihn dann von selbst."
+        )
+
+    # -------------------------------------------------- Fortschritt und Ende
+
+    def set_progress(self, job_id: str, progress: int, phase: str | None = None) -> None:
+        self.api.progress(job_id, progress, phase or "")
+
+    def write_analysis(self, job_id: str, analysis: dict[str, Any], progress: int) -> None:
+        if not self.api.analysis(job_id, analysis):
+            log.info("Analyse lag schon vor, die App hat die vorhandene behalten")
+        # Der Fortschritt geht getrennt raus, die Analyse-Route kennt ihn nicht.
+        self.api.progress(job_id, progress, "Analyse geschrieben")
+
+    def reset_clips(self, job_id: str) -> int:
+        return self.api.reset_clips(job_id)
+
+    def upload_clip(self, job_id: str, user_id: str, n: int, local_file: Path) -> str:
+        from .storage import upload_clip_signed
+
+        ziel = self.api.upload_url(job_id, n, "mp4")
+        zugang = self._storage.get(job_id) or {}
+        return upload_clip_signed(
+            supabase_url=str(zugang.get("supabaseUrl") or ""),
+            publishable_key=str(zugang.get("publishableKey") or ""),
+            path=str(ziel["path"]),
+            token=str(ziel["token"]),
+            signed_url=str(ziel.get("signedUrl") or ""),
+            local_file=local_file,
+            allow_file_urls=self.allow_file_urls,
+        )
+
+    def add_clip(
+        self,
+        *,
+        job_id: str,
+        user_id: str,
+        brand_id: str | None,
+        storage_path: str,
+        duration_s: float,
+        title: str,
+        caption_srt: str | None,
+        meta: dict[str, Any],
+        aspect: str,
+    ) -> str:
+        # user_id und brand_id setzt die App selbst aus dem Auftrag, die Route nimmt sie nicht an.
+        return self.api.clip(
+            job_id,
+            storage_path=storage_path,
+            title=title,
+            duration_s=duration_s,
+            caption_srt=caption_srt,
+            aspect=aspect,
+            meta=meta,
+        )
+
+    def finish(self, job_id: str, clip_count: int) -> None:
+        self.api.finish(job_id, "done")
+        self._storage.pop(job_id, None)
+
+    def fail(self, job_id: str, message: str) -> None:
+        self.api.finish(job_id, "failed", message)
+        self._storage.pop(job_id, None)
+
+    def close(self) -> None:
+        self.api.close()
+
+
+def create_store(settings: Any) -> JobStore:
+    """Baut den passenden Store: API-Modus hat Vorrang, sonst Direktmodus."""
+    if settings.has_api:
+        return ApiStore(
+            settings.karamsvids_url or "",
+            settings.worker_secret or "",
+            settings.worker_id,
+            allow_file_urls=bool(getattr(settings, "allow_file_urls", False)),
+        )
+    settings.require_supabase()
+    return DirectStore(settings.supabase_url or "", settings.service_role_key or "", settings.worker_id)
