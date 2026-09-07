@@ -37,6 +37,7 @@ import { Route as ApiPublicHooksProcessGenerationQueueRouteImport } from './rout
 import { Route as ApiPublicHooksProcessPublishQueueRouteImport } from './routes/api/public/hooks/process-publish-queue'
 import { Route as ApiPublicHooksSyncAnalyticsRouteImport } from './routes/api/public/hooks/sync-analytics'
 import { Route as ApiPublicHooksSyncCommentsRouteImport } from './routes/api/public/hooks/sync-comments'
+import { Route as ApiPublicHooksSyncDmsRouteImport } from './routes/api/public/hooks/sync-dms'
 import { Route as ApiPublicOauthPlatformCallbackRouteImport } from './routes/api/public/oauth/$platform/callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -190,6 +191,11 @@ const ApiPublicHooksSyncCommentsRoute =
     path: '/api/public/hooks/sync-comments',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSyncDmsRoute = ApiPublicHooksSyncDmsRouteImport.update({
+  id: '/api/public/hooks/sync-dms',
+  path: '/api/public/hooks/sync-dms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicOauthPlatformCallbackRoute =
   ApiPublicOauthPlatformCallbackRouteImport.update({
     id: '/api/public/oauth/$platform/callback',
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
   '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
+  '/api/public/hooks/sync-dms': typeof ApiPublicHooksSyncDmsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
   '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
+  '/api/public/hooks/sync-dms': typeof ApiPublicHooksSyncDmsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/api/public/hooks/process-publish-queue': typeof ApiPublicHooksProcessPublishQueueRoute
   '/api/public/hooks/sync-analytics': typeof ApiPublicHooksSyncAnalyticsRoute
   '/api/public/hooks/sync-comments': typeof ApiPublicHooksSyncCommentsRoute
+  '/api/public/hooks/sync-dms': typeof ApiPublicHooksSyncDmsRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
     | '/api/public/hooks/sync-comments'
+    | '/api/public/hooks/sync-dms'
     | '/api/public/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
     | '/api/public/hooks/sync-comments'
+    | '/api/public/hooks/sync-dms'
     | '/api/public/oauth/$platform/callback'
   id:
     | '__root__'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/process-publish-queue'
     | '/api/public/hooks/sync-analytics'
     | '/api/public/hooks/sync-comments'
+    | '/api/public/hooks/sync-dms'
     | '/api/public/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   ApiPublicHooksProcessPublishQueueRoute: typeof ApiPublicHooksProcessPublishQueueRoute
   ApiPublicHooksSyncAnalyticsRoute: typeof ApiPublicHooksSyncAnalyticsRoute
   ApiPublicHooksSyncCommentsRoute: typeof ApiPublicHooksSyncCommentsRoute
+  ApiPublicHooksSyncDmsRoute: typeof ApiPublicHooksSyncDmsRoute
   ApiPublicOauthPlatformCallbackRoute: typeof ApiPublicOauthPlatformCallbackRoute
 }
 
@@ -596,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncCommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sync-dms': {
+      id: '/api/public/hooks/sync-dms'
+      path: '/api/public/hooks/sync-dms'
+      fullPath: '/api/public/hooks/sync-dms'
+      preLoaderRoute: typeof ApiPublicHooksSyncDmsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/oauth/$platform/callback': {
       id: '/api/public/oauth/$platform/callback'
       path: '/api/public/oauth/$platform/callback'
@@ -669,6 +689,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksProcessPublishQueueRoute,
   ApiPublicHooksSyncAnalyticsRoute: ApiPublicHooksSyncAnalyticsRoute,
   ApiPublicHooksSyncCommentsRoute: ApiPublicHooksSyncCommentsRoute,
+  ApiPublicHooksSyncDmsRoute: ApiPublicHooksSyncDmsRoute,
   ApiPublicOauthPlatformCallbackRoute: ApiPublicOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport

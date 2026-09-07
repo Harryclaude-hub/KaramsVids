@@ -73,7 +73,7 @@ function ClipPage() {
   });
 
   async function handleFile(file: File) {
-    if (!activeBrand) return toast.error("Bitte oben links einen Brand wählen");
+    if (!activeBrand) return toast.error("Bitte oben links ein Profil wählen");
     setBusy(true); setProgress(5); setBusyLabel("Upload läuft …");
     try {
       const key = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
@@ -104,7 +104,7 @@ function ClipPage() {
   });
 
   async function handleUrl() {
-    if (!activeBrand) return toast.error("Bitte oben links einen Brand wählen");
+    if (!activeBrand) return toast.error("Bitte oben links ein Profil wählen");
     const url = urlInput.trim();
     if (!url) return;
     const host = detectRestrictedHost(url);
@@ -132,7 +132,7 @@ function ClipPage() {
 
       // YouTube & Co.: MP4-Import läuft im Hintergrund, während die KI plant
       if (detectRestrictedHost(url) && providersQ.data?.any) {
-        toast.info("MP4-Download gestartet — läuft im Hintergrund (1–3 Min)");
+        toast.info("MP4-Download gestartet, läuft im Hintergrund (1 bis 3 Min)");
         import("@/lib/youtube.functions").then(({ importYouTubeVideo }) =>
           importYouTubeVideo({ data: { rawVideoId: row.id } })
             .then(() => toast.success("YouTube-Video als MP4 importiert"))
@@ -160,7 +160,7 @@ function ClipPage() {
       desired_clip_count: count,
     }).select().single();
     if (error) { toast.error("Job-Erstellung fehlgeschlagen: " + error.message, { duration: 8000 }); return; }
-    toast.success(`KI plant ${count} Clips — du wirst weitergeleitet …`);
+    toast.success(`KI plant ${count} Clips, du wirst weitergeleitet …`);
     const { analyzeVideo } = await import("@/lib/ai.functions");
     analyzeVideo({ data: { jobId: job.id, desiredClipCount: count } })
       .catch((e) => toast.error(e instanceof Error ? e.message : "KI-Analyse fehlgeschlagen", { duration: 10000 }));
@@ -174,39 +174,39 @@ function ClipPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary">
-            <Wand2 className="h-3 w-3" /> Clipping
+          <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+            <Wand2 className="h-3.5 w-3.5 text-primary" /> Clipping
           </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Aus einem Video viele Clips machen</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            YouTube-Link oder Datei → wähle Vorlage, Anzahl, Länge & Format. KI empfiehlt die beste Anzahl passend zum Inhalt.
+          <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Aus einem Video viele Clips machen</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            YouTube-Link oder Datei, dann Vorlage, Anzahl, Länge und Format wählen. Die KI empfiehlt die beste Anzahl passend zum Inhalt.
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card px-3 py-2 text-xs">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Brand · </span>
-          <span className="font-medium">{activeBrand?.name ?? "— keiner —"}</span>
+        <div className="rounded-[11px] border border-border bg-card px-3 py-2 text-[13px]">
+          <span className="font-semibold text-muted-foreground">Profil · </span>
+          <span className="font-semibold">{activeBrand?.name ?? "keins"}</span>
         </div>
       </div>
 
       {!activeBrand && (
-        <div className="flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-          <span>Bitte links in der Sidebar einen Brand wählen — jedes Clipping-Ergebnis wird diesem Brand zugeordnet.</span>
+        <div className="flex items-start gap-2 rounded-[11px] border border-warning/30 bg-warning/15 p-3 text-[13px] text-foreground">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+          <span>Bitte links in der Seitenleiste ein Profil wählen: jedes Clipping-Ergebnis wird diesem Profil zugeordnet.</span>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         {/* Konfiguration */}
-        <div className={`space-y-5 rounded-2xl border border-border bg-card p-5 ${activeBrand ? "" : "pointer-events-none opacity-60"}`}>
+        <div className={`space-y-5 rounded-[18px] border border-border bg-card p-6 ${activeBrand ? "" : "pointer-events-none opacity-60"}`}>
           {/* Templates */}
           <div>
-            <div className="mb-2 text-xs font-medium">1 · Virale Vorlage</div>
+            <div className="mb-2 text-[13px] font-semibold text-muted-foreground">1 · Virale Vorlage</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CLIP_TEMPLATES.map((t) => (
                 <button key={t.id} onClick={() => pickTemplate(t.id)}
-                  className={`rounded-lg border p-3 text-left transition ${templateId === t.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}>
-                  <div className="text-sm">{t.emoji} <span className="font-semibold">{t.label}</span></div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{t.short}</div>
+                  className={`rounded-[11px] border p-3 text-left transition-colors ${templateId === t.id ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-secondary/60"}`}>
+                  <div className="text-[15px]">{t.emoji} <span className="font-semibold">{t.label}</span></div>
+                  <div className="mt-1 text-[13px] text-muted-foreground">{t.short}</div>
                 </button>
               ))}
             </div>
@@ -214,15 +214,15 @@ function ClipPage() {
 
           {/* Quelle */}
           <div>
-            <div className="mb-2 text-xs font-medium">2 · Rohvideo</div>
+            <div className="mb-2 text-[13px] font-semibold text-muted-foreground">2 · Rohvideo</div>
             <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <button type="button" onClick={() => fileRef.current?.click()}
-                className="group relative flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-background/40 p-6 text-center transition hover:border-primary/60">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-primary/10 text-primary"><UploadCloud className="h-5 w-5" /></div>
-                <div className="text-sm font-medium">Datei ablegen</div>
-                <div className="font-mono text-[10px] text-muted-foreground">MP4 · MOV · WEBM · MKV</div>
+                className="group relative flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-border bg-background p-6 text-center transition-colors hover:border-primary/60">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary text-primary"><UploadCloud className="h-5 w-5" /></div>
+                <div className="text-[15px] font-semibold">Datei ablegen</div>
+                <div className="text-[13px] text-muted-foreground">MP4 · MOV · WEBM · MKV</div>
                 {busy && progress > 0 && (
-                  <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full bg-background">
+                  <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full bg-secondary">
                     <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
                   </div>
                 )}
@@ -233,88 +233,88 @@ function ClipPage() {
                     handleFile(f);
                   }} />
               </button>
-              <div className="flex flex-col justify-center gap-2 rounded-xl border border-border bg-background/40 p-4">
-                <div className="flex items-center gap-2 text-sm font-medium"><Link2 className="h-4 w-4 text-accent" /> YouTube / Video-URL</div>
+              <div className="flex flex-col justify-center gap-2 rounded-[14px] border border-border bg-background p-4">
+                <div className="flex items-center gap-2 text-[15px] font-semibold"><Link2 className="h-4 w-4 text-primary" /> YouTube / Video-URL</div>
                 <input value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !busy && handleUrl()}
                   placeholder="https://youtube.com/watch?v=…"
-                  className="rounded-md border border-border bg-input px-2.5 py-2 text-sm outline-none focus:border-primary" />
+                  className="h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
                 <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titel (optional)"
-                  className="rounded-md border border-border bg-input px-2.5 py-1.5 text-xs outline-none focus:border-primary" />
+                  className="h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
               </div>
             </div>
           </div>
 
           {/* Parameter */}
           <div>
-            <div className="mb-2 flex items-center justify-between text-xs">
-              <span className="font-medium">3 · Anzahl & Länge</span>
-              <span className="font-mono text-[10px] text-muted-foreground">KI empfiehlt: {suggestedByTpl} Clips</span>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-muted-foreground">3 · Anzahl & Länge</span>
+              <span className="text-[13px] text-muted-foreground">KI empfiehlt: {suggestedByTpl} Clips</span>
             </div>
-            <div className="space-y-3 rounded-xl border border-border bg-background/40 p-4">
-              <label className="block text-xs">
+            <div className="space-y-3 rounded-[14px] border border-border bg-background p-4">
+              <label className="block text-[13px]">
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-muted-foreground">Clips</span>
-                  <span className="font-mono">{count}</span>
+                  <span className="font-semibold tabular-nums">{count}</span>
                 </div>
                 <input type="range" min={1} max={100} value={count} onChange={(e) => setCount(parseInt(e.target.value))} className="w-full accent-primary" />
                 <div className="mt-1 flex gap-1">
                   {[3, 5, 10, 20, 30].map((n) => (
-                    <button key={n} onClick={() => setCount(n)} className={`flex-1 rounded border px-2 py-1 text-[11px] ${count === n ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"}`}>{n}</button>
+                    <button key={n} onClick={() => setCount(n)} className={`flex-1 rounded-full border px-2 py-1 text-[12px] font-semibold transition-colors ${count === n ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}`}>{n}</button>
                   ))}
-                  <button onClick={() => setCount(suggestedByTpl)} className="flex-1 rounded border border-accent/60 bg-accent/10 px-2 py-1 text-[11px] text-accent">Auto</button>
+                  <button onClick={() => setCount(suggestedByTpl)} className="flex-1 rounded-full border border-primary/40 px-2 py-1 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/5">Auto</button>
                 </div>
               </label>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-[13px]">
                 <label className="block">
-                  <span className="text-[10px] text-muted-foreground">Min Länge (s)</span>
+                  <span className="text-[13px] text-muted-foreground">Min Länge (s)</span>
                   <input type="number" min={5} max={180} value={minLen} onChange={(e) => setMinLen(parseInt(e.target.value) || 5)}
-                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                    className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60" />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] text-muted-foreground">Max Länge (s)</span>
+                  <span className="text-[13px] text-muted-foreground">Max Länge (s)</span>
                   <input type="number" min={5} max={180} value={maxLen} onChange={(e) => setMaxLen(parseInt(e.target.value) || 60)}
-                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary" />
+                    className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60" />
                 </label>
                 <div>
-                  <span className="text-[10px] text-muted-foreground">Format</span>
+                  <span className="text-[13px] text-muted-foreground">Format</span>
                   <div className="mt-1 flex gap-1">
                     {(["9:16", "16:9", "1:1"] as const).map((a) => (
-                      <button key={a} onClick={() => setAspect(a)} className={`flex-1 rounded-md border px-1 py-1 text-[11px] ${aspect === a ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"}`}>{a}</button>
+                      <button key={a} onClick={() => setAspect(a)} className={`h-9 flex-1 rounded-[9px] border px-1 text-[12px] font-semibold transition-colors ${aspect === a ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}`}>{a}</button>
                     ))}
                   </div>
                 </div>
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <label className="flex cursor-pointer items-center gap-2 text-[13px]">
                 <input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} className="h-4 w-4 accent-primary" />
                 Untertitel automatisch generieren (Karaoke-Style bei UGC-Vorlagen)
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <label className="flex cursor-pointer items-center gap-2 text-[13px]">
                 <input type="checkbox" checked={aiExplain} onChange={(e) => setAiExplain(e.target.checked)} className="h-4 w-4 accent-primary" />
-                KI-Erklärungen — Kontext-Overlay je Szene (was passiert gerade?)
+                KI-Erklärungen: Kontext-Overlay je Szene (was passiert gerade?)
               </label>
             </div>
           </div>
 
           {busy && (
-            <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
+            <div className="flex items-center gap-3 rounded-[11px] border border-border bg-secondary p-3 text-[13px]">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <div className="flex-1">
-                <div className="font-semibold">{busyLabel || "Wird verarbeitet …"}</div>
-                <div className="text-[11px] text-muted-foreground">Die KI liest den Inhalt und wählt die besten Momente. Bei langen Videos bitte etwas Geduld — du wirst automatisch zum Editor weitergeleitet.</div>
+                <div className="font-semibold text-foreground">{busyLabel || "Wird verarbeitet …"}</div>
+                <div className="text-[13px] text-muted-foreground">Die KI liest den Inhalt und wählt die besten Momente. Bei langen Videos bitte etwas Geduld, du wirst automatisch zum Editor weitergeleitet.</div>
               </div>
-              {progress > 0 && <div className="font-mono text-[10px]">{progress}%</div>}
+              {progress > 0 && <div className="text-[13px] font-semibold tabular-nums">{progress}%</div>}
             </div>
           )}
 
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-            <div className="text-[11px] text-muted-foreground">
-              Ergebnis landet im Editor · Brand <span className="font-medium text-foreground">{activeBrand?.name ?? "—"}</span>
+            <div className="text-[13px] text-muted-foreground">
+              Ergebnis landet im Editor · Profil <span className="font-semibold text-foreground">{activeBrand?.name ?? "keins"}</span>
             </div>
             <button
               onClick={handleUrl}
               disabled={busy || !urlInput || !activeBrand}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]">
               <Sparkles className="h-4 w-4" /> {busy ? "Läuft …" : `${count} Clips generieren`} <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -322,33 +322,33 @@ function ClipPage() {
 
         {/* Rechte Seite: Sounds + zuletzt */}
         <aside className="space-y-5">
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Music2 className="h-4 w-4 text-accent" /> Virale Sounds · {moodLabel(tpl.musicMood)}
+          <div className="rounded-[18px] border border-border bg-card p-6">
+            <div className="mb-2 flex items-center gap-2 text-[15px] font-semibold">
+              <Music2 className="h-4 w-4 text-primary" /> Virale Sounds · {moodLabel(tpl.musicMood)}
             </div>
-            <p className="mb-3 text-[11px] text-muted-foreground">Werden automatisch unter deine Clips gelegt (im Editor austauschbar).</p>
+            <p className="mb-3 text-[13px] text-muted-foreground">Werden automatisch unter deine Clips gelegt (im Editor austauschbar).</p>
             <ul className="space-y-2">
-              {soundsForMood.length === 0 && <li className="text-[11px] text-muted-foreground">Diese Vorlage nutzt Original-Ton.</li>}
+              {soundsForMood.length === 0 && <li className="text-[13px] text-muted-foreground">Diese Vorlage nutzt Original-Ton.</li>}
               {soundsForMood.map((s) => (
-                <li key={s.id} className="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-2.5 py-2 text-xs">
+                <li key={s.id} className="flex items-center gap-2 rounded-[11px] border border-border bg-background px-2.5 py-2 text-[13px]">
                   <PreviewButton url={s.url} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{s.title}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{s.bpm} BPM · {Math.round(s.duration_s)}s</div>
+                    <div className="truncate font-semibold">{s.title}</div>
+                    <div className="text-[12px] text-muted-foreground tabular-nums">{s.bpm} BPM · {Math.round(s.duration_s)}s</div>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <div className="mb-2 text-sm font-medium">Zuletzt geclippt</div>
+          <div className="rounded-[18px] border border-border bg-card p-6">
+            <div className="mb-2 text-[15px] font-semibold">Zuletzt geclippt</div>
             {!activeBrand ? (
-              <p className="text-[11px] text-muted-foreground">Brand wählen, um vergangene Clipping-Jobs zu sehen.</p>
+              <p className="text-[13px] text-muted-foreground">Profil wählen, um vergangene Clipping-Jobs zu sehen.</p>
             ) : recentQ.isLoading ? (
-              <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded bg-background" />)}</div>
+              <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-[11px] bg-secondary" />)}</div>
             ) : (recentQ.data ?? []).length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">Noch keine Clipping-Jobs in diesem Brand.</p>
+              <p className="text-[13px] text-muted-foreground">Noch keine Clipping-Jobs in diesem Profil.</p>
             ) : (
               <ul className="space-y-1.5">
                 {(recentQ.data ?? []).map((j) => {
@@ -357,10 +357,10 @@ function ClipPage() {
                     <li key={j.id}>
                       <button
                         onClick={() => navigate({ to: "/app/job/$id", params: { id: j.id } })}
-                        className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-xs hover:border-border hover:bg-background/60">
+                        className="flex w-full items-center gap-2 rounded-[10px] px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-secondary/60">
                         <span className="flex-1 truncate">{rv?.title ?? "Video"}</span>
-                        <span className="font-mono text-[10px] text-muted-foreground">{j.desired_clip_count ?? "?"}×</span>
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] ${j.status === "ready" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>{j.status}</span>
+                        <span className="text-[12px] text-muted-foreground tabular-nums">{j.desired_clip_count ?? "?"}×</span>
+                        <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${j.status === "ready" ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground"}`}>{j.status}</span>
                       </button>
                     </li>
                   );
@@ -392,8 +392,8 @@ function PreviewButton({ url }: { url: string }) {
         if (!ref.current) return;
         if (playing) { ref.current.pause(); setPlaying(false); }
         else { ref.current.play().catch(() => {}); setPlaying(true); }
-      }} className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20">
-        <Play className="h-3 w-3" />
+      }} className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-primary transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+        <Play className="h-3.5 w-3.5" />
       </button>
       <audio ref={ref} src={url} onEnded={() => setPlaying(false)} preload="none" />
     </>

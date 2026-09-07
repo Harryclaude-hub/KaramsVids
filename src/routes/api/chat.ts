@@ -356,7 +356,7 @@ export const Route = createFileRoute("/api/chat")({
         };
 
         const raw = job.raw_videos as { title?: string; duration_s?: number | null } | null;
-        const system = `Du bist der KI-Video-Editor von VideoCraft. Der Nutzer bearbeitet gerade das Video "${raw?.title ?? "Video"}" (Dauer ${raw?.duration_s ?? "?"}s).
+        const system = `Du bist der KI-Video-Editor von KaramsVids. Der Nutzer bearbeitet gerade das Video "${raw?.title ?? "Video"}" (Dauer ${raw?.duration_s ?? "?"}s).
 Aktuelle Clips: ${JSON.stringify(analysis.segments)}
 Optionen: ${JSON.stringify(options)}
 Referenz-Stil vorhanden: ${job.style_reference ? "ja" : "nein"}

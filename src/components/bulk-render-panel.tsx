@@ -115,7 +115,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       try {
         await poll({});
       } catch {
-        /* stiller Fehlschlag — nächster Tick versucht es erneut */
+        /* stiller Fehlschlag, nächster Tick versucht es erneut */
       }
       if (!cancelled) qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
       qc.invalidateQueries({ queryKey: ["render-stats", jobId] });
@@ -135,7 +135,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       if (res.queued === 0) {
         toast.info("Alle Clips sind bereits in der Render-Queue.");
       } else {
-        toast.success(`${res.queued} Clips gestartet — läuft im Hintergrund weiter.`);
+        toast.success(`${res.queued} Clips gestartet, läuft im Hintergrund weiter.`);
       }
       qc.invalidateQueries({ queryKey: ["render-jobs", jobId] });
       qc.invalidateQueries({ queryKey: ["render-stats", jobId] });
@@ -226,38 +226,38 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
           <Server className="h-3.5 w-3.5" />
           Massen-Rendering (Server)
         </div>
         {providerQ.data && (
-          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+          <span className="text-[12px] text-muted-foreground">
             {configured ? `${providerQ.data.concurrency} parallel · ${providerQ.data.webhook ? "Webhook" : "Polling"}` : "Key fehlt"}
           </span>
         )}
       </div>
 
       {providerQ.data && !configured && (
-        <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-200">
-          <Cloud className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <div className="flex gap-2 rounded-[11px] bg-warning/15 px-3 py-2.5 text-[13px] leading-relaxed text-foreground">
+          <Cloud className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
           <span>
             {activeProvider?.label ?? "Der Render-Dienst"} ist noch nicht verbunden. Hinterlege den
             API-Key als Secret{" "}
             <code className="font-mono">{activeProvider?.keyName ?? "CREATOMATE_API_KEY"}</code>.
             Aufträge kannst du jetzt schon
-            anlegen — sie starten automatisch, sobald der Key da ist.
+            anlegen, sie starten automatisch, sobald der Key da ist.
           </span>
         </div>
       )}
 
       <div className="space-y-1">
-        <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+        <label className="text-[13px] font-semibold text-muted-foreground">
           Render-Provider
         </label>
         <select
           value={provider}
           onChange={(e) => void onProviderChange(e.target.value as ProviderId)}
-          className="w-full rounded-md border border-border bg-background/60 px-2 py-1.5 text-xs"
+          className="w-full h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
         >
           {(providers.length
             ? providers
@@ -269,20 +269,20 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
           ))}
         </select>
         {activeProvider && (
-          <p className="text-[10px] leading-snug text-muted-foreground">{activeProvider.note}</p>
+          <p className="text-[13px] leading-snug text-muted-foreground">{activeProvider.note}</p>
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 text-center">
+      <div className="grid grid-cols-4 gap-2 text-center">
         {[
           ["Gesamt", stats.total],
           ["Läuft", stats.active],
           ["Fertig", stats.done],
           ["Fehler", stats.failed],
         ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-md border border-border bg-background/60 p-1.5">
-            <div className="text-sm font-semibold tabular-nums">{value as number}</div>
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+          <div key={String(label)} className="rounded-[11px] bg-secondary p-2">
+            <div className="text-[15px] font-semibold tabular-nums">{value as number}</div>
+            <div className="text-[12px] text-muted-foreground">
               {label as string}
             </div>
           </div>
@@ -290,29 +290,29 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       </div>
 
       {cost && cost.total > 0 && (
-        <div className="grid grid-cols-3 gap-1.5 rounded-md border border-border bg-background/40 p-2 text-center">
+        <div className="grid grid-cols-3 gap-2 rounded-[11px] bg-secondary p-3 text-center">
           <div>
-            <div className="flex items-center justify-center gap-1 text-sm font-semibold tabular-nums">
-              <Wallet className="h-3 w-3 text-primary" />${cost.costSpentUsd.toFixed(2)}
+            <div className="flex items-center justify-center gap-1 text-[15px] font-semibold tabular-nums">
+              <Wallet className="h-3 w-3 text-muted-foreground" />${cost.costSpentUsd.toFixed(2)}
             </div>
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+            <div className="text-[12px] text-muted-foreground">
               von ~${cost.costEstimateUsd.toFixed(2)}
             </div>
           </div>
           <div>
-            <div className="flex items-center justify-center gap-1 text-sm font-semibold tabular-nums">
-              <Timer className="h-3 w-3 text-primary" />
-              {cost.avgRenderSeconds ? `${cost.avgRenderSeconds}s` : "—"}
+            <div className="flex items-center justify-center gap-1 text-[15px] font-semibold tabular-nums">
+              <Timer className="h-3 w-3 text-muted-foreground" />
+              {cost.avgRenderSeconds ? `${cost.avgRenderSeconds}s` : "–"}
             </div>
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+            <div className="text-[12px] text-muted-foreground">
               ø pro Clip
             </div>
           </div>
           <div>
-            <div className="text-sm font-semibold tabular-nums">
-              {cost.wallClockSeconds != null ? `${Math.round(cost.wallClockSeconds / 60)}m` : "—"}
+            <div className="text-[15px] font-semibold tabular-nums">
+              {cost.wallClockSeconds != null ? `${Math.round(cost.wallClockSeconds / 60)}m` : "–"}
             </div>
-            <div className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+            <div className="text-[12px] text-muted-foreground">
               Gesamtdauer
             </div>
           </div>
@@ -320,7 +320,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
       )}
 
       {cost && cost.errors.length > 0 && (
-        <div className="max-h-24 space-y-1 overflow-y-auto rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[10px] text-destructive">
+        <div className="max-h-24 space-y-1 overflow-y-auto rounded-[11px] bg-destructive/15 px-3 py-2 text-[13px] text-destructive">
           {cost.errors.map((e) => (
             <div key={e.clipIndex} className="line-clamp-2">
               Clip {e.clipIndex + 1}: {e.error ?? "unbekannter Fehler"}
@@ -329,11 +329,11 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         </div>
       )}
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <button
           onClick={onStart}
           disabled={busy || clipCount === 0}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff] disabled:opacity-40"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
           {clipCount > 0 ? `${clipCount} Clips rendern` : "Keine Clips"}
@@ -342,7 +342,7 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
           <button
             onClick={onRetry}
             disabled={busy}
-            className="flex items-center gap-1 rounded-md border border-border px-2 py-1.5 text-xs hover:border-primary/50 disabled:opacity-40"
+            className="flex h-9 items-center gap-1.5 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c] disabled:opacity-40"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Wiederholen
@@ -350,11 +350,11 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         )}
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <button
           onClick={onTest}
           disabled={testing}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] hover:border-primary/50 disabled:opacity-40"
+          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c] disabled:opacity-40"
         >
           {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
           Verbindung testen
@@ -362,19 +362,19 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
         <button
           onClick={onBulkDownload}
           disabled={stats.done === 0}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] hover:border-primary/50 disabled:opacity-40"
+          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c] disabled:opacity-40"
         >
           <FolderDown className="h-3.5 w-3.5" />
           Alle laden ({stats.done})
         </button>
       </div>
 
-      <div className="max-h-64 space-y-1 overflow-y-auto">
+      <div className="max-h-64 space-y-1.5 overflow-y-auto">
         {rows.map((r) => (
-          <div key={r.id} className="rounded-md border border-border bg-background/50 p-1.5">
-            <div className="flex items-center gap-1.5 text-[11px]">
+          <div key={r.id} className="rounded-[11px] border border-border bg-card p-2.5">
+            <div className="flex items-center gap-2 text-[13px]">
               {r.status === "done" ? (
-                <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="h-3 w-3 shrink-0 text-success" />
               ) : r.status === "failed" ? (
                 <AlertTriangle className="h-3 w-3 shrink-0 text-destructive" />
               ) : (
@@ -383,13 +383,13 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
               <span className="min-w-0 flex-1 truncate">
                 {r.clip_index + 1}. {r.title ?? "Clip"}
               </span>
-              <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+              <span className="shrink-0 text-[12px] text-muted-foreground">
                 {STATUS_LABEL[r.status]}
               </span>
               {r.status === "done" && r.storage_path && (
                 <button
                   onClick={() => onDownload(r)}
-                  className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-primary"
+                  className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   aria-label="Clip herunterladen"
                 >
                   <Download className="h-3 w-3" />
@@ -397,20 +397,20 @@ export function BulkRenderPanel({ jobId, clipCount }: { jobId: string; clipCount
               )}
             </div>
             {r.status !== "done" && r.status !== "failed" && (
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
+              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-secondary">
                 <div
-                  className="h-full bg-primary transition-all"
+                  className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${Math.max(5, r.progress)}%` }}
                 />
               </div>
             )}
             {r.error && (
-              <div className="mt-1 line-clamp-2 text-[10px] text-destructive">{r.error}</div>
+              <div className="mt-1 line-clamp-2 text-[12px] text-destructive">{r.error}</div>
             )}
           </div>
         ))}
         {rows.length === 0 && (
-          <p className="py-3 text-center text-[11px] text-muted-foreground">
+          <p className="py-3 text-center text-[13px] text-muted-foreground">
             Noch keine Render-Aufträge. Starte das Massen-Rendering, um alle Clips serverseitig mit
             Untertiteln, Musik und Übergängen zu erzeugen.
           </p>

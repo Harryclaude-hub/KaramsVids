@@ -53,35 +53,35 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+    <section className="space-y-5 rounded-[18px] border border-border bg-card p-6">
       <div>
-        <h2 className="flex items-center gap-2 text-sm font-medium">
-          <AtSign className="h-4 w-4 text-primary" /> Identität & Accounts
+        <h2 className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
+          <AtSign className="h-4 w-4 text-muted-foreground" /> Identität & Kanäle
         </h2>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
           Prüfe, ob dein Wunsch-Username auf allen Plattformen frei ist, lege die Accounts über die
-          Direkt-Links an und hinterlege die Zugangsdaten hier verschlüsselt — danach kommst du mit
+          Direkt-Links an und hinterlege die Zugangsdaten hier verschlüsselt. Danach kommst du mit
           einem Klick in den jeweiligen Account.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-md border border-border bg-input px-2 py-1.5">
-          <span className="font-mono text-xs text-muted-foreground">@</span>
+        <div className="flex h-11 items-center gap-1 rounded-[11px] border border-border bg-input px-4 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/60">
+          <span className="text-[15px] text-muted-foreground">@</span>
           <input
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && check()}
             placeholder={brandName.toLowerCase().replace(/[^a-z0-9._-]/g, "")}
-            className="w-48 bg-transparent text-sm outline-none"
+            className="w-48 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
         <button
           onClick={check}
           disabled={checking}
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
         >
-          {checking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+          {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           Verfügbarkeit prüfen
         </button>
       </div>
@@ -91,35 +91,35 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
           {results.map((r) => {
             const meta = PLATFORMS.find((p) => p.id === r.platform)!;
             return (
-              <div key={r.platform} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+              <div key={r.platform} className="flex items-center justify-between gap-2 rounded-[14px] border border-border bg-background px-4 py-3">
                 <div className="min-w-0">
-                  <div className="text-xs font-medium">{meta.name}</div>
-                  <div className="truncate font-mono text-[10px] text-muted-foreground">@{handle}</div>
+                  <div className="text-[15px] font-semibold">{meta.name}</div>
+                  <div className="truncate text-[13px] text-muted-foreground">@{handle}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {r.state === "free" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-primary"><CheckCircle2 className="h-3 w-3" /> frei</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-[12px] font-semibold text-success"><CheckCircle2 className="h-3 w-3" /> frei</span>
                   )}
                   {r.state === "taken" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-destructive"><XCircle className="h-3 w-3" /> vergeben</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-[12px] font-semibold text-destructive"><XCircle className="h-3 w-3" /> vergeben</span>
                   )}
                   {r.state === "unknown" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title="Plattform blockt die automatische Prüfung — bitte manuell im Link prüfen">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-muted-foreground" title="Plattform blockt die automatische Prüfung, bitte manuell im Link prüfen">
                       <HelpCircle className="h-3 w-3" /> unklar
                     </span>
                   )}
                   <a href={r.state === "taken" ? r.url : r.signupUrl} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-                    {r.state === "taken" ? "Ansehen" : "Anlegen"} <ExternalLink className="h-3 w-3" />
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+                    {r.state === "taken" ? "Ansehen" : "Anlegen"} <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </div>
               </div>
             );
           })}
-          <p className="sm:col-span-2 text-[10px] leading-relaxed text-muted-foreground">
+          <p className="sm:col-span-2 text-[13px] leading-relaxed text-muted-foreground">
             Hinweis: Instagram, TikTok, YouTube & Co. erlauben per API <b>keine</b> automatische
-            Account-Erstellung (Anti-Spam-Regel). Über die Links legst du den Account in ~1 Minute
-            an — die Verbindung, das Posten und die Analysen laufen danach komplett automatisch.
+            Account-Erstellung (Anti-Spam-Regel). Über die Links legst du den Account in etwa einer
+            Minute an. Die Verbindung, das Posten und die Analysen laufen danach komplett automatisch.
           </p>
         </div>
       )}
@@ -131,9 +131,9 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
         onChanged={() => qc.invalidateQueries({ queryKey: ["brand_credentials", brandId] })}
       />
 
-      <div className="space-y-2 border-t border-border pt-4">
-        <div className="flex items-center gap-2 text-xs font-medium">
-          <KeyRound className="h-3.5 w-3.5 text-accent" /> Zugangsdaten (verschlüsselt gespeichert)
+      <div className="space-y-3 border-t border-border pt-5">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+          <KeyRound className="h-4 w-4" /> Zugangsdaten (verschlüsselt gespeichert)
         </div>
         <div className="grid gap-2">
           {PLATFORMS.map((p) => (
@@ -153,8 +153,8 @@ export function BrandIdentity({ brandId, brandName }: { brandId: string; brandNa
 }
 
 // ---------------------------------------------------------------
-// Setup-Assistent: führt Schritt für Schritt durch die Account-Anlage
-// (Plattformen erlauben keine API-Registrierung — hier wird alles
+// Setup-Assistent: fuehrt Schritt fuer Schritt durch die Account-Anlage
+// (Plattformen erlauben keine API-Registrierung, deshalb wird hier alles
 // vorbereitet, kopierbar gemacht und der Fortschritt getrackt).
 // ---------------------------------------------------------------
 
@@ -218,28 +218,28 @@ function SetupWizard({
   ).length;
 
   return (
-    <div className="space-y-3 border-t border-border pt-4">
+    <div className="space-y-4 border-t border-border pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-medium">
-          <Wand2 className="h-3.5 w-3.5 text-primary" /> Account-Setup-Assistent
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+          <Wand2 className="h-4 w-4" /> Account-Setup-Assistent
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-foreground">
             {done}/{PLATFORMS.length} fertig
           </span>
         </div>
         <button
           onClick={run}
           disabled={loading}
-          className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
         >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
           Setup vorbereiten
         </button>
       </div>
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
+      <p className="text-[13px] leading-relaxed text-muted-foreground">
         Plattformen erlauben keine Account-Erstellung per API (Captcha/SMS-Pflicht, Sperrgefahr).
         Der Assistent macht alles Übrige automatisch: freie Handle-Varianten finden, Passwort
         erzeugen, Daten kopierfertig bereitstellen, Registrierung öffnen und den Fortschritt je
-        Plattform tracken. Danach genügt „Verbinden" per OAuth.
+        Plattform tracken. Danach genügt „Verbinden“ per OAuth.
       </p>
 
       {suggestions && (
@@ -249,29 +249,29 @@ function SetupWizard({
               <button
                 key={s.handle}
                 onClick={() => setChosen(s.handle)}
-                className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left ${
-                  chosen === s.handle ? "border-primary bg-primary/5" : "border-border bg-background/50"
+                className={`flex items-center justify-between gap-2 rounded-[14px] border px-4 py-3 text-left transition-colors ${
+                  chosen === s.handle ? "border-primary bg-card" : "border-border bg-background hover:bg-secondary/60"
                 }`}
               >
-                <span className="font-mono text-xs">@{s.handle}</span>
-                <span className="flex items-center gap-2 text-[10px]">
-                  <span className="text-primary">{s.free} frei</span>
-                  <span className="text-destructive">{s.taken} vergeben</span>
+                <span className="text-[15px] font-semibold">@{s.handle}</span>
+                <span className="flex items-center gap-2 text-[13px]">
+                  <span className="font-semibold text-success">{s.free} frei</span>
+                  <span className="font-semibold text-destructive">{s.taken} vergeben</span>
                 </span>
               </button>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
-            <span className="text-[10px] text-muted-foreground">Passwort</span>
-            <code className="font-mono text-[11px]">{password}</code>
+          <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-border bg-background px-4 py-3">
+            <span className="text-[13px] text-muted-foreground">Passwort</span>
+            <code className="font-mono text-[13px]">{password}</code>
             <button onClick={() => copy(password, "Passwort")}
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-              <Copy className="h-3 w-3" /> Kopieren
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+              <Copy className="h-3.5 w-3.5" /> Kopieren
             </button>
             <button onClick={() => copy(chosen, "Username")}
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-              <Copy className="h-3 w-3" /> Username
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+              <Copy className="h-3.5 w-3.5" /> Username
             </button>
           </div>
 
@@ -281,29 +281,29 @@ function SetupWizard({
               const status = cred?.setup_status ?? "todo";
               const check = suggestions.find((s) => s.handle === chosen)?.results.find((r) => r.platform === p.id);
               return (
-                <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+                <div key={p.id} className="flex items-center justify-between gap-2 rounded-[14px] border border-border bg-background px-4 py-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-xs font-medium">
-                      {status === "done" ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <Circle className="h-3 w-3 text-muted-foreground" />}
+                    <div className="flex items-center gap-1.5 text-[15px] font-semibold">
+                      {status === "done" ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
                       {p.name}
                     </div>
-                    <div className="truncate font-mono text-[10px] text-muted-foreground">
+                    <div className="truncate text-[13px] text-muted-foreground">
                       @{chosen} · {check?.state === "free" ? "frei" : check?.state === "taken" ? "vergeben" : "unklar"}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-2">
                     <a
                       href={check?.signupUrl || "#"}
                       target="_blank" rel="noreferrer"
                       onClick={() => mark(p.id, "in_progress")}
-                      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card"
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                     >
-                      Anlegen <ExternalLink className="h-3 w-3" />
+                      Anlegen <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                     <button
                       onClick={() => mark(p.id, "done")}
                       disabled={busy === p.id}
-                      className="rounded bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground disabled:opacity-60"
+                      className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
                     >
                       {busy === p.id ? "…" : "Fertig"}
                     </button>
@@ -354,51 +354,51 @@ function CredentialRow({
     try {
       const { revealBrandCredential } = await import("@/lib/brand-identity.functions");
       const { password: pw } = await revealBrandCredential({ data: { credentialId: row.id } });
-      setRevealed(pw ?? "— kein Passwort hinterlegt —");
+      setRevealed(pw ?? "kein Passwort hinterlegt");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Fehler");
     }
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+    <div className="rounded-[14px] border border-border bg-background px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-xs font-medium">{label}</div>
-          <div className="truncate font-mono text-[10px] text-muted-foreground">
-            {row?.username ? `@${row.username}` : "— kein Zugang hinterlegt —"}
+          <div className="text-[15px] font-semibold">{label}</div>
+          <div className="truncate text-[13px] text-muted-foreground">
+            {row?.username ? `@${row.username}` : "kein Zugang hinterlegt"}
             {row?.password_encrypted ? " · Passwort ✓" : ""}
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {row?.login_url && (
             <a href={row.login_url} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-              Login <ExternalLink className="h-3 w-3" />
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+              Login <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
           {row?.password_encrypted && (
-            <button onClick={reveal} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
-              <Eye className="h-3 w-3" /> Zeigen
+            <button onClick={reveal} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+              <Eye className="h-3.5 w-3.5" /> Zeigen
             </button>
           )}
-          <button onClick={() => setOpen((v) => !v)} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-card">
+          <button onClick={() => setOpen((v) => !v)} className="inline-flex h-9 items-center justify-center rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
             {open ? "Schließen" : row ? "Bearbeiten" : "Hinzufügen"}
           </button>
         </div>
       </div>
-      {revealed && <div className="mt-2 rounded bg-secondary px-2 py-1 font-mono text-[11px]">{revealed}</div>}
+      {revealed && <div className="mt-3 rounded-[9px] bg-secondary px-3 py-2 font-mono text-[13px]">{revealed}</div>}
       {open && (
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
-            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            className="h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-Mail"
-            className="rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
-          <div className="flex gap-1">
+            className="h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
+          <div className="flex gap-2">
             <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Passwort"
-              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary" />
+              className="h-11 min-w-0 flex-1 rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
             <button onClick={save} disabled={saving}
-              className="rounded-md bg-primary px-2.5 py-1.5 text-[11px] font-medium text-primary-foreground disabled:opacity-60">
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]">
               {saving ? "…" : "OK"}
             </button>
           </div>

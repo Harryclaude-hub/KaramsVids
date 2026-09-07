@@ -62,12 +62,12 @@ function PublishingPage() {
 
   if (!activeBrandId) {
     return (
-      <div className="mx-auto max-w-xl rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        Kein Brand aktiv. Wähle links einen Brand, um dessen Upload-Zeitplan und Warteschlange zu sehen.
+      <div className="mx-auto max-w-xl rounded-[18px] border border-dashed border-border p-8 text-center text-[15px] text-muted-foreground">
+        Kein Profil aktiv. Wähle links ein Profil, um dessen Upload-Zeitplan und Warteschlange zu sehen.
       </div>
     );
   }
-  if (!brand) return <div className="text-sm text-muted-foreground">Brand wird geladen …</div>;
+  if (!brand) return <div className="text-[15px] text-muted-foreground">Profil wird geladen …</div>;
 
   const schedules = schedQ.data ?? [];
   const clips = (clipsQ.data ?? []).filter((c: any) => {
@@ -99,11 +99,11 @@ function PublishingPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-primary">Publishing · {brand.name}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Zeitpläne & Warteschlange</h1>
-          <p className="mt-1 text-xs text-muted-foreground">Der Hintergrund-Job läuft alle 5 Min. Fällige Slots holen die nächsten Clips aus der Warteschlange nach ihrer Reihenfolge.</p>
+          <p className="text-[13px] font-semibold text-muted-foreground">Publishing · {brand.name}</p>
+          <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Zeitpläne & Warteschlange</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">Der Hintergrund-Job läuft alle 5 Min. Fällige Slots holen die nächsten Clips aus der Warteschlange nach ihrer Reihenfolge.</p>
         </div>
-        <button onClick={triggerProcess} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-card">
+        <button onClick={triggerProcess} className="inline-flex h-9 items-center gap-2 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
           <RefreshCw className="h-4 w-4" /> Jetzt verarbeiten
         </button>
       </div>
@@ -209,25 +209,25 @@ function IntervalEditor({ schedule, onSaved }: { schedule: Schedule; onSaved: ()
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(
-      `Intervall geändert — nächster Upload um ${nextRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr, danach alle ${fmtInterval(minutes)}`,
+      `Intervall geändert: nächster Upload um ${nextRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr, danach alle ${fmtInterval(minutes)}`,
     );
     onSaved();
   }
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-normal">
+    <span className="inline-flex items-center gap-1 text-[13px] font-normal">
       · alle
       <input
         type="number"
         min={1}
         value={n}
         onChange={(e) => setN(Math.max(1, Number(e.target.value)))}
-        className="w-14 rounded border border-border bg-input px-1.5 py-0.5 text-xs outline-none focus:border-primary"
+        className="w-16 h-8 rounded-[8px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
       />
       <select
         value={unit}
         onChange={(e) => setUnit(e.target.value as "minutes" | "hours" | "days")}
-        className="rounded border border-border bg-input px-1 py-0.5 text-xs outline-none focus:border-primary"
+        className="h-8 rounded-[8px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
       >
         <option value="minutes">Minuten</option>
         <option value="hours">Stunden</option>
@@ -237,7 +237,7 @@ function IntervalEditor({ schedule, onSaved }: { schedule: Schedule; onSaved: ()
         <button
           onClick={save}
           disabled={saving}
-          className="rounded bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          className="h-8 rounded-full bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff] disabled:opacity-40"
         >
           {saving ? "…" : "OK"}
         </button>
@@ -291,7 +291,7 @@ function ScheduleSection({
 
   async function add() {
     if (selPlatforms.length === 0) return toast.error("Bitte mindestens eine Plattform wählen");
-    if (selBrands.length === 0) return toast.error("Bitte mindestens einen Brand wählen");
+    if (selBrands.length === 0) return toast.error("Bitte mindestens ein Profil wählen");
     if (mode === "week" && days.length === 0)
       return toast.error("Bitte mindestens einen Wochentag wählen");
     const cadence = mode === "interval" ? "interval" : days.length === 7 ? "daily" : "weekly";
@@ -305,7 +305,7 @@ function ScheduleSection({
       weekdays: cadence === "weekly" ? days : [],
       time_of_day: time,
       interval_minutes: mode === "interval" ? previewMinutes : null,
-      // Intervall: erster Upload exakt in X Minuten — vorhersehbar statt "irgendwann"
+      // Intervall: erster Upload exakt in X Minuten, vorhersehbar statt "irgendwann"
       ...(mode === "interval"
         ? { next_run_at: new Date(Date.now() + previewMinutes * 60_000).toISOString() }
         : {}),
@@ -319,8 +319,8 @@ function ScheduleSection({
     setCreating(false);
     toast.success(
       mode === "interval"
-        ? `Plan gespeichert — postet alle ${fmtInterval(previewMinutes)} auf ${platformLabel}`
-        : `Plan gespeichert — postet ${dayLabel} um ${time} Uhr auf ${platformLabel}`,
+        ? `Plan gespeichert: postet alle ${fmtInterval(previewMinutes)} auf ${platformLabel}`
+        : `Plan gespeichert: postet ${dayLabel} um ${time} Uhr auf ${platformLabel}`,
     );
     onChange();
   }
@@ -346,38 +346,38 @@ function ScheduleSection({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
           <CalendarClock className="h-4 w-4" /> Upload-Zeitpläne ({schedules.length})
         </h2>
-        <button onClick={() => setCreating((v) => !v)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-card">
-          <Plus className="h-3 w-3" /> Neuer Slot
+        <button onClick={() => setCreating((v) => !v)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
+          <Plus className="h-3.5 w-3.5" /> Neuer Slot
         </button>
       </div>
 
       {creating && (
-        <div className="mb-3 space-y-4 rounded-xl border border-primary/40 bg-primary/5 p-4">
+        <div className="mb-3 space-y-5 rounded-[18px] border border-border bg-card p-6">
           {/* So funktioniert's */}
-          <div className="rounded-lg border border-border bg-background/60 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="rounded-[11px] bg-secondary px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
             <b className="text-foreground">So funktioniert die Upload-Planung:</b> Du füllst die
-            Warteschlange unten mit fertigen Clips (im Editor über „Queue"). Dieser Plan nimmt dann
+            Warteschlange unten mit fertigen Clips (im Editor über „Queue“). Dieser Plan nimmt dann
             automatisch die nächsten Clips aus der Warteschlange und postet sie zum eingestellten
-            Zeitpunkt auf die gewählten Plattformen — pro Plattform ihre eigene Warteschlange.
+            Zeitpunkt auf die gewählten Plattformen, pro Plattform ihre eigene Warteschlange.
           </div>
 
-          {/* Schritt 0: Brands */}
+          {/* Schritt 0: Profile (Tabelle brands) */}
           <div>
-            <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">0</span>
-              Für welche Brands gilt dieser Slot?
+            <div className="mb-2 text-[13px] font-semibold text-foreground">
+              <span className="mr-1.5 rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold tabular-nums text-muted-foreground">0</span>
+              Für welche Profile gilt dieser Slot?
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() =>
                   setSelBrands(selBrands.length === brands.length ? [brandId] : brands.map((b) => b.id))
                 }
-                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${selBrands.length === brands.length ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
+                className={`h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors ${selBrands.length === brands.length ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary"}`}
               >
-                Alle Brands
+                Alle Profile
               </button>
               {brands.map((b) => (
                 <button
@@ -385,15 +385,15 @@ function ScheduleSection({
                   onClick={() =>
                     setSelBrands((cur) => (cur.includes(b.id) ? cur.filter((x) => x !== b.id) : [...cur, b.id]))
                   }
-                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selBrands.includes(b.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                  className={`h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors ${selBrands.includes(b.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                 >
                   {b.name}
                 </button>
               ))}
             </div>
-            <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-              Reihenfolge mischen — jeder Brand postet eine andere zufällige Auswahl aus seiner Warteschlange
+            <label className="mt-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+              <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} className="h-[18px] w-[18px] rounded-[5px] accent-primary" />
+              Reihenfolge mischen: jedes Profil postet eine andere zufällige Auswahl aus seiner Warteschlange
             </label>
           </div>
 
@@ -401,23 +401,23 @@ function ScheduleSection({
 
           {/* Schritt 1: Plattformen */}
           <div>
-            <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">1</span>
+            <div className="mb-2 text-[13px] font-semibold text-foreground">
+              <span className="mr-1.5 rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold tabular-nums text-muted-foreground">1</span>
               Wohin posten?
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => setSelPlatforms(allSelected ? [] : PLATFORMS.map((p) => p.id))}
-                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${allSelected ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-card"}`}
+                className={`h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors ${allSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary"}`}
               >
                 Alle Plattformen
               </button>
-              <span className="text-[10px] text-muted-foreground">oder einzeln:</span>
+              <span className="text-[13px] text-muted-foreground">oder einzeln:</span>
               {PLATFORMS.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => togglePlatform(p.id)}
-                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selPlatforms.includes(p.id) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                  className={`h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors ${selPlatforms.includes(p.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                 >
                   {p.name}
                 </button>
@@ -427,33 +427,33 @@ function ScheduleSection({
 
           {/* Schritt 2: Wann */}
           <div>
-            <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2</span>
+            <div className="mb-2 text-[13px] font-semibold text-foreground">
+              <span className="mr-1.5 rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold tabular-nums text-muted-foreground">2</span>
               Wann posten?
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <button
                 onClick={() => setMode("week")}
-                className={`rounded-lg border p-3 text-left text-xs ${mode === "week" ? "border-primary bg-primary/10" : "border-border hover:bg-card"}`}
+                className={`rounded-[11px] border p-4 text-left text-[15px] transition-colors ${mode === "week" ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-card hover:bg-secondary"}`}
               >
-                <div className="font-medium">📅 Wochenplan</div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  Feste Tage + Uhrzeit — plane die ganze Woche im Voraus
+                <div className="font-semibold">📅 Wochenplan</div>
+                <div className="mt-1 text-[13px] text-muted-foreground">
+                  Feste Tage + Uhrzeit, plane die ganze Woche im Voraus
                 </div>
               </button>
               <button
                 onClick={() => setMode("interval")}
-                className={`rounded-lg border p-3 text-left text-xs ${mode === "interval" ? "border-primary bg-primary/10" : "border-border hover:bg-card"}`}
+                className={`rounded-[11px] border p-4 text-left text-[15px] transition-colors ${mode === "interval" ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-card hover:bg-secondary"}`}
               >
-                <div className="font-medium">⏱ Intervall</div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  Alle paar Minuten, Stunden oder Tage — läuft fortlaufend
+                <div className="font-semibold">⏱ Intervall</div>
+                <div className="mt-1 text-[13px] text-muted-foreground">
+                  Alle paar Minuten, Stunden oder Tage, läuft fortlaufend
                 </div>
               </button>
             </div>
 
             {mode === "week" ? (
-              <div className="mt-2 flex flex-wrap items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5, 6, 0].map((i) => (
                     <button
@@ -461,7 +461,7 @@ function ScheduleSection({
                       onClick={() =>
                         setDays((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]))
                       }
-                      className={`w-9 rounded-md border px-2 py-1.5 text-xs ${days.includes(i) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}
+                      className={`h-9 w-10 rounded-full border text-[13px] font-semibold transition-colors ${days.includes(i) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                     >
                       {WEEKDAYS[i]}
                     </button>
@@ -469,49 +469,49 @@ function ScheduleSection({
                 </div>
                 <button
                   onClick={() => setDays([1, 2, 3, 4, 5, 6, 0])}
-                  className="rounded-md border border-border px-2 py-1.5 text-[11px] text-muted-foreground hover:bg-card"
+                  className="h-9 rounded-full border border-border bg-card px-4 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-secondary"
                 >
                   Jeden Tag
                 </button>
-                <label className="flex items-center gap-2 text-xs">
+                <label className="flex items-center gap-2 text-[13px]">
                   <span className="text-muted-foreground">um</span>
                   <input
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                    className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                   />
                   <span className="text-muted-foreground">Uhr</span>
                 </label>
               </div>
             ) : (
-              <div className="mt-2 flex items-center gap-2 text-xs">
+              <div className="mt-3 flex items-center gap-2 text-[13px]">
                 <span className="text-muted-foreground">alle</span>
                 <input
                   type="number"
                   min={1}
                   value={intervalN}
                   onChange={(e) => setIntervalN(Math.max(1, Number(e.target.value)))}
-                  className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                  className="w-20 h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                 />
                 <select
                   value={intervalUnit}
                   onChange={(e) => setIntervalUnit(e.target.value as "minutes" | "hours" | "days")}
-                  className="rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                  className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                 >
                   <option value="minutes">Minuten</option>
                   <option value="hours">Stunden</option>
                   <option value="days">Tage</option>
                 </select>
-                <span className="text-[10px] text-muted-foreground">(Minimum: 5 Minuten)</span>
+                <span className="text-[13px] text-muted-foreground">(Minimum: 5 Minuten)</span>
               </div>
             )}
           </div>
 
           {/* Beitragsarten */}
           <div>
-            <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">2b</span>
+            <div className="mb-2 text-[13px] font-semibold text-foreground">
+              <span className="mr-1.5 rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold tabular-nums text-muted-foreground">2b</span>
               Welche Beitragsarten posten? <span className="font-normal text-muted-foreground">(leer = alle)</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -521,7 +521,7 @@ function ScheduleSection({
                   onClick={() =>
                     setSelPostTypes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
                   }
-                  className={`rounded-md border px-2.5 py-1.5 text-xs ${selPostTypes.includes(t) ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:bg-card"}`}
+                  className={`h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors ${selPostTypes.includes(t) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                 >
                   {POST_TYPE_LABEL[t as PostType]}
                 </button>
@@ -532,31 +532,31 @@ function ScheduleSection({
           {/* Schritt 3: Menge */}
 
           <div>
-            <div className="mb-1.5 text-xs font-medium">
-              <span className="mr-1 rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] text-primary">3</span>
+            <div className="mb-2 text-[13px] font-semibold text-foreground">
+              <span className="mr-1.5 rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold tabular-nums text-muted-foreground">3</span>
               Wie viele Videos pro Termin?
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-[13px]">
               <input
                 type="number"
                 min={1}
                 max={10}
                 value={count}
                 onChange={(e) => setCount(Math.max(1, Number(e.target.value)))}
-                className="w-16 rounded-md border border-border bg-input px-2 py-1.5 text-sm focus:border-primary"
+                className="w-20 h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
               <span className="text-muted-foreground">
-                Video(s) — genommen wird immer das oberste aus der Warteschlange, pro Plattform
+                Video(s), genommen wird immer das oberste aus der Warteschlange, pro Plattform
               </span>
             </div>
           </div>
 
           {/* Live-Zusammenfassung */}
-          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+          <div className="rounded-[11px] bg-secondary px-4 py-3 text-[13px] text-foreground">
             {mode === "interval" ? (
               <>
                 ⏱ Postet <b>alle {fmtInterval(previewMinutes)}</b> jeweils <b>{count} Video(s)</b>{" "}
-                auf <b>{platformLabel || "— noch keine Plattform gewählt —"}</b> · erster Upload:{" "}
+                auf <b>{platformLabel || "noch keine Plattform gewählt"}</b> · erster Upload:{" "}
                 <b>
                   {previewFirstRun.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })} Uhr
                 </b>{" "}
@@ -564,41 +564,41 @@ function ScheduleSection({
               </>
             ) : (
               <>
-                📅 Postet <b>{days.length === 0 ? "— noch keine Tage gewählt —" : dayLabel}</b> um{" "}
+                📅 Postet <b>{days.length === 0 ? "noch keine Tage gewählt" : dayLabel}</b> um{" "}
                 <b>{time} Uhr</b> jeweils <b>{count} Video(s)</b> auf{" "}
-                <b>{platformLabel || "— noch keine Plattform gewählt —"}</b>
+                <b>{platformLabel || "noch keine Plattform gewählt"}</b>
               </>
             )}
           </div>
 
           <div className="flex justify-end gap-2">
-            <button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs">Abbrechen</button>
-            <button onClick={add} className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">Plan speichern</button>
+            <button onClick={() => setCreating(false)} className="h-11 rounded-[11px] bg-secondary px-5 text-[15px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">Abbrechen</button>
+            <button onClick={add} className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">Plan speichern</button>
           </div>
         </div>
       )}
 
       {schedules.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <div className="rounded-[18px] border border-dashed border-border p-8 text-center text-[15px] text-muted-foreground">
           Noch keine Zeitpläne. Lege einen an, damit gequeuete Clips automatisch veröffentlicht werden.
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {schedules.map((s) => {
             const plats = schedulePlatforms(s);
             return (
-              <div key={s.id} className="rounded-xl border border-border bg-card p-4">
+              <div key={s.id} className="rounded-[18px] border border-border bg-card p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-2 text-[15px] font-semibold">
                       <span className="flex flex-wrap gap-1">
                         {plats.length === PLATFORMS.length ? (
-                          <span className="rounded-md bg-primary/15 px-2 py-0.5 text-xs text-primary">
+                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-foreground">
                             Alle Plattformen
                           </span>
                         ) : (
                           plats.map((p) => (
-                            <span key={p} className="rounded-md bg-secondary px-2 py-0.5 text-xs capitalize">
+                            <span key={p} className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold capitalize text-foreground">
                               {PLATFORMS.find((x) => x.id === p)?.name ?? p}
                             </span>
                           ))
@@ -607,14 +607,14 @@ function ScheduleSection({
                       {s.cadence === "interval" ? (
                         <IntervalEditor schedule={s} onSaved={onChange} />
                       ) : (
-                        <span className="text-xs font-normal text-muted-foreground">
+                        <span className="text-[13px] font-normal text-muted-foreground">
                           {s.cadence === "daily"
                             ? `täglich um ${s.time_of_day.slice(0, 5)} Uhr`
                             : `wöchentlich um ${s.time_of_day.slice(0, 5)} Uhr`}
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    <div className="mt-1 text-[13px] tabular-nums text-muted-foreground">
                       Nächster Upload:{" "}
                       {new Date(s.next_run_at).toLocaleString("de-AT", {
                         day: "2-digit",
@@ -626,22 +626,22 @@ function ScheduleSection({
                     </div>
                     {s.cadence === "weekly" && s.weekdays && s.weekdays.length > 0 && (
                       <div className="mt-1 flex gap-1">
-                        {s.weekdays.map((d) => <span key={d} className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">{WEEKDAYS[d]}</span>)}
+                        {s.weekdays.map((d) => <span key={d} className="rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold text-foreground">{WEEKDAYS[d]}</span>)}
                       </div>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${s.active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${s.active ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground"}`}>
                       {s.active ? <CheckCircle2 className="h-3 w-3" /> : <Pause className="h-3 w-3" />} {s.active ? "aktiv" : "pausiert"}
                     </span>
-                    <span className="text-right font-mono text-[10px] leading-relaxed">
+                    <span className="text-right text-[12px] tabular-nums leading-relaxed">
                       {plats.map((p) => {
                         const n = queuedByPlatform[p] ?? 0;
                         return (
                           <span
                             key={p}
                             className={`ml-1.5 ${n === 0 ? "text-destructive" : "text-muted-foreground"}`}
-                            title={n === 0 ? "Warteschlange leer — es wird nichts gepostet!" : undefined}
+                            title={n === 0 ? "Warteschlange leer, es wird nichts gepostet!" : undefined}
                           >
                             {(PLATFORMS.find((x) => x.id === p)?.name ?? p).slice(0, 2)}:{n}
                             {n === 0 ? "⚠" : ""}
@@ -651,15 +651,15 @@ function ScheduleSection({
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                  <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                  <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
                     Videos/Slot
-                    <input type="number" min={1} max={10} value={s.videos_per_slot} onChange={(e) => updateCount(s, Number(e.target.value))} className="w-14 rounded-md border border-border bg-background px-1.5 py-0.5 text-xs" />
+                    <input type="number" min={1} max={10} value={s.videos_per_slot} onChange={(e) => updateCount(s, Number(e.target.value))} className="w-16 h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60" />
                   </label>
-                  <button onClick={() => toggleActive(s)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-background">
+                  <button onClick={() => toggleActive(s)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">
                     {s.active ? <><Pause className="h-3 w-3" /> Pausieren</> : <><Play className="h-3 w-3" /> Aktivieren</>}
                   </button>
-                  <button onClick={() => remove(s.id)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:text-destructive">
+                  <button onClick={() => remove(s.id)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive">
                     <Trash2 className="h-3 w-3" /> Löschen
                   </button>
                 </div>
@@ -724,18 +724,18 @@ function QueueSection({
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
           <ListOrdered className="h-4 w-4" /> Warteschlange ({clips.length})
         </h2>
         <div className="flex gap-2">
-          <select value={platformFilter} onChange={(e) => onPlatformFilter(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary">
+          <select value={platformFilter} onChange={(e) => onPlatformFilter(e.target.value)} className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60">
             <option value="all">Alle Plattformen</option>
             {PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value)} className="rounded-md border border-border bg-input px-2 py-1 text-xs focus:border-primary">
+          <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value)} className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60">
             <option value="all">Alle Status</option>
             <option value="draft">Entwurf</option>
-            <option value="queued">Queued</option>
+            <option value="queued">In Queue</option>
             <option value="published">Veröffentlicht</option>
             <option value="failed">Fehler</option>
           </select>
@@ -743,36 +743,36 @@ function QueueSection({
       </div>
 
       {clips.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Noch keine Clips. Rendere im <Link to="/app" className="text-primary underline">Editor</Link> und wähle „Queue".
+        <div className="rounded-[18px] border border-dashed border-border p-8 text-center text-[15px] text-muted-foreground">
+          Noch keine Clips. Rendere im <Link to="/app" className="text-accent hover:underline">Editor</Link> und wähle „Queue“.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-card/60 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="overflow-x-auto rounded-[18px] border border-border bg-card">
+          <table className="w-full text-[15px]">
+            <thead className="border-b border-border text-left text-[13px] font-semibold text-muted-foreground">
               <tr>
-                <th className="px-3 py-2">#</th>
-                <th className="px-3 py-2">Clip</th>
-                <th className="px-3 py-2">Plattform</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Zeit</th>
-                <th className="px-3 py-2 text-right">Aktionen</th>
+                <th className="h-11 px-3 font-semibold">#</th>
+                <th className="h-11 px-3 font-semibold">Clip</th>
+                <th className="h-11 px-3 font-semibold">Plattform</th>
+                <th className="h-11 px-3 font-semibold">Status</th>
+                <th className="h-11 px-3 font-semibold">Zeit</th>
+                <th className="h-11 px-3 text-right font-semibold">Aktionen</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border">
               {clips.map((c) => (
-                <tr key={c.id} className="border-t border-border hover:bg-card/40">
-                  <td className="px-3 py-2 font-mono text-xs">{c.queue_position}</td>
-                  <td className="px-3 py-2">
-                    <div className="text-sm font-medium">{c.title ?? c.edit_jobs?.raw_videos?.title ?? "Clip"}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{c.duration_s ? `${Math.round(Number(c.duration_s))}s` : "—"} · {c.aspect}</div>
+                <tr key={c.id} className="transition-colors hover:bg-secondary/40">
+                  <td className="px-3 py-3 font-mono text-[13px] tabular-nums text-muted-foreground">{c.queue_position}</td>
+                  <td className="px-3 py-3">
+                    <div className="text-[15px] font-semibold">{c.title ?? c.edit_jobs?.raw_videos?.title ?? "Clip"}</div>
+                    <div className="text-[13px] tabular-nums text-muted-foreground">{c.duration_s ? `${Math.round(Number(c.duration_s))}s` : "–"} · {c.aspect}</div>
                     {c.publish_error && (
-                      <div className="mt-1 inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive">
+                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-[12px] font-semibold text-destructive">
                         <AlertTriangle className="h-3 w-3" /> {c.publish_error}
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs capitalize text-muted-foreground">
+                  <td className="px-3 py-3 text-[13px] capitalize text-muted-foreground">
                     <div>{c.platform}</div>
                     <select
                       value={normalizePostType(c.platform, (c as any).post_type)}
@@ -784,7 +784,7 @@ function QueueSection({
                         if (error) return toast.error(error.message);
                         onChange();
                       }}
-                      className="mt-1 rounded border border-border bg-input px-1 py-0.5 text-[10px] normal-case"
+                      className="mt-1 normal-case h-8 rounded-[8px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                     >
                       {(PLATFORM_POST_TYPES[c.platform] ?? ["video"]).map((t) => (
                         <option key={t} value={t}>{POST_TYPE_LABEL[t]}</option>
@@ -792,33 +792,33 @@ function QueueSection({
                     </select>
                   </td>
 
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-3">
                     <StatusPill s={c.status} />
                   </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                  <td className="px-3 py-3 text-[13px] tabular-nums text-muted-foreground">
                     {c.status === "published" && c.published_at
                       ? new Date(c.published_at).toLocaleString()
                       : c.scheduled_for
                         ? new Date(c.scheduled_for).toLocaleString()
-                        : "—"}
+                        : "–"}
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-end gap-1">
+                  <td className="px-3 py-3">
+                    <div className="flex justify-end gap-1.5">
                       {c.status === "queued" && (
                         <>
-                          <button onClick={() => moveToTop(c)} title="Als Nächstes" className="rounded border border-border px-1.5 py-1 text-[10px] hover:bg-background">Als Nächstes</button>
-                          <button onClick={() => move(c, -1)} title="Nach oben" className="rounded border border-border px-1 py-1 hover:bg-background"><ArrowUp className="h-3 w-3" /></button>
-                          <button onClick={() => move(c, 1)} title="Nach unten" className="rounded border border-border px-1 py-1 hover:bg-background"><ArrowDown className="h-3 w-3" /></button>
-                          <button onClick={() => setStatus(c, "draft")} title="In Entwurf" className="rounded border border-border px-1 py-1 hover:bg-background"><Edit3 className="h-3 w-3" /></button>
+                          <button onClick={() => moveToTop(c)} title="Als Nächstes" className="h-8 rounded-full bg-secondary px-3 text-[12px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">Als Nächstes</button>
+                          <button onClick={() => move(c, -1)} title="Nach oben" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"><ArrowUp className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => move(c, 1)} title="Nach unten" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"><ArrowDown className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => setStatus(c, "draft")} title="In Entwurf" className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"><Edit3 className="h-3.5 w-3.5" /></button>
                         </>
                       )}
                       {c.status === "draft" && (
-                        <button onClick={() => setStatus(c, "queued")} className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10">In Queue</button>
+                        <button onClick={() => setStatus(c, "queued")} className="h-8 rounded-full bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">In Queue</button>
                       )}
                       {c.status === "failed" && (
-                        <button onClick={() => setStatus(c, "queued")} className="rounded border border-primary px-2 py-1 text-[10px] text-primary hover:bg-primary/10">Erneut</button>
+                        <button onClick={() => setStatus(c, "queued")} className="h-8 rounded-full bg-primary px-3 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">Erneut</button>
                       )}
-                      <button onClick={() => remove(c.id)} className="rounded border border-border px-1 py-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                      <button onClick={() => remove(c.id)} title="Löschen" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </td>
                 </tr>
@@ -833,16 +833,23 @@ function QueueSection({
 
 function StatusPill({ s }: { s: string }) {
   const map: Record<string, string> = {
-    draft: "bg-muted text-muted-foreground",
-    queued: "bg-accent/20 text-accent",
-    publishing: "bg-accent/20 text-accent",
-    published: "bg-primary/20 text-primary",
-    failed: "bg-destructive/20 text-destructive",
+    draft: "bg-secondary text-muted-foreground",
+    queued: "bg-warning/15 text-warning",
+    publishing: "bg-warning/15 text-warning",
+    published: "bg-success/15 text-success",
+    failed: "bg-destructive/15 text-destructive",
+  };
+  const label: Record<string, string> = {
+    draft: "Entwurf",
+    queued: "In Queue",
+    publishing: "Wird veröffentlicht",
+    published: "Veröffentlicht",
+    failed: "Fehler",
   };
   const Icon = s === "published" ? CheckCircle2 : s === "failed" ? AlertTriangle : Clock;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] ${map[s] ?? map.draft}`}>
-      <Icon className="h-3 w-3" /> {s}
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${map[s] ?? map.draft}`}>
+      <Icon className="h-3 w-3" /> {label[s] ?? s}
     </span>
   );
 }

@@ -55,68 +55,68 @@ export function ClipsCountDialog({ open, onClose, onConfirm, duration }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-        <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[18px] border border-border bg-card">
+        <div className="flex items-center gap-2 border-b border-border px-6 py-4">
           <Sparkles className="h-4 w-4 text-primary" />
-          <div className="text-sm font-medium">Wie soll die KI clippen?</div>
-          <button onClick={onClose} className="ml-auto rounded p-1 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button>
+          <div className="text-[19px] font-semibold tracking-tight">Wie soll die KI clippen?</div>
+          <button onClick={onClose} className="ml-auto grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="max-h-[75vh] space-y-5 overflow-y-auto p-5 text-sm">
-          {duration && <div className="font-mono text-[10px] text-muted-foreground">Länge: {Math.round(duration)}s</div>}
+        <div className="max-h-[75vh] space-y-5 overflow-y-auto p-6 text-[15px]">
+          {duration && <div className="text-[13px] text-muted-foreground tabular-nums">Länge: {Math.round(duration)}s</div>}
 
-          {/* Templates */}
+          {/* Vorlagen */}
           <div>
-            <div className="mb-2 text-xs font-medium">Clip-Vorlage</div>
+            <div className="mb-2 text-[13px] font-semibold text-muted-foreground">Clip-Vorlage</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CLIP_TEMPLATES.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => pickTemplate(t.id)}
-                  className={`rounded-lg border p-3 text-left transition ${templateId === t.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}
+                  className={`rounded-[14px] border p-3 text-left transition-colors ${templateId === t.id ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-background hover:bg-secondary/60"}`}
                 >
-                  <div className="text-sm">{t.emoji} <span className="font-semibold">{t.label}</span></div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{t.short}</div>
+                  <div className="text-[15px]">{t.emoji} <span className="font-semibold">{t.label}</span></div>
+                  <div className="mt-1 text-[13px] text-muted-foreground">{t.short}</div>
                 </button>
               ))}
             </div>
             {tpl && (
-              <p className="mt-2 text-[10px] text-muted-foreground">
-                Passt Modus, Format, Captions & Sound-Mood automatisch an — du kannst unten alles überschreiben.
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Passt Modus, Format, Untertitel und Sound-Stimmung automatisch an. Du kannst unten alles überschreiben.
               </p>
             )}
           </div>
 
           {/* Anzahl */}
           <div>
-            <div className="mb-2 text-xs font-medium">Anzahl Clips</div>
+            <div className="mb-2 text-[13px] font-semibold text-muted-foreground">Anzahl Clips</div>
             <div className="grid grid-cols-5 gap-2">
               {presets.map((p) => (
                 <button
                   key={p.label}
                   onClick={() => { setPreset(p.value); setCustom(""); }}
-                  className={`rounded-lg border p-2 text-center transition ${preset === p.value && !custom ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}
+                  className={`rounded-[12px] border p-2 text-center transition-colors ${preset === p.value && !custom ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-background hover:bg-secondary/60"}`}
                 >
-                  <div className="text-sm font-semibold">{p.label}</div>
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">{p.note}</div>
+                  <div className="text-[15px] font-semibold tabular-nums">{p.label}</div>
+                  <div className="mt-0.5 text-[12px] text-muted-foreground">{p.note}</div>
                 </button>
               ))}
             </div>
-            <div className="mt-2 flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">oder custom:</span>
+            <div className="mt-2 flex items-center gap-2 text-[13px]">
+              <span className="text-muted-foreground">oder eigene Anzahl:</span>
               <input
                 type="number" min={1} max={30} value={custom}
                 onChange={(e) => { setCustom(e.target.value); setPreset(null); }}
                 placeholder="1–30"
-                className="w-20 rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+                className="h-9 w-20 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
             </div>
           </div>
 
           {/* Modus */}
           <div>
-            <div className="mb-2 text-xs font-medium">Modus</div>
+            <div className="mb-2 text-[13px] font-semibold text-muted-foreground">Modus</div>
             <div className="grid grid-cols-2 gap-2">
               {([
                 { v: "ugc_shorts", t: "UGC Shorts", d: "9:16 mit Hooks" },
@@ -124,9 +124,9 @@ export function ClipsCountDialog({ open, onClose, onConfirm, duration }: Props) 
                 { v: "auto_cut", t: "Auto Cut", d: "1 straffer Clip" },
                 { v: "manual", t: "Manual", d: "3 Vorschläge" },
               ] as const).map((o) => (
-                <button key={o.v} onClick={() => setMode(o.v)} className={`rounded-lg border p-2 text-left ${mode === o.v ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}>
-                  <div className="text-xs font-medium">{o.t}</div>
-                  <div className="text-[10px] text-muted-foreground">{o.d}</div>
+                <button key={o.v} onClick={() => setMode(o.v)} className={`rounded-[12px] border p-3 text-left transition-colors ${mode === o.v ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-background hover:bg-secondary/60"}`}>
+                  <div className="text-[15px] font-semibold">{o.t}</div>
+                  <div className="text-[13px] text-muted-foreground">{o.d}</div>
                 </button>
               ))}
             </div>
@@ -134,22 +134,22 @@ export function ClipsCountDialog({ open, onClose, onConfirm, duration }: Props) 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="mb-1 text-xs font-medium">Format</div>
-              <div className="flex gap-1">
+              <div className="mb-2 text-[13px] font-semibold text-muted-foreground">Format</div>
+              <div className="flex gap-1 rounded-[10px] bg-secondary p-[3px]">
                 {(["9:16", "16:9", "1:1"] as const).map((a) => (
-                  <button key={a} onClick={() => setAspect(a)} className={`flex-1 rounded-md border px-2 py-1 text-xs ${aspect === a ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"}`}>{a}</button>
+                  <button key={a} onClick={() => setAspect(a)} className={`flex-1 rounded-[8px] px-2 py-1 text-[13px] font-semibold tabular-nums transition-colors ${aspect === a ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{a}</button>
                 ))}
               </div>
             </div>
-            <label className="flex cursor-pointer items-end gap-2 text-xs">
-              <input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} className="h-4 w-4 accent-primary" />
+            <label className="flex cursor-pointer items-end gap-3 pb-1 text-[15px]">
+              <input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} className="h-[18px] w-[18px] accent-primary" />
               Untertitel generieren
             </label>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={onClose} className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">Abbrechen</button>
-            <button onClick={confirm} className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+            <button onClick={onClose} className="h-9 rounded-[11px] border border-border bg-card px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-secondary">Abbrechen</button>
+            <button onClick={confirm} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">
               <Sparkles className="h-3 w-3" /> KI starten
             </button>
           </div>

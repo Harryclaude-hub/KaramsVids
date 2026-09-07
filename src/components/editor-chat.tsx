@@ -120,20 +120,20 @@ export function EditorChat({ jobId, userId, initialMessages, styleReference, onC
   ];
 
   return (
-    <div className="flex h-[720px] flex-col rounded-2xl border border-border bg-card">
+    <div className="flex h-[720px] flex-col rounded-[18px] border border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <Sparkles className="h-4 w-4 text-primary" />
-        <div className="text-sm font-medium">KI-Editor Chat</div>
-        <div className="ml-auto font-mono text-[10px] uppercase text-muted-foreground">gpt-5.5 · tools</div>
+        <div className="text-[15px] font-semibold">KI-Editor Chat</div>
+        <div className="ml-auto text-[13px] text-muted-foreground">gpt-5.5 · Tools</div>
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-            Sag mir was du am Video ändern möchtest — z. B. "kürze alle Clips auf 15 Sekunden", "füge einen Clip von 30 bis 45 hinzu", oder "kopiere den Stil vom Referenzvideo".
-            <div className="mt-3 flex flex-wrap gap-1">
+          <div className="rounded-[14px] border border-dashed border-border p-4 text-[15px] text-muted-foreground">
+            Sag mir, was du am Video ändern möchtest, z. B. „kürze alle Clips auf 15 Sekunden“, „füge einen Clip von 30 bis 45 hinzu“ oder „kopiere den Stil vom Referenzvideo“.
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {suggestions.map((s) => (
-                <button key={s} onClick={() => setInput(s)} className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary">{s}</button>
+                <button key={s} onClick={() => setInput(s)} className="rounded-full border border-border bg-card px-3 py-1 text-[13px] text-foreground transition-colors hover:bg-secondary">{s}</button>
               ))}
             </div>
           </div>
@@ -142,11 +142,11 @@ export function EditorChat({ jobId, userId, initialMessages, styleReference, onC
           <MessageBubble key={m.id} m={m} />
         ))}
         {isLoading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" /> KI arbeitet…
           </div>
         )}
-        {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{error.message}</div>}
+        {error && <div className="rounded-[11px] bg-destructive/15 px-3 py-2 text-[13px] text-destructive">{error.message}</div>}
       </div>
 
       <StyleReferencePanel jobId={jobId} userId={userId} styleReference={styleReference} onChanged={onChanged} />
@@ -161,19 +161,19 @@ export function EditorChat({ jobId, userId, initialMessages, styleReference, onC
             placeholder={recording ? "Aufnahme läuft…" : transcribing ? "Transkribiere…" : "Was soll die KI machen?"}
             disabled={isLoading || recording || transcribing}
             rows={2}
-            className="flex-1 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-70"
+            className="flex-1 resize-none rounded-[11px] border border-border bg-input px-4 py-3 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60 disabled:opacity-40"
           />
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {recording ? (
-              <button onClick={stopRec} className="inline-flex items-center gap-1 rounded-md bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground animate-pulse">
+              <button onClick={stopRec} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-destructive px-4 text-[13px] font-semibold text-destructive-foreground animate-pulse">
                 <Square className="h-3 w-3" /> Stop
               </button>
             ) : (
-              <button onClick={startRec} disabled={transcribing || isLoading} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-xs hover:bg-secondary disabled:opacity-60" title="Sprich rein — wird transkribiert">
-                {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mic className="h-3 w-3" />} Mic
+              <button onClick={startRec} disabled={transcribing || isLoading} className="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-border bg-card px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40" title="Sprich rein, wird transkribiert">
+                {transcribing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mic className="h-3 w-3" />} Mikro
               </button>
             )}
-            <button onClick={send} disabled={!input.trim() || isLoading || !token} className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+            <button onClick={send} disabled={!input.trim() || isLoading || !token} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]">
               <Send className="h-3 w-3" /> Senden
             </button>
           </div>
@@ -187,7 +187,7 @@ function MessageBubble({ m }: { m: UIMessage }) {
   if (m.role === "user") {
     const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
     return (
-      <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
+      <div className="ml-auto max-w-[85%] rounded-[18px] rounded-br-[6px] bg-primary px-4 py-2 text-[15px] text-primary-foreground">
         {text}
       </div>
     );
@@ -197,7 +197,7 @@ function MessageBubble({ m }: { m: UIMessage }) {
       {m.parts.map((p, i) => {
         if (p.type === "text") {
           return (
-            <div key={i} className="prose prose-sm prose-invert max-w-none text-sm text-foreground [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1">
+            <div key={i} className="max-w-none text-[15px] leading-relaxed text-foreground [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-accent [&_a]:hover:underline [&_code]:font-mono [&_code]:text-[13px]">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.text}</ReactMarkdown>
             </div>
           );
@@ -208,17 +208,17 @@ function MessageBubble({ m }: { m: UIMessage }) {
           const running = tp.state === "input-streaming" || tp.state === "input-available";
           const ok = tp.state === "output-available";
           return (
-            <div key={i} className="rounded-md border border-border bg-background p-2 font-mono text-[11px]">
+            <div key={i} className="rounded-[11px] border border-border bg-background p-3 font-mono text-[12px]">
               <div className="flex items-center gap-2">
                 {running ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : <Wrench className="h-3 w-3 text-primary" />}
                 <span className="font-semibold">{name}</span>
-                <span className="ml-auto text-[10px] uppercase text-muted-foreground">{tp.state}</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">{tp.state}</span>
               </div>
               {tp.input != null && Object.keys(tp.input as object).length > 0 && (
-                <pre className="mt-1 overflow-x-auto text-[10px] text-muted-foreground">{JSON.stringify(tp.input, null, 2)}</pre>
+                <pre className="mt-1 overflow-x-auto text-[11px] text-muted-foreground">{JSON.stringify(tp.input, null, 2)}</pre>
               )}
               {ok && (
-                <pre className="mt-1 overflow-x-auto text-[10px] text-primary">{JSON.stringify(tp.output, null, 2)}</pre>
+                <pre className="mt-1 overflow-x-auto text-[11px] text-foreground">{JSON.stringify(tp.output, null, 2)}</pre>
               )}
               {tp.errorText && <div className="mt-1 text-destructive">{tp.errorText}</div>}
             </div>
@@ -240,7 +240,7 @@ function StyleReferencePanel({ jobId, userId, styleReference, onChanged }: { job
     setBusy(true);
     try {
       await analyze({ data: { jobId, ...payload } });
-      toast.success('Referenz-Stil analysiert — jetzt: "wende Referenz-Stil an" in den Chat');
+      toast.success("Referenz-Stil analysiert. Jetzt im Chat: „wende Referenz-Stil an“");
       onChanged();
       setUrl(""); setNotes("");
     } catch (e) {
@@ -265,29 +265,29 @@ function StyleReferencePanel({ jobId, userId, styleReference, onChanged }: { job
   }
 
   return (
-    <details className="border-t border-border bg-background/40 px-4 py-3 text-xs">
-      <summary className="cursor-pointer select-none font-medium">
-        <span className="inline-flex items-center gap-2"><Wand2 className="h-3 w-3 text-accent" /> Referenz-Stil kopieren {styleReference && <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary">aktiv</span>}</span>
+    <details className="border-t border-border bg-background/60 px-4 py-3 text-[13px]">
+      <summary className="cursor-pointer select-none font-semibold">
+        <span className="inline-flex items-center gap-2"><Wand2 className="h-3.5 w-3.5 text-primary" /> Referenz-Stil kopieren {styleReference && <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[12px] font-semibold text-success">aktiv</span>}</span>
       </summary>
       <div className="mt-3 space-y-2">
-        <div className="text-[11px] text-muted-foreground">
-          Gib ein Referenzvideo (Link oder Datei). Die KI leitet Aspect, Cut-Frequenz, Untertitel-Stil und mehr ab — dann sag im Chat „wende den Stil an".
+        <div className="text-[13px] text-muted-foreground">
+          Gib ein Referenzvideo (Link oder Datei). Die KI leitet Format, Schnittfrequenz, Untertitel-Stil und mehr ab. Danach sag im Chat „wende den Stil an“.
         </div>
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notiz (optional): 'Kurze UGC-Reels mit Karaoke-Captions'" className="w-full rounded-md border border-border bg-background px-2 py-1.5 outline-none focus:border-primary" />
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notiz (optional): 'Kurze UGC-Reels mit Karaoke-Captions'" className="h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
         <div className="flex gap-2">
-          <div className="flex flex-1 gap-1">
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://tiktok.com/…" className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 outline-none focus:border-primary" />
-            <button disabled={!url || busy} onClick={() => run({ sourceUrl: url, notes })} className="inline-flex items-center gap-1 rounded-md border border-primary px-2 text-primary hover:bg-primary/10 disabled:opacity-50">
+          <div className="flex flex-1 gap-1.5">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://tiktok.com/…" className="h-9 flex-1 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60" />
+            <button disabled={!url || busy} onClick={() => run({ sourceUrl: url, notes })} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]">
               {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />} Link
             </button>
           </div>
-          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1.5 hover:bg-secondary">
+          <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[11px] border border-border bg-card px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-secondary">
             {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <UploadCloud className="h-3 w-3" />} Datei
             <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} disabled={busy} />
           </label>
         </div>
         {styleReference && (
-          <div className="rounded-md border border-border bg-card p-2 font-mono text-[10px] text-muted-foreground">
+          <div className="rounded-[11px] border border-border bg-card p-3 font-mono text-[12px] text-muted-foreground">
             {(["aspect", "avg_clip_length_s", "cut_frequency", "caption_style", "color_grade", "audio_style"] as const).map((k) => (
               styleReference[k] != null && <div key={k}><span className="text-foreground">{k}:</span> {String(styleReference[k])}</div>
             ))}

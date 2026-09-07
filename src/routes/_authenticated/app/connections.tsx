@@ -23,35 +23,36 @@ export const Route = createFileRoute("/_authenticated/app/connections")({
 
 type Platform = "tiktok" | "youtube" | "instagram" | "facebook" | "x";
 
+// Icon-Kacheln bleiben ruhig: graue Fuellung, nur YouTube (rot) und Facebook (blau) tragen Farbe.
 const META: Record<Platform, { name: string; icon: typeof Share2; color: string; hint: string }> = {
   tiktok: {
     name: "TikTok",
     icon: Share2,
-    color: "bg-primary/10 text-primary",
+    color: "bg-secondary text-foreground",
     hint: "Ohne TikTok-Audit landen Videos in den Entwürfen deines Accounts.",
   },
   youtube: {
     name: "YouTube",
     icon: Youtube,
-    color: "bg-destructive/10 text-destructive",
+    color: "bg-destructive/15 text-destructive",
     hint: "Direkter Shorts-Upload · ca. 6 Uploads/Tag im Free-Quota.",
   },
   instagram: {
     name: "Instagram",
     icon: Instagram,
-    color: "bg-accent/10 text-accent",
+    color: "bg-secondary text-foreground",
     hint: "Business-Account + verknüpfte Facebook-Seite nötig. Reels-Upload direkt.",
   },
   facebook: {
     name: "Facebook",
     icon: Facebook,
-    color: "bg-primary/10 text-primary",
+    color: "bg-primary/15 text-primary",
     hint: "Postet auf die Seite, für die du Admin-Rechte hast.",
   },
   x: {
     name: "X (Twitter)",
     icon: Share2,
-    color: "bg-muted text-foreground",
+    color: "bg-secondary text-foreground",
     hint: "Video-Upload erst ab Basic-Tier (kostenpflichtig).",
   },
 };
@@ -105,7 +106,7 @@ function Connections() {
   });
 
   async function connect(platform: Platform) {
-    if (!brandId) return toast.error("Bitte zuerst einen Brand wählen");
+    if (!brandId) return toast.error("Bitte zuerst ein Profil wählen");
     setConnecting(platform);
     try {
       const { startSocialConnect } = await import("@/lib/social.functions");
@@ -137,23 +138,23 @@ function Connections() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <p className="font-mono text-xs uppercase tracking-widest text-primary">Social</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Plattformen verbinden</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Verbindungen gelten <span className="font-medium text-foreground">pro Brand</span>. Jeder Brand kann beliebig
+        <p className="text-[13px] font-semibold text-muted-foreground">Kanäle</p>
+        <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Kanäle verbinden</h1>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          Verbindungen gelten <span className="font-semibold text-foreground">pro Profil</span>. Jedes Profil kann beliebig
           viele Kanäle haben, auch mehrere auf derselben Plattform.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Brand</span>
-        {brands.length === 0 && <span className="text-xs text-muted-foreground">Noch kein Brand angelegt.</span>}
+      <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-border bg-card p-3">
+        <span className="px-1 text-[13px] font-semibold text-muted-foreground">Profil</span>
+        {brands.length === 0 && <span className="text-[13px] text-muted-foreground">Noch kein Profil angelegt.</span>}
         {brands.map((b) => (
           <button
             key={b.id}
             onClick={() => setBrandId(b.id)}
-            className={`rounded-md border px-3 py-1.5 text-xs ${
-              brandId === b.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary"
+            className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
+              brandId === b.id ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             {b.name}
@@ -169,18 +170,18 @@ function Connections() {
           const connected = accounts.filter((a) => a.platform === id && a.status !== "disconnected");
           const configured = cfg?.configured ?? false;
           return (
-            <div key={id} className="rounded-xl border border-border bg-card p-4">
+            <div key={id} className="rounded-[18px] border border-border bg-card p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`grid h-10 w-10 place-items-center rounded-lg ${m.color}`}>
+                  <div className={`grid h-10 w-10 place-items-center rounded-[11px] ${m.color}`}>
                     <m.icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium">{m.name}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
+                    <div className="text-[15px] font-semibold">{m.name}</div>
+                    <div className="text-[13px] text-muted-foreground">
                       {connected.length > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-primary">
-                          <CheckCircle2 className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 text-success">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
                           {connected.length} {connected.length === 1 ? "Kanal" : "Kanäle"}
                         </span>
                       ) : configured ? (
@@ -195,9 +196,9 @@ function Connections() {
                   onClick={() => connect(id)}
                   disabled={!brandId || connecting === id || !configured}
                   title={configured ? undefined : `Secrets ${cfg?.idEnv} & ${cfg?.secretEnv} fehlen noch`}
-                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40"
                 >
-                  {connecting === id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                  {connecting === id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
                   {connected.length > 0 ? "Weiteren verbinden" : "Verbinden"}
                 </button>
               </div>
@@ -207,22 +208,22 @@ function Connections() {
                   {connected.map((a) => (
                     <li
                       key={a.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-1.5"
+                      className="flex items-center justify-between gap-2 rounded-[11px] border border-border bg-background px-3 py-2"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         {a.avatar_url ? (
                           <img src={a.avatar_url} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                         ) : (
-                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-[10px]">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-[11px] font-semibold">
                             {(a.handle ?? a.display_name ?? "?").replace(/^@/, "").slice(0, 1).toUpperCase()}
                           </span>
                         )}
                         <span className="min-w-0">
-                          <span className="block truncate text-xs font-medium">
+                          <span className="block truncate text-[13px] font-semibold">
                             {a.handle ?? a.display_name ?? "Kanal"}
                           </span>
                           {a.follower_count > 0 && (
-                            <span className="block font-mono text-[10px] text-muted-foreground">
+                            <span className="block text-[12px] text-muted-foreground tabular-nums">
                               {a.follower_count.toLocaleString("de-DE")} Follower
                             </span>
                           )}
@@ -231,20 +232,20 @@ function Connections() {
                       <button
                         onClick={() => disconnect(a.id)}
                         title="Trennen"
-                        className="shrink-0 rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
                       >
-                        <Unplug className="h-3 w-3" />
+                        <Unplug className="h-3.5 w-3.5" />
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
 
-              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">{m.hint}</p>
+              <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{m.hint}</p>
               {connected
                 .filter((a) => a.sync_error)
                 .map((a) => (
-                  <p key={a.id} className="mt-2 text-[11px] text-destructive">
+                  <p key={a.id} className="mt-2 text-[13px] text-destructive">
                     {a.handle ?? "Kanal"}: {a.sync_error}
                   </p>
                 ))}
@@ -253,9 +254,9 @@ function Connections() {
                   href={cfg.docsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-[11px] text-accent hover:underline"
+                  className="mt-2 inline-flex items-center gap-1 text-[13px] text-accent hover:underline"
                 >
-                  App anlegen & Keys holen <ExternalLink className="h-3 w-3" />
+                  App anlegen & Keys holen <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
             </div>
@@ -264,35 +265,35 @@ function Connections() {
       </div>
 
       {missing.length > 0 && (
-        <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-4 text-xs">
-          <div className="flex items-center gap-2 font-medium text-primary">
-            <AlertTriangle className="h-3.5 w-3.5" /> Noch fehlende App-Keys
+        <div className="space-y-2 rounded-[18px] border border-border bg-card p-5 text-[13px]">
+          <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <AlertTriangle className="h-4 w-4 text-warning" /> Noch fehlende App-Keys
           </div>
           <ul className="space-y-1 text-muted-foreground">
             {missing.map((p) => (
               <li key={p.platform}>
-                <span className="font-medium text-foreground">{p.label}</span> — {p.idEnv} + {p.secretEnv} ·{" "}
+                <span className="font-semibold text-foreground">{p.label}</span>: {p.idEnv} + {p.secretEnv} ·{" "}
                 <a href={p.docsUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
                   {p.docsUrl}
                 </a>
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             Trage bei der Developer-App als Redirect-URI ein:{" "}
-            <code className="rounded bg-background px-1 py-0.5 font-mono text-[10px]">
+            <code className="rounded-[6px] bg-secondary px-1.5 py-0.5 font-mono text-[12px] text-foreground">
               {typeof window !== "undefined" ? window.location.origin : ""}/api/public/oauth/&lt;plattform&gt;/callback
             </code>
           </p>
         </div>
       )}
 
-      <div className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+      <div className="rounded-[18px] border border-dashed border-border p-5 text-[13px] text-muted-foreground">
         Sobald ein Account verbunden ist, kannst du unter{" "}
-        <Link to="/app/publishing" className="text-primary hover:underline">
+        <Link to="/app/publishing" className="text-accent hover:underline">
           Publishing
         </Link>{" "}
-        Upload-Zeiten festlegen — die Warteschlange postet dann automatisch.
+        Upload-Zeiten festlegen. Die Warteschlange postet dann automatisch.
       </div>
     </div>
   );

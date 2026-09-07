@@ -44,10 +44,12 @@ export async function runCommentSync(
   if (error) throw new Error(error.message);
 
   const userIds = [...new Set((accounts ?? []).map((a: any) => a.user_id))];
+  // Nur Regeln fuer Kommentare (oder fuer beides). Reine DM-Regeln bleiben hier aussen vor.
   const { data: allRules } = await supabaseAdmin
     .from("comment_reply_rules")
     .select("*")
     .eq("active", true)
+    .in("channel", ["comment", "both"])
     .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
 
   const { data: brands } = await supabaseAdmin.from("brands").select("id, name");
@@ -132,7 +134,7 @@ export async function runCommentSync(
       if (isOwn || opts.dryRun || !acc.auto_reply_enabled) continue;
 
       const rules = (allRules ?? []).filter((r: any) => r.user_id === acc.user_id);
-      const rule = matchRule(rules, c, acc);
+      const rule = matchRule(rules, c, acc, "comment");
       if (!rule) continue;
 
       const used = usedToday.get(rule.id) ?? 0;

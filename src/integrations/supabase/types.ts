@@ -968,6 +968,7 @@ export type Database = {
           ai_instruction: string | null
           ai_tone: string
           brand_id: string | null
+          channel: string
           created_at: string
           daily_limit: number
           delay_minutes: number
@@ -989,6 +990,7 @@ export type Database = {
           ai_instruction?: string | null
           ai_tone?: string
           brand_id?: string | null
+          channel?: string
           created_at?: string
           daily_limit?: number
           delay_minutes?: number
@@ -1010,6 +1012,7 @@ export type Database = {
           ai_instruction?: string | null
           ai_tone?: string
           brand_id?: string | null
+          channel?: string
           created_at?: string
           daily_limit?: number
           delay_minutes?: number
@@ -1166,15 +1169,83 @@ export type Database = {
         }
         Relationships: []
       }
+      social_dms: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          error: string | null
+          external_message_id: string
+          external_thread_id: string
+          id: string
+          platform: string
+          received_at: string | null
+          replied_at: string | null
+          reply_mode: string | null
+          reply_text: string | null
+          rule_id: string | null
+          sender_id: string
+          sender_name: string | null
+          social_account_id: string
+          status: string
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_message_id: string
+          external_thread_id: string
+          id?: string
+          platform: string
+          received_at?: string | null
+          replied_at?: string | null
+          reply_mode?: string | null
+          reply_text?: string | null
+          rule_id?: string | null
+          sender_id: string
+          sender_name?: string | null
+          social_account_id: string
+          status?: string
+          text?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_message_id?: string
+          external_thread_id?: string
+          id?: string
+          platform?: string
+          received_at?: string | null
+          replied_at?: string | null
+          reply_mode?: string | null
+          reply_text?: string | null
+          rule_id?: string | null
+          sender_id?: string
+          sender_name?: string | null
+          social_account_id?: string
+          status?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_accounts: {
         Row: {
           access_token_encrypted: string | null
           brand_id: string | null
           last_comment_sync_at: string | null
+          last_dm_sync_at: string | null
           follower_count: number
           external_id: string | null
           display_name: string | null
           avatar_url: string | null
+          auto_reply_dms_enabled: boolean
           auto_reply_enabled: boolean
           created_at: string
           expires_at: string | null
@@ -1192,10 +1263,12 @@ export type Database = {
           access_token_encrypted?: string | null
           brand_id?: string | null
           last_comment_sync_at?: string | null
+          last_dm_sync_at?: string | null
           follower_count?: number
           external_id?: string | null
           display_name?: string | null
           avatar_url?: string | null
+          auto_reply_dms_enabled?: boolean
           auto_reply_enabled?: boolean
           created_at?: string
           expires_at?: string | null
@@ -1213,10 +1286,12 @@ export type Database = {
           access_token_encrypted?: string | null
           brand_id?: string | null
           last_comment_sync_at?: string | null
+          last_dm_sync_at?: string | null
           follower_count?: number
           external_id?: string | null
           display_name?: string | null
           avatar_url?: string | null
+          auto_reply_dms_enabled?: boolean
           auto_reply_enabled?: boolean
           created_at?: string
           expires_at?: string | null

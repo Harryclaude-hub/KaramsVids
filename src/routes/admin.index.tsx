@@ -130,25 +130,25 @@ function AdminPortal() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary">
-          <Shield className="h-3 w-3" /> Admin-Portal
+        <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+          <Shield className="h-4 w-4" /> Admin-Portal
         </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Nutzerverwaltung</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Jede Registrierung wartet hier auf deine Freigabe — ohne Freigabe kein Zugang zum Tool.
+        <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Nutzerverwaltung</h1>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          Jede Registrierung wartet hier auf deine Freigabe. Ohne Freigabe kein Zugang zum Tool.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard icon={<Users className="h-4 w-4" />} label="Gesamt" value={users.length} />
         <StatCard
-          icon={<Hourglass className="h-4 w-4 text-accent" />}
+          icon={<Hourglass className="h-4 w-4 text-warning" />}
           label="Wartend"
           value={pending.length}
           highlight={pending.length > 0}
         />
         <StatCard
-          icon={<CheckCircle2 className="h-4 w-4 text-primary" />}
+          icon={<CheckCircle2 className="h-4 w-4 text-success" />}
           label="Freigegeben"
           value={approved.length}
         />
@@ -160,11 +160,11 @@ function AdminPortal() {
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Hourglass className="h-4 w-4 text-accent" /> Neue Registrierungen ({pending.length})
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+          <Hourglass className="h-4 w-4 text-warning" /> Neue Registrierungen ({pending.length})
         </div>
         {pending.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+          <div className="rounded-[18px] border border-dashed border-border p-6 text-center text-[13px] text-muted-foreground">
             Keine wartenden Registrierungen. Neue erscheinen hier automatisch.
           </div>
         ) : (
@@ -172,12 +172,12 @@ function AdminPortal() {
             {pending.map((p) => (
               <div
                 key={p.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-accent/5 p-3"
+                className="flex flex-wrap items-center gap-3 rounded-[18px] border border-border bg-card p-4"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{p.display_name ?? "—"}</div>
-                  <div className="truncate font-mono text-xs text-muted-foreground">{p.email}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">
+                  <div className="truncate text-[15px] font-semibold">{p.display_name ?? "Kein Name"}</div>
+                  <div className="truncate text-[13px] text-muted-foreground">{p.email}</div>
+                  <div className="text-[12px] tabular-nums text-muted-foreground">
                     registriert: {new Date(p.created_at).toLocaleString()}
                   </div>
                 </div>
@@ -185,16 +185,16 @@ function AdminPortal() {
                   <button
                     onClick={() => setStatus(p.id, "approved")}
                     disabled={busyId === p.id}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                    className="inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
                   >
-                    <UserCheck className="h-3.5 w-3.5" /> Freigeben
+                    <UserCheck className="h-4 w-4" /> Freigeben
                   </button>
                   <button
                     onClick={() => setStatus(p.id, "rejected")}
                     disabled={busyId === p.id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-destructive/50 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                    className="inline-flex h-9 items-center gap-2 rounded-full bg-destructive/15 px-4 text-[13px] font-semibold text-destructive hover:bg-destructive/25 disabled:opacity-40"
                   >
-                    <UserX className="h-3.5 w-3.5" /> Ablehnen
+                    <UserX className="h-4 w-4" /> Ablehnen
                   </button>
                 </div>
               </div>
@@ -205,53 +205,53 @@ function AdminPortal() {
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Users className="h-4 w-4 text-muted-foreground" /> Alle Nutzer
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+            <Users className="h-4 w-4" /> Alle Nutzer
           </div>
           <div className="relative ml-auto">
-            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="E-Mail oder Name suchen…"
-              className="rounded-md border border-border bg-input py-1.5 pl-7 pr-3 text-xs outline-none focus:border-primary"
+              className="h-9 rounded-[9px] border border-border bg-input pl-9 pr-3 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
             />
           </div>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto rounded-[18px] border border-border bg-card">
+          <table className="w-full text-left text-[15px]">
             <thead>
-              <tr className="border-b border-border font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                <th className="px-3 py-2">Nutzer</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Rolle</th>
-                <th className="px-3 py-2">Registriert</th>
-                <th className="px-3 py-2 text-right">Aktion</th>
+              <tr className="border-b border-border text-[13px] font-semibold text-muted-foreground">
+                <th className="h-11 px-3 font-semibold">Nutzer</th>
+                <th className="h-11 px-3 font-semibold">Status</th>
+                <th className="h-11 px-3 font-semibold">Rolle</th>
+                <th className="h-11 px-3 font-semibold">Registriert</th>
+                <th className="h-11 px-3 text-right font-semibold">Aktion</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border">
               {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-border/50 last:border-0">
-                  <td className="px-3 py-2">
-                    <div className="font-medium">{p.display_name ?? "—"}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{p.email}</div>
+                <tr key={p.id} className="hover:bg-secondary/40">
+                  <td className="px-3 py-3">
+                    <div className="font-semibold">{p.display_name ?? "Kein Name"}</div>
+                    <div className="text-[13px] text-muted-foreground">{p.email}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-3">
                     <StatusBadge status={p.status} />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-3">
                     {p.role === "admin" ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[9px] uppercase text-primary">
-                        <Shield className="h-2.5 w-2.5" /> Admin
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-[12px] font-semibold text-primary">
+                        <Shield className="h-3 w-3" /> Admin
                       </span>
                     ) : (
-                      <span className="font-mono text-[10px] text-muted-foreground">User</span>
+                      <span className="text-[13px] text-muted-foreground">Nutzer</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
+                  <td className="px-3 py-3 text-[13px] tabular-nums text-muted-foreground">
                     {new Date(p.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-3 text-right">
                     {p.role !== "admin" && (
                       <div className="inline-flex gap-1">
                         {p.status !== "approved" && (
@@ -259,9 +259,9 @@ function AdminPortal() {
                             onClick={() => setStatus(p.id, "approved")}
                             disabled={busyId === p.id}
                             title="Freigeben"
-                            className="rounded-md border border-primary/50 p-1.5 text-primary hover:bg-primary/10 disabled:opacity-60"
+                            className="grid h-8 w-8 place-items-center rounded-full text-primary hover:bg-secondary disabled:opacity-40"
                           >
-                            <UserCheck className="h-3.5 w-3.5" />
+                            <UserCheck className="h-4 w-4" />
                           </button>
                         )}
                         {p.status !== "rejected" && (
@@ -269,9 +269,9 @@ function AdminPortal() {
                             onClick={() => setStatus(p.id, "rejected")}
                             disabled={busyId === p.id}
                             title="Sperren/Ablehnen"
-                            className="rounded-md border border-destructive/50 p-1.5 text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                            className="grid h-8 w-8 place-items-center rounded-full text-destructive hover:bg-secondary disabled:opacity-40"
                           >
-                            <UserX className="h-3.5 w-3.5" />
+                            <UserX className="h-4 w-4" />
                           </button>
                         )}
                         {p.status !== "pending" && (
@@ -279,9 +279,9 @@ function AdminPortal() {
                             onClick={() => setStatus(p.id, "pending")}
                             disabled={busyId === p.id}
                             title="Auf wartend zurücksetzen"
-                            className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-60"
+                            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
+                            <RotateCcw className="h-4 w-4" />
                           </button>
                         )}
                       </div>
@@ -291,7 +291,7 @@ function AdminPortal() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-3 py-8 text-center text-[13px] text-muted-foreground">
                     Keine Nutzer gefunden.
                   </td>
                 </tr>
@@ -300,8 +300,8 @@ function AdminPortal() {
           </table>
         </div>
         {usersQ.isError && (
-          <p className="text-xs text-destructive">
-            Konnte Nutzer nicht laden — ist die Admin-Migration schon ausgeführt? (
+          <p className="text-[13px] text-destructive">
+            Konnte Nutzer nicht laden. Ist die Admin-Migration schon ausgeführt? (
             {usersQ.error instanceof Error ? usersQ.error.message : "Fehler"})
           </p>
         )}
@@ -323,30 +323,30 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border p-3 ${highlight ? "border-accent/50 bg-accent/5" : "border-border bg-card"}`}
+      className={`rounded-[18px] border p-4 ${highlight ? "border-warning/40 bg-warning/5" : "border-border bg-card"}`}
     >
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
         {icon} {label}
       </div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
+      <div className="mt-1 text-[28px] font-semibold tracking-tight tabular-nums">{value}</div>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    pending: "bg-accent/20 text-accent",
-    approved: "bg-primary/20 text-primary",
-    rejected: "bg-destructive/20 text-destructive",
+    pending: "bg-warning/15 text-warning",
+    approved: "bg-success/15 text-success",
+    rejected: "bg-destructive/15 text-destructive",
   };
   const label: Record<string, string> = {
-    pending: "wartend",
-    approved: "freigegeben",
-    rejected: "abgelehnt",
+    pending: "Wartend",
+    approved: "Freigegeben",
+    rejected: "Abgelehnt",
   };
   return (
     <span
-      className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${map[status] ?? "bg-muted text-muted-foreground"}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${map[status] ?? "bg-secondary text-foreground"}`}
     >
       {label[status] ?? status}
     </span>

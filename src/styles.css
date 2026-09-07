@@ -4,13 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* VideoCraft — editorial dark, warm cut-orange accent */
+/* KaramsVids: Apple-Anmutung. Hell, ruhig, viel Luft, weiche Radien,
+   keine Schlagschatten, hauchduenne Linien, Blau als einzige Aktionsfarbe. */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 7px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -27,77 +28,137 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Inter,
+    system-ui, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Inter,
+    system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, "JetBrains Mono", Consolas, monospace;
 }
 
 :root {
-  /* Verhindert, dass Browser (v.a. Chrome/Android „Auto Dark Theme")
-     die Seite eigenmächtig dunkel einfärben */
+  /* Verhindert, dass Browser (v.a. Chrome/Android "Auto Dark Theme")
+     die Seite eigenmaechtig dunkel einfaerben */
   color-scheme: light;
 
-  --radius: 0.75rem;
-  /* Helles, freundliches Theme — warmes Weiß, klare Kontraste,
-     Cut-Orange & Teal als Akzente */
-  --background: oklch(0.975 0.004 80);
-  --foreground: oklch(0.24 0.015 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.015 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.015 60);
-  --primary: oklch(0.63 0.19 45);           /* warm cut-orange */
-  --primary-foreground: oklch(0.99 0.004 80);
-  --secondary: oklch(0.945 0.007 75);
-  --secondary-foreground: oklch(0.28 0.015 60);
-  --muted: oklch(0.945 0.007 75);
-  --muted-foreground: oklch(0.50 0.015 65);
-  --accent: oklch(0.55 0.12 195);           /* teal accent for AI/analysis */
-  --accent-foreground: oklch(0.99 0.004 195);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.99 0.004 80);
-  --border: oklch(0.89 0.008 75);
-  --input: oklch(0.965 0.005 78);
-  --ring: oklch(0.63 0.19 45);
+  /* 11px Grundradius: Felder und sekundaere Buttons. Karten nutzen 18px, Primaer-Buttons sind Pillen. */
+  --radius: 0.6875rem;
+
+  /* Helles Theme nach Apple-Vorbild (apple.com, macOS-Systemeinstellungen) */
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  --muted: #e8e8ed;
+  --muted-foreground: #6e6e73;
+  --accent: #0066cc;
+  --accent-foreground: #ffffff;
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+  --success: #34c759;
+  --success-foreground: #ffffff;
+  --warning: #ff9f0a;
+  --warning-foreground: #1d1d1f;
+  --border: #d2d2d7;
+  --input: #ffffff;
+  --ring: #0071e3;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #0071e3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e8ed;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #d2d2d7;
+  --sidebar-ring: #0071e3;
 }
 
-/* Dunkles Theme bleibt verfügbar (Klasse .dark), falls später ein Toggle kommt */
+/* Dunkles Theme bleibt verfuegbar (Klasse .dark), falls spaeter ein Umschalter kommt */
 .dark {
   color-scheme: dark;
-  --background: oklch(0.16 0.012 60);
-  --foreground: oklch(0.96 0.008 80);
-  --card: oklch(0.20 0.014 60);
-  --card-foreground: oklch(0.96 0.008 80);
-  --popover: oklch(0.20 0.014 60);
-  --popover-foreground: oklch(0.96 0.008 80);
-  --primary: oklch(0.72 0.18 45);
-  --primary-foreground: oklch(0.15 0.02 45);
-  --secondary: oklch(0.26 0.014 60);
-  --secondary-foreground: oklch(0.96 0.008 80);
-  --muted: oklch(0.24 0.012 60);
-  --muted-foreground: oklch(0.68 0.014 70);
-  --accent: oklch(0.72 0.14 180);
-  --accent-foreground: oklch(0.15 0.02 180);
-  --destructive: oklch(0.60 0.22 25);
-  --destructive-foreground: oklch(0.98 0.005 80);
-  --border: oklch(0.28 0.012 60);
-  --input: oklch(0.24 0.012 60);
-  --ring: oklch(0.72 0.18 45);
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --popover: #1c1c1e;
+  --popover-foreground: #f5f5f7;
+  --primary: #2997ff;
+  --primary-foreground: #ffffff;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #a1a1a6;
+  --accent: #2997ff;
+  --accent-foreground: #ffffff;
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+  --success: #30d158;
+  --success-foreground: #ffffff;
+  --warning: #ff9f0a;
+  --warning-foreground: #000000;
+  --border: #38383a;
+  --input: #1c1c1e;
+  --ring: #2997ff;
+  --sidebar: #1c1c1e;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #2997ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c2c2e;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: #38383a;
+  --sidebar-ring: #2997ff;
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 1.47;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
-  .font-mono { font-family: var(--font-mono); }
-  .grain {
-    background-image: radial-gradient(oklch(1 0 0 / 0.02) 1px, transparent 1px);
-    background-size: 3px 3px;
+  /* Ueberschriften: enge Laufweite wie bei Apple, Gewicht setzen die Seiten selbst (600/700) */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+  }
+  /* font-mono nur fuer Code, IDs, Dateipfade und Zahlenkolonnen */
+  .font-mono {
+    font-family: var(--font-mono);
   }
 }

@@ -47,31 +47,31 @@ function AdminShell() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/80 px-6 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/70 px-6 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
+          <div className="grid h-8 w-8 place-items-center rounded-[9px] bg-primary text-primary-foreground">
             <Shield className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-sm font-semibold">Admin-Portal</div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              VideoCraft AI · Verwaltung
+            <div className="text-[15px] font-semibold">Admin-Portal</div>
+            <div className="text-[13px] text-muted-foreground">
+              KaramsVids · Verwaltung
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Link
             to="/app"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Zurück zur App
+            <ArrowLeft className="h-4 w-4" /> Zurück zur App
           </Link>
-          <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
+          <span className="hidden text-[13px] text-muted-foreground sm:inline">{user.email}</span>
           <button
             onClick={signOut}
-            className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary"
+            className="inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
-            <LogOut className="h-3.5 w-3.5" /> Abmelden
+            <LogOut className="h-4 w-4" /> Abmelden
           </button>
         </div>
       </header>

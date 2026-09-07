@@ -285,6 +285,12 @@ export async function replyToComment(
 // Regeln anwenden
 // ============================================================
 
+/** Wofuer eine Regel gilt: Kommentare, Direktnachrichten oder beides. */
+export type RuleChannel = "comment" | "dm" | "both";
+
+/** Der konkrete Kanal, in dem gerade geantwortet wird. */
+export type ReplyChannel = "comment" | "dm";
+
 export type ReplyRule = {
   id: string;
   user_id: string;
@@ -292,6 +298,7 @@ export type ReplyRule = {
   platform: string | null;
   social_account_id: string | null;
   name: string;
+  channel: RuleChannel;
   mode: "template" | "ai";
   keywords: string[];
   exclude_keywords: string[];
@@ -309,15 +316,27 @@ function normalize(s: string) {
   return s.toLowerCase();
 }
 
-/** Erste passende Regel nach Priorität. */
+/**
+ * Das, worauf geantwortet wird: ein Kommentar oder eine Direktnachricht.
+ * Mehr als Absender und Text braucht die Regel-Logik nicht.
+ */
+export type ReplySubject = Pick<InboundComment, "authorName" | "text">;
+
+/**
+ * Erste passende Regel nach Priorität.
+ * channel sagt, ob gerade ein Kommentar oder eine DM beantwortet wird:
+ * Regeln mit channel "both" passen immer, sonst nur bei gleichem Kanal.
+ */
 export function matchRule(
   rules: ReplyRule[],
-  comment: InboundComment,
+  subject: Pick<InboundComment, "text">,
   account: AccountRow,
+  channel: ReplyChannel = "comment",
 ): ReplyRule | null {
-  const text = normalize(comment.text);
+  const text = normalize(subject.text);
   const candidates = rules
     .filter((r) => r.active)
+    .filter((r) => (r.channel ?? "comment") === "both" || (r.channel ?? "comment") === channel)
     .filter((r) => !r.platform || r.platform === account.platform)
     .filter((r) => !r.social_account_id || r.social_account_id === account.id)
     .filter((r) => !r.brand_id || r.brand_id === account.brand_id)
@@ -331,6 +350,10 @@ export function matchRule(
   return null;
 }
 
+/**
+ * Platzhalter in einer Vorlage ersetzen: {name}, {brand}, {kommentar}.
+ * {nachricht} meint dasselbe wie {kommentar}, liest sich bei DM-Regeln aber natuerlicher.
+ */
 export function renderTemplate(
   tpl: string,
   vars: { name?: string | null; brand?: string | null; comment?: string | null },
@@ -340,30 +363,44 @@ export function renderTemplate(
     .replaceAll("{brand}", vars.brand ?? "")
     .replaceAll("{kommentar}", vars.comment ?? "")
     .replaceAll("{comment}", vars.comment ?? "")
+    .replaceAll("{nachricht}", vars.comment ?? "")
     .trim();
 }
 
-/** Antworttext per KI erzeugen. Faellt bei Problemen auf die Vorlage zurueck. */
+/**
+ * Antworttext per KI erzeugen. Faellt bei Problemen auf die Vorlage zurueck.
+ * channel steuert nur die Einleitung des Prompts (Kommentar oder DM).
+ */
 export async function generateAiReply(
   rule: ReplyRule,
-  comment: InboundComment,
+  comment: ReplySubject,
   brandName: string | null,
+  channel: ReplyChannel = "comment",
 ): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key)
     throw new Error("LOVABLE_API_KEY fehlt, KI-Antworten sind ohne Schlüssel nicht möglich");
 
-  const prompt = `Du beantwortest einen Kommentar unter einem Social-Media-Video.
+  const isDm = channel === "dm";
+  const intro = isDm
+    ? "Du beantwortest eine private Direktnachricht an einen Social-Media-Account."
+    : "Du beantwortest einen Kommentar unter einem Social-Media-Video.";
+  const label = isDm ? "Nachricht" : "Plattform-Kommentar";
+  const fallbackInstruction = isDm
+    ? "Antworte hilfreich und passend zur Nachricht."
+    : "Antworte hilfreich und passend zum Kommentar.";
+
+  const prompt = `${intro}
 
 Marke: ${brandName ?? "unbekannt"}
-Plattform-Kommentar von ${comment.authorName ?? "einem Zuschauer"}: "${comment.text}"
+${label} von ${comment.authorName ?? (isDm ? "einer Person" : "einem Zuschauer")}: "${comment.text}"
 
-Anweisung des Betreibers: ${rule.ai_instruction || "Antworte hilfreich und passend zum Kommentar."}
+Anweisung des Betreibers: ${rule.ai_instruction || fallbackInstruction}
 Tonfall: ${rule.ai_tone}
 
 Regeln für deine Antwort:
 - Höchstens ${rule.max_length} Zeichen.
-- Sprache des Kommentars übernehmen.
+- Sprache ${isDm ? "der Nachricht" : "des Kommentars"} übernehmen.
 - Keine Erfindungen über Produkte, Preise oder Zusagen.
 - Keine Links, ausser die Anweisung nennt einen ausdrücklich.
 - Bei Beleidigungen oder Hass: sachlich und kurz bleiben, nicht provozieren.
@@ -385,15 +422,20 @@ Regeln für deine Antwort:
   return text.slice(0, rule.max_length);
 }
 
-/** Fertigen Antworttext für eine Regel bestimmen. */
+/**
+ * Fertigen Antworttext für eine Regel bestimmen.
+ * Funktioniert fuer Kommentare und Direktnachrichten gleichermassen,
+ * channel wird nur an die KI durchgereicht.
+ */
 export async function buildReply(
   rule: ReplyRule,
-  comment: InboundComment,
+  comment: ReplySubject,
   brandName: string | null,
+  channel: ReplyChannel = "comment",
 ): Promise<{ text: string; mode: "template" | "ai" }> {
   if (rule.mode === "ai") {
     try {
-      return { text: await generateAiReply(rule, comment, brandName), mode: "ai" };
+      return { text: await generateAiReply(rule, comment, brandName, channel), mode: "ai" };
     } catch (e) {
       // Ohne Vorlage als Netz bleibt nur der Fehler.
       if (!rule.message_template) throw e;

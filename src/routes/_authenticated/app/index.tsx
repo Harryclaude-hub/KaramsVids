@@ -107,9 +107,9 @@ function EditorLanding() {
       setActiveBrandId(b.id);
       setNewBrandName("");
       setCreatingBrand(false);
-      toast.success(`Brand „${b.name}" erstellt`);
+      toast.success(`Profil „${b.name}“ erstellt`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Konnte Brand nicht anlegen");
+      toast.error(e instanceof Error ? e.message : "Konnte Profil nicht anlegen");
     }
   }
 
@@ -133,7 +133,7 @@ function EditorLanding() {
 
   async function afterInsertNavigate(rawVideoId: string, duration: number | null) {
     if (!autoAnalyze) {
-      // Manuell schneiden: Editor-Projekt ohne KI anlegen — ein Clip über
+      // Manuell schneiden: Editor-Projekt ohne KI anlegen, ein Clip über
       // die volle Länge, den man dann frei trimmen/splitten kann.
       await openManualEditor(rawVideoId, duration);
       return;
@@ -208,7 +208,7 @@ function EditorLanding() {
   }
 
   async function handleFile(file: File) {
-    if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
+    if (!activeBrand) return toast.error("Bitte zuerst ein Profil wählen");
     setBusy(true);
     setProgress(5);
     try {
@@ -236,7 +236,7 @@ function EditorLanding() {
         .single();
       if (dbErr) throw dbErr;
       setProgress(100);
-      toast.success("Upload fertig — Editor öffnet");
+      toast.success("Upload fertig, Editor öffnet");
       setTitle("");
       libraryQ.refetch();
       await afterInsertNavigate(row.id, duration);
@@ -249,7 +249,7 @@ function EditorLanding() {
   }
 
   async function handleUrl() {
-    if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
+    if (!activeBrand) return toast.error("Bitte zuerst ein Profil wählen");
     const url = urlInput.trim();
     if (!url) return;
     const host = detectRestrictedHost(url);
@@ -277,7 +277,7 @@ function EditorLanding() {
         .select()
         .single();
       if (error) throw error;
-      toast.success("Video-Link gespeichert — Editor öffnet");
+      toast.success("Video-Link gespeichert, Editor öffnet");
       setUrlInput("");
       setTitle("");
       libraryQ.refetch();
@@ -297,15 +297,15 @@ function EditorLanding() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Kopfzeile — Editor-Identität + Brand/Folder inline */}
+      {/* Kopfzeile: Editor-Identität + Profil/Ordner inline */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary">
-            <Scissors className="h-3 w-3" /> Editor
+          <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+            <Scissors className="h-4 w-4" /> Editor
           </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Neues Video schneiden</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Datei oder Link einfügen — KI schlägt Cuts vor, Timeline & Chat lassen dich alles
+          <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Neues Video schneiden</h1>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            Datei oder Link einfügen. KI schlägt Cuts vor, Timeline & Chat lassen dich alles
             feintunen.
           </p>
         </div>
@@ -322,80 +322,80 @@ function EditorLanding() {
       </div>
 
       {!brandReady && (
-        <div className="flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+        <div className="flex items-start gap-3 rounded-[11px] border border-border bg-secondary/60 p-4 text-[13px] text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span>
-            Bitte oben rechts einen Brand wählen oder neu anlegen — jedes Video gehört zu genau
-            einem Brand.
+            Bitte oben rechts ein Profil wählen oder neu anlegen. Jedes Video gehört zu genau
+            einem Profil.
           </span>
         </div>
       )}
 
       {/* Studio-Bereiche */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link
           to="/app/clip"
-          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+          className="group rounded-[18px] border border-border bg-card p-6 transition-colors hover:bg-secondary/40"
         >
           <Layers className="h-5 w-5 text-primary" />
-          <div className="mt-2 text-sm font-medium">Massen-Clipping</div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="mt-3 text-[15px] font-semibold">Massen-Clipping</div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
             YouTube-Link → bis zu 20 Szenen-Clips mit Untertiteln & Audioeffekten.
           </p>
         </Link>
         <Link
           to="/app/generate"
-          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+          className="group rounded-[18px] border border-border bg-card p-6 transition-colors hover:bg-secondary/40"
         >
-          <Wand2 className="h-5 w-5 text-accent" />
-          <div className="mt-2 text-sm font-medium">KI-Studio</div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            Komplette Videos generieren — Storylines mit Gedächtnis pro Brand.
+          <Wand2 className="h-5 w-5 text-primary" />
+          <div className="mt-3 text-[15px] font-semibold">KI-Studio</div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+            Komplette Videos generieren, Storylines mit Gedächtnis pro Profil.
           </p>
         </Link>
         <Link
           to="/app/avatars"
-          className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+          className="group rounded-[18px] border border-border bg-card p-6 transition-colors hover:bg-secondary/40"
         >
           <Film className="h-5 w-5 text-primary" />
-          <div className="mt-2 text-sm font-medium">Avatare & Overlap</div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="mt-3 text-[15px] font-semibold">Avatare & Overlap</div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
             KI-Models erzeugen und per Overlap über dein eigenes Video legen.
           </p>
         </Link>
       </div>
 
-      {/* Editor-Aufnahme-Zone — volle Breite */}
+      {/* Editor-Aufnahme-Zone, volle Breite */}
       <div className="space-y-4">
         <div
-          className={`space-y-4 rounded-2xl border border-border bg-card p-5 transition ${brandReady ? "" : "pointer-events-none opacity-50"}`}
+          className={`space-y-5 rounded-[18px] border border-border bg-card p-6 transition-opacity ${brandReady ? "" : "pointer-events-none opacity-50"}`}
           onDragOver={(e) => {
             e.preventDefault();
           }}
           onDrop={onDrop}
         >
           {/* Meta-Zeile */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="block text-[13px] font-semibold text-foreground">
                 Titel (optional)
               </span>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Kurzer Projekt-Titel"
-                className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                placeholder="Kurzer Titel für das Video"
+                className="mt-1.5 h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
             </label>
-            <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <label className="block">
+              <span className="block text-[13px] font-semibold text-foreground">
                 Ordner
               </span>
-              <div className="mt-1 flex gap-1">
+              <div className="mt-1.5 flex gap-2">
                 <select
                   value={folderId}
                   onChange={(e) => setFolderId(e.target.value)}
-                  className="flex-1 rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                  className="h-11 min-w-0 flex-1 rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/60"
                 >
                   <option value="">Kein Ordner</option>
                   {(foldersQ.data ?? []).map((f) => (
@@ -407,22 +407,23 @@ function EditorLanding() {
                 <button
                   type="button"
                   onClick={newFolder}
-                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 text-xs hover:bg-secondary"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-[11px] border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  title="Neuer Ordner"
                 >
-                  <FolderPlus className="h-3 w-3" />
+                  <FolderPlus className="h-4 w-4" />
                 </button>
               </div>
             </label>
-            <label className="block text-xs">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <label className="block">
+              <span className="block text-[13px] font-semibold text-foreground">
                 Ziel-Plattform
               </span>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border bg-input px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+                className="mt-1.5 h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/60"
               >
-                <option value="">— Keine —</option>
+                <option value="">Keine</option>
                 <option value="tiktok">TikTok</option>
                 <option value="youtube">YouTube</option>
                 <option value="instagram">Instagram</option>
@@ -437,19 +438,19 @@ function EditorLanding() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="group relative flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-background/40 p-8 text-center transition hover:border-primary/60"
+              className="group relative flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-[18px] border border-dashed border-border bg-background p-8 text-center transition-colors hover:bg-secondary/60"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary transition group-hover:scale-105">
+              <div className="grid h-14 w-14 place-items-center rounded-full border border-border bg-card text-primary">
                 <UploadCloud className="h-7 w-7" />
               </div>
               <div>
-                <div className="text-sm font-medium">Datei ablegen oder klicken</div>
-                <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  MP4 · MOV · WEBM · MKV — bis 500 MB
+                <div className="text-[15px] font-semibold">Datei ablegen oder klicken</div>
+                <div className="mt-1 text-[13px] text-muted-foreground">
+                  MP4 · MOV · WEBM · MKV · bis 500 MB
                 </div>
               </div>
               {busy && progress > 0 && (
-                <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-background">
+                <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-secondary">
                   <div
                     className="h-full bg-primary transition-all"
                     style={{ width: `${progress}%` }}
@@ -466,25 +467,25 @@ function EditorLanding() {
               />
             </button>
 
-            <div className="flex flex-col justify-center gap-3 rounded-2xl border border-border bg-background/40 p-5">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Link2 className="h-4 w-4 text-accent" /> Video-Link
+            <div className="flex flex-col justify-center gap-3 rounded-[18px] border border-border bg-background p-6">
+              <div className="flex items-center gap-2 text-[15px] font-semibold">
+                <Link2 className="h-4 w-4 text-primary" /> Video-Link
               </div>
               <input
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !busy && handleUrl()}
                 placeholder="https://youtube.com/…  ·  https://tiktok.com/…"
-                className="rounded-md border border-border bg-input px-2.5 py-2 text-sm outline-none focus:border-primary"
+                className="h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
               <button
                 onClick={handleUrl}
                 disabled={busy || !urlInput || !brandReady}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
               >
                 <ChevronRight className="h-4 w-4" /> In Editor öffnen
               </button>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
                 Link wird gespeichert. Für YouTube/TikTok läuft der Download beim ersten Öffnen im
                 Editor.
               </p>
@@ -492,21 +493,21 @@ function EditorLanding() {
           </div>
 
           {/* Schnitt-Modus: manuell oder mit KI */}
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => setAutoAnalyze(false)}
-              className={`flex items-start gap-2.5 rounded-lg border p-3 text-left text-xs transition ${
-                !autoAnalyze ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+              className={`flex items-start gap-3 rounded-[11px] border p-4 text-left text-[13px] transition-colors ${
+                !autoAnalyze ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-card hover:bg-secondary/60"
               }`}
             >
               <ScissorsIcon
                 className={`mt-0.5 h-4 w-4 shrink-0 ${!autoAnalyze ? "text-primary" : "text-muted-foreground"}`}
               />
               <span>
-                <span className="block font-medium text-foreground">Selbst schneiden</span>
+                <span className="block text-[15px] font-semibold text-foreground">Selbst schneiden</span>
                 <span className="text-muted-foreground">
-                  Video öffnet direkt im Editor — Timeline, Trimmen, Text, Musik, Export. Keine KI
+                  Video öffnet direkt im Editor: Timeline, Trimmen, Text, Musik, Export. Keine KI
                   nötig.
                 </span>
               </span>
@@ -514,17 +515,17 @@ function EditorLanding() {
             <button
               type="button"
               onClick={() => setAutoAnalyze(true)}
-              className={`flex items-start gap-2.5 rounded-lg border p-3 text-left text-xs transition ${
-                autoAnalyze ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+              className={`flex items-start gap-3 rounded-[11px] border p-4 text-left text-[13px] transition-colors ${
+                autoAnalyze ? "border-primary bg-card ring-1 ring-primary" : "border-border bg-card hover:bg-secondary/60"
               }`}
             >
               <Sparkles
                 className={`mt-0.5 h-4 w-4 shrink-0 ${autoAnalyze ? "text-primary" : "text-muted-foreground"}`}
               />
               <span>
-                <span className="block font-medium text-foreground">KI schlägt Cuts vor</span>
+                <span className="block text-[15px] font-semibold text-foreground">KI schlägt Cuts vor</span>
                 <span className="text-muted-foreground">
-                  KI analysiert und setzt Clips — du kannst danach alles von Hand nachbessern.
+                  KI analysiert und setzt Clips, du kannst danach alles von Hand nachbessern.
                 </span>
               </span>
             </button>
@@ -532,10 +533,10 @@ function EditorLanding() {
         </div>
       </div>
 
-      {/* Bibliothek — unter dem Editor, volle Breite */}
+      {/* Bibliothek: unter dem Editor, volle Breite */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
+          <div className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
             <Layers className="h-4 w-4 text-primary" />
             {activeBrand ? `${activeBrand.name} · Bibliothek` : "Bibliothek"}
           </div>
@@ -543,20 +544,20 @@ function EditorLanding() {
             <Link
               to="/app/brand/$id"
               params={{ id: activeBrand.id }}
-              className="ml-auto rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              className="ml-auto inline-flex h-9 items-center rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
             >
-              Brand-Übersicht öffnen →
+              Profil-Übersicht öffnen
             </Link>
           )}
         </div>
         {!activeBrand ? (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-            Brand wählen, um Videos & laufende Schnitte anzuzeigen.
+          <div className="rounded-[18px] border border-dashed border-border p-6 text-center text-[13px] text-muted-foreground">
+            Profil wählen, um Videos & laufende Schnitte anzuzeigen.
           </div>
         ) : libraryQ.isLoading ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-card" />
+              <div key={i} className="h-16 animate-pulse rounded-[11px] bg-card" />
             ))}
           </div>
         ) : (
@@ -564,38 +565,38 @@ function EditorLanding() {
         )}
       </section>
 
-      {/* Immer sichtbar: Editor-Tools erkunden — auch ohne Video */}
-      <section className="space-y-3 rounded-2xl border border-border bg-card/60 p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
+      {/* Immer sichtbar: Editor-Tools erkunden, auch ohne Video */}
+      <section className="space-y-4 rounded-[18px] border border-border bg-card p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <Wand2 className="h-3 w-3 text-primary" /> Editor-Werkzeuge
+            <div className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <Wand2 className="h-4 w-4 text-primary" /> Editor-Werkzeuge
             </div>
-            <h2 className="mt-1 text-lg font-semibold">Vorlagen & virale Sounds — auch ohne Video erkunden</h2>
-            <p className="text-xs text-muted-foreground">Der Editor selbst ist für ein einzelnes Video. Für Massen-Clipping aus einem Long-Video → <Link to="/app/clip" className="text-primary hover:underline">Clipping-Bereich</Link>.</p>
+            <h2 className="mt-1 text-[19px] font-semibold tracking-tight">Vorlagen & virale Sounds, auch ohne Video erkunden</h2>
+            <p className="mt-1 text-[13px] text-muted-foreground">Der Editor selbst ist für ein einzelnes Video. Für Massen-Clipping aus einem Long-Video → <Link to="/app/clip" className="text-accent hover:underline">Clipping-Bereich</Link>.</p>
           </div>
-          <Link to="/app/clip" className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15">
-            <Wand2 className="h-3 w-3" /> Zum Clipping-Bereich
+          <Link to="/app/clip" className="inline-flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">
+            <Wand2 className="h-4 w-4" /> Zum Clipping-Bereich
           </Link>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {CLIP_TEMPLATES.map((t) => (
-            <div key={t.id} className="rounded-lg border border-border bg-background/60 p-3">
-              <div className="text-sm"><span className="mr-1">{t.emoji}</span><span className="font-semibold">{t.label}</span></div>
-              <div className="mt-1 text-[10px] text-muted-foreground">{t.short}</div>
-              <div className="mt-1 font-mono text-[10px] text-muted-foreground">Mood: {t.musicMood} · Captions: {t.captions ? "an" : "aus"}</div>
+            <div key={t.id} className="rounded-[11px] border border-border bg-background p-4">
+              <div className="text-[15px]"><span className="mr-1">{t.emoji}</span><span className="font-semibold">{t.label}</span></div>
+              <div className="mt-1 text-[13px] text-muted-foreground">{t.short}</div>
+              <div className="mt-1 text-[13px] text-muted-foreground">Mood: {t.musicMood} · Captions: {t.captions ? "an" : "aus"}</div>
             </div>
           ))}
         </div>
         <div className="mt-4">
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium"><Music2 className="h-3.5 w-3.5 text-accent" /> Virale Sounds — anhören</div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-3 flex items-center gap-2 text-[15px] font-semibold"><Music2 className="h-4 w-4 text-primary" /> Virale Sounds anhören</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {MUSIC_LIBRARY.slice(0, 8).map((s) => (
-              <div key={s.id} className="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-2.5 py-2 text-xs">
+              <div key={s.id} className="flex items-center gap-3 rounded-[11px] border border-border bg-background px-3 py-2.5 text-[13px]">
                 <SoundPreview url={s.url} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{s.title}</div>
-                  <div className="font-mono text-[10px] text-muted-foreground">{s.mood} · {s.bpm} BPM</div>
+                  <div className="truncate font-semibold">{s.title}</div>
+                  <div className="text-[12px] text-muted-foreground tabular-nums">{s.mood} · {s.bpm} BPM</div>
                 </div>
               </div>
             ))}
@@ -642,8 +643,8 @@ function SoundPreview({ url }: { url: string }) {
         if (!ref.current) return;
         if (playing) { ref.current.pause(); setPlaying(false); }
         else { ref.current.play().catch(() => {}); setPlaying(true); }
-      }} className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20">
-        <Play className="h-3 w-3" />
+      }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">
+        <Play className="h-3.5 w-3.5" />
       </button>
       <audio ref={ref} src={url} onEnded={() => setPlaying(false)} preload="none" />
     </>
@@ -670,16 +671,16 @@ function BrandHeader({
   onSubmitNew: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        Brand
+    <div className="flex items-center gap-2 rounded-[11px] border border-border bg-card px-3 py-2">
+      <span className="text-[13px] font-semibold text-muted-foreground">
+        Profil
       </span>
       <select
         value={activeBrand?.id ?? ""}
         onChange={(e) => onPick(e.target.value || null)}
-        className="rounded-md border border-border bg-input px-2 py-1 text-sm outline-none focus:border-primary"
+        className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/60"
       >
-        <option value="">— wählen —</option>
+        <option value="">Bitte wählen</option>
         {brands.map((b) => (
           <option key={b.id} value={b.id}>
             {b.name}
@@ -694,13 +695,13 @@ function BrandHeader({
       )}
       <button
         onClick={onToggleCreate}
-        className="rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        title="Neuer Brand"
+        className="grid h-8 w-8 place-items-center rounded-full text-[15px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        title="Neues Profil"
       >
         +
       </button>
       {creating && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <input
             autoFocus
             value={newBrandName}
@@ -708,12 +709,12 @@ function BrandHeader({
             onKeyDown={(e) => {
               if (e.key === "Enter") onSubmitNew();
             }}
-            placeholder="Brand-Name"
-            className="w-36 rounded border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+            placeholder="Profilname"
+            className="h-9 w-36 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
           />
           <button
             onClick={onSubmitNew}
-            className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
           >
             OK
           </button>
@@ -727,56 +728,56 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
   const [tab, setTab] = useState<"jobs" | "videos">("jobs");
   const items = tab === "jobs" ? jobs : videos;
   return (
-    <div className="rounded-xl border border-border bg-card">
-      <div className="flex border-b border-border text-xs">
+    <div className="rounded-[18px] border border-border bg-card">
+      <div className="flex border-b border-border text-[13px] font-semibold">
         <button
           onClick={() => setTab("jobs")}
-          className={`flex-1 px-3 py-2 ${tab === "jobs" ? "text-foreground" : "text-muted-foreground"}`}
+          className={`flex-1 px-3 py-3 transition-colors ${tab === "jobs" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="inline-flex items-center gap-1">
-            <Wand2 className="h-3 w-3" /> Schnitte ({jobs.length})
+          <span className="inline-flex items-center gap-1.5">
+            <Wand2 className="h-3.5 w-3.5" /> Schnitte ({jobs.length})
           </span>
-          {tab === "jobs" && <div className="mx-auto mt-1 h-0.5 w-8 bg-primary" />}
+          {tab === "jobs" && <div className="mx-auto mt-1.5 h-0.5 w-8 rounded-full bg-primary" />}
         </button>
         <button
           onClick={() => setTab("videos")}
-          className={`flex-1 px-3 py-2 ${tab === "videos" ? "text-foreground" : "text-muted-foreground"}`}
+          className={`flex-1 px-3 py-3 transition-colors ${tab === "videos" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="inline-flex items-center gap-1">
-            <Film className="h-3 w-3" /> Videos ({videos.length})
+          <span className="inline-flex items-center gap-1.5">
+            <Film className="h-3.5 w-3.5" /> Videos ({videos.length})
           </span>
-          {tab === "videos" && <div className="mx-auto mt-1 h-0.5 w-8 bg-primary" />}
+          {tab === "videos" && <div className="mx-auto mt-1.5 h-0.5 w-8 rounded-full bg-primary" />}
         </button>
       </div>
-      <div className="p-3">
+      <div className="p-4">
         {items.length === 0 ? (
-          <div className="p-6 text-center text-xs text-muted-foreground">Noch nichts hier.</div>
+          <div className="p-6 text-center text-[13px] text-muted-foreground">Noch nichts hier.</div>
         ) : tab === "jobs" ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {(items as any[]).map((j) => (
               <Link
                 key={j.id}
                 to="/app/job/$id"
                 params={{ id: j.id }}
-                className="flex items-start gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs transition hover:border-primary/50 hover:bg-background"
+                className="flex items-start gap-3 rounded-[11px] border border-border bg-background p-4 text-[13px] transition-colors hover:bg-secondary/60"
               >
                 {j.mode === "manual" ? (
-                  <Scissors className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+                  <Scissors className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{j.raw_videos?.title ?? "Video"}</div>
-                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                    <Clock className="mr-1 inline h-2.5 w-2.5" />
+                  <div className="truncate text-[15px] font-semibold">{j.raw_videos?.title ?? "Video"}</div>
+                  <div className="mt-0.5 text-[12px] text-muted-foreground tabular-nums">
+                    <Clock className="mr-1 inline h-3 w-3" />
                     {new Date(j.created_at).toLocaleDateString()}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-1">
-                    <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-foreground">
                       {j.mode === "manual" ? "manuell" : j.mode}
                     </span>
                     <span
-                      className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${statusColor(j.status)}`}
+                      className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${statusColor(j.status)}`}
                     >
                       {j.status}
                     </span>
@@ -786,19 +787,19 @@ function LibraryList({ jobs, videos }: { jobs: any[]; videos: any[] }) {
             ))}
           </div>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {(items as any[]).map((v) => (
               <Link
                 key={v.id}
                 to="/app/video/$id"
                 params={{ id: v.id }}
-                className="flex items-start gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs transition hover:border-primary/50 hover:bg-background"
+                className="flex items-start gap-3 rounded-[11px] border border-border bg-background p-4 text-[13px] transition-colors hover:bg-secondary/60"
               >
-                <Play className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Play className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{v.title}</div>
-                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                    {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"} ·{" "}
+                  <div className="truncate text-[15px] font-semibold">{v.title}</div>
+                  <div className="mt-0.5 text-[12px] text-muted-foreground tabular-nums">
+                    {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "–"} ·{" "}
                     {new Date(v.created_at).toLocaleDateString()}
                   </div>
                 </div>
@@ -815,14 +816,14 @@ function statusColor(s: string) {
   return (
     (
       {
-        pending: "bg-muted text-muted-foreground",
-        analyzing: "bg-accent/20 text-accent",
-        ready: "bg-primary/20 text-primary",
-        rendering: "bg-accent/20 text-accent",
-        done: "bg-primary/20 text-primary",
-        failed: "bg-destructive/20 text-destructive",
+        pending: "bg-secondary text-muted-foreground",
+        analyzing: "bg-warning/15 text-warning",
+        ready: "bg-success/15 text-success",
+        rendering: "bg-warning/15 text-warning",
+        done: "bg-success/15 text-success",
+        failed: "bg-destructive/15 text-destructive",
       } as Record<string, string>
-    )[s] ?? "bg-muted text-muted-foreground"
+    )[s] ?? "bg-secondary text-muted-foreground"
   );
 }
 

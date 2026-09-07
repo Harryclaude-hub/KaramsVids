@@ -14,6 +14,7 @@ import {
   Clock,
   Brain,
   Film,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -147,7 +148,7 @@ function GenerateStudio() {
       .select()
       .single();
     if (error) return toast.error(error.message);
-    toast.success(`Storyline „${title}" angelegt`);
+    toast.success(`Storyline „${title}“ angelegt`);
     setNewTitle("");
     setNewPremise("");
     setCreating(false);
@@ -181,7 +182,7 @@ function GenerateStudio() {
   }
 
   async function queueGeneration() {
-    if (!activeBrand) return toast.error("Bitte zuerst einen Brand wählen");
+    if (!activeBrand) return toast.error("Bitte zuerst ein Profil wählen");
     const p = prompt.trim();
     if (!p) return toast.error("Beschreibe, was generiert werden soll");
     const { error } = await supabase.from("generation_jobs" as any).insert({
@@ -197,7 +198,7 @@ function GenerateStudio() {
     toast.success(
       providers?.fal
         ? "Generierung gestartet"
-        : "Eingereiht — KI schreibt jetzt das Skript; Video startet, sobald der Provider-Key da ist",
+        : "Eingereiht: KI schreibt jetzt das Skript, das Video startet, sobald der Provider-Key da ist",
     );
     setPrompt("");
     jobsQ.refetch();
@@ -208,26 +209,26 @@ function GenerateStudio() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary">
-          <Clapperboard className="h-3 w-3" /> KI-Studio
+        <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+          <Clapperboard className="h-4 w-4" /> KI-Studio
         </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Komplette Videos generieren</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Komplette Videos generieren</h1>
+        <p className="mt-1 text-[15px] text-muted-foreground">
           Storylines mit Gedächtnis: Charaktere, Fakten und Ereignisse bleiben über alle Episoden
-          konsistent — alles in einem Brand.
+          konsistent, alles in einem Profil.
         </p>
       </div>
 
       {!activeBrand && (
-        <div className="flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-xs text-primary">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-          <span>Wähle links einen Brand, um Storylines und Generierungen zu sehen.</span>
+        <div className="flex items-start gap-2 rounded-[11px] border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <span>Wähle links ein Profil, um Storylines und Generierungen zu sehen.</span>
         </div>
       )}
 
       {tablesMissing && (
-        <div className="flex items-start gap-2 rounded-xl border border-accent/40 bg-accent/5 p-3 text-xs text-accent">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+        <div className="flex items-start gap-2 rounded-[11px] border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span>
             Die Studio-Tabellen sind noch nicht migriert. Die Migration liegt im Repo (
             <code>supabase/migrations</code>) und wird beim nächsten Lovable-Sync/Publish
@@ -242,37 +243,37 @@ function GenerateStudio() {
         {/* Storylines Sidebar */}
         <aside className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <BookOpen className="h-4 w-4 text-primary" /> Storylines
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <BookOpen className="h-4 w-4" /> Storylines
             </div>
             <button
               onClick={() => setCreating((v) => !v)}
-              className="rounded-md border border-border p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
               title="Neue Storyline"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
 
           {creating && (
-            <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+            <div className="space-y-2 rounded-[18px] border border-border bg-card p-4">
               <input
                 autoFocus
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={'Titel (z.B. „Abenteuer von Max")'}
-                className="w-full rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+                placeholder={'Titel (z.B. „Abenteuer von Max“)'}
+                className="h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
               <textarea
                 value={newPremise}
                 onChange={(e) => setNewPremise(e.target.value)}
                 placeholder="Prämisse: Worum geht's? Stil? Ton?"
                 rows={3}
-                className="w-full rounded-md border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary"
+                className="w-full rounded-[9px] border border-border bg-input px-2.5 py-2 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
               />
               <button
                 onClick={createStoryline}
-                className="w-full rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                className="inline-flex h-9 w-full items-center justify-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
               >
                 Anlegen
               </button>
@@ -281,12 +282,12 @@ function GenerateStudio() {
 
           <button
             onClick={() => setSelectedStoryline(null)}
-            className={`flex w-full items-center gap-2 rounded-xl border p-3 text-left text-xs ${selectedStoryline === null ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
+            className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${selectedStoryline === null ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
           >
-            <Wand2 className="h-4 w-4 shrink-0 text-accent" />
+            <Wand2 className="h-4 w-4 shrink-0 text-primary" />
             <div>
-              <div className="font-medium">Freie Szene</div>
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-[15px] font-semibold">Freie Szene</div>
+              <div className="text-[13px] text-muted-foreground">
                 Einzelnes Video ohne Storyline
               </div>
             </div>
@@ -296,12 +297,12 @@ function GenerateStudio() {
             <button
               key={s.id}
               onClick={() => setSelectedStoryline(s.id)}
-              className={`flex w-full items-center gap-2 rounded-xl border p-3 text-left text-xs ${selectedStoryline === s.id ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
+              className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${selectedStoryline === s.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
             >
               <BookOpen className="h-4 w-4 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{s.title}</div>
-                <div className="text-[10px] text-muted-foreground">{s.episode_count} Episoden</div>
+                <div className="truncate text-[15px] font-semibold">{s.title}</div>
+                <div className="text-[13px] text-muted-foreground">{s.episode_count} Episoden</div>
               </div>
             </button>
           ))}
@@ -311,57 +312,57 @@ function GenerateStudio() {
         <div className="space-y-4">
           {/* Storyline-Kontext */}
           {active && (
-            <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+            <div className="grid gap-6 rounded-[18px] border border-border bg-card p-6 sm:grid-cols-2">
               <div>
-                <div className="mb-1 flex items-center gap-2 text-xs font-medium">
-                  <Brain className="h-3.5 w-3.5 text-accent" /> Gedächtnis
+                <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+                  <Brain className="h-4 w-4 text-primary" /> Gedächtnis
                 </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                <p className="text-[13px] leading-relaxed text-foreground">
                   {active.premise ?? "Keine Prämisse."}
                 </p>
                 {(active.memory?.events?.length ?? 0) > 0 && (
-                  <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                  <ul className="mt-2 space-y-1 text-[13px] text-muted-foreground">
                     {active.memory.events!.slice(-5).map((e, i) => (
                       <li key={i}>• {e}</li>
                     ))}
                   </ul>
                 )}
                 {(active.memory?.events?.length ?? 0) === 0 && (
-                  <p className="mt-2 text-[10px] italic text-muted-foreground">
-                    Noch keine Ereignisse — nach jeder Episode wird das Gedächtnis automatisch
+                  <p className="mt-2 text-[13px] text-muted-foreground">
+                    Noch keine Ereignisse. Nach jeder Episode wird das Gedächtnis automatisch
                     erweitert.
                   </p>
                 )}
               </div>
               <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-medium">
-                    <Users className="h-3.5 w-3.5 text-primary" /> Charaktere
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+                    <Users className="h-4 w-4 text-primary" /> Charaktere
                   </div>
                   <button
                     onClick={() => setAddingChar((v) => !v)}
-                    className="text-[10px] text-primary hover:underline"
+                    className="text-[13px] font-semibold text-accent hover:underline"
                   >
-                    <Plus className="inline h-3 w-3" /> Neu
+                    <Plus className="inline h-3.5 w-3.5" /> Neu
                   </button>
                 </div>
                 {addingChar && (
-                  <div className="mb-2 space-y-1">
+                  <div className="mb-3 space-y-2">
                     <input
                       value={charName}
                       onChange={(e) => setCharName(e.target.value)}
                       placeholder="Name"
-                      className="w-full rounded border border-border bg-input px-2 py-1 text-[11px] outline-none focus:border-primary"
+                      className="h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
                     />
                     <input
                       value={charDesc}
                       onChange={(e) => setCharDesc(e.target.value)}
                       placeholder="Aussehen, Persönlichkeit, Stimme"
-                      className="w-full rounded border border-border bg-input px-2 py-1 text-[11px] outline-none focus:border-primary"
+                      className="h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
                     />
                     <button
                       onClick={addCharacter}
-                      className="rounded bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground"
+                      className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
                     >
                       OK
                     </button>
@@ -371,9 +372,9 @@ function GenerateStudio() {
                   {(charactersQ.data ?? []).map((c: any) => (
                     <div
                       key={c.id}
-                      className="flex items-center gap-2 rounded-md border border-border bg-background p-1.5 text-[11px]"
+                      className="flex items-center gap-2 rounded-[10px] border border-border bg-background px-3 py-2 text-[13px]"
                     >
-                      <span className="font-medium">{c.name}</span>
+                      <span className="font-semibold">{c.name}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {c.description}
                       </span>
@@ -381,12 +382,12 @@ function GenerateStudio() {
                         onClick={() => deleteCharacter(c.id)}
                         className="text-muted-foreground hover:text-destructive"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ))}
                   {(charactersQ.data ?? []).length === 0 && !addingChar && (
-                    <p className="text-[10px] italic text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Noch keine Charaktere.
                     </p>
                   )}
@@ -396,8 +397,8 @@ function GenerateStudio() {
           )}
 
           {/* Prompt */}
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
+          <div className="space-y-4 rounded-[18px] border border-border bg-card p-6">
+            <div className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
               <Sparkles className="h-4 w-4 text-primary" />
               {active ? `Nächste Episode: ${active.title}` : "Freie Szene generieren"}
             </div>
@@ -410,15 +411,15 @@ function GenerateStudio() {
                   : "Beschreibe die Szene: Ort, Stimmung, Handlung, Kamerabewegung …"
               }
               rows={4}
-              className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary"
+              className="min-h-[96px] w-full rounded-[11px] border border-border bg-input px-4 py-3 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
             />
-            <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-4 text-[13px]">
               <label className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase text-muted-foreground">Dauer</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">Dauer</span>
                 <select
                   value={duration}
                   onChange={(e) => setDuration(parseInt(e.target.value))}
-                  className="rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                  className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/60"
                 >
                   <option value={10}>10s</option>
                   <option value={30}>30s</option>
@@ -427,42 +428,42 @@ function GenerateStudio() {
                 </select>
               </label>
               <label className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   Format
                 </span>
                 <select
                   value={aspect}
                   onChange={(e) => setAspect(e.target.value as any)}
-                  className="rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                  className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/60"
                 >
                   <option value="9:16">9:16</option>
                   <option value="16:9">16:9</option>
                   <option value="1:1">1:1</option>
                 </select>
               </label>
-              <label className="flex items-center gap-1.5">
+              <label className="flex items-center gap-2 text-[13px]">
                 <input
                   type="checkbox"
                   checked={withSound}
                   onChange={(e) => setWithSound(e.target.checked)}
-                  className="h-3.5 w-3.5 accent-primary"
+                  className="h-4 w-4 accent-primary"
                 />
                 Sound & Musik
               </label>
               <button
                 onClick={queueGeneration}
                 disabled={!prompt.trim() || tablesMissing}
-                className="ml-auto inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="ml-auto inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
               >
-                <Film className="h-3.5 w-3.5" /> Generieren
+                <Film className="h-4 w-4" /> Generieren
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[13px] text-muted-foreground">
               {providers?.fal ? (
-                <>✓ Video-Provider verbunden — Generierung läuft vollautomatisch.</>
+                <>Video-Provider verbunden: Generierung läuft vollautomatisch.</>
               ) : (
                 <>
-                  ✓ Skript & Story-Gedächtnis laufen sofort (KI schreibt die Episode). Das
+                  Skript & Story-Gedächtnis laufen sofort (KI schreibt die Episode). Das
                   Video-Rendering startet automatisch, sobald der <code>FAL_KEY</code> als Secret
                   hinterlegt ist.
                 </>
@@ -472,23 +473,24 @@ function GenerateStudio() {
 
           {/* Jobs */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="h-4 w-4 text-muted-foreground" /> Generierungen
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <Clock className="h-4 w-4" /> Generierungen
               <button
                 onClick={processQueue}
                 disabled={processing}
-                className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground hover:bg-secondary disabled:opacity-50"
+                className="ml-auto inline-flex h-9 items-center gap-2 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] disabled:opacity-40 dark:hover:bg-[#3a3a3c]"
                 title="Queue jetzt verarbeiten (Skripte schreiben, Provider-Jobs prüfen)"
               >
-                {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : "↻"} Verarbeiten
+                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Verarbeiten
               </button>
             </div>
             {(jobsQ.data ?? []).length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                Noch keine Generierungen für diesen Brand.
+              <div className="rounded-[18px] border border-dashed border-border p-8 text-center text-[13px] text-muted-foreground">
+                Noch keine Generierungen für dieses Profil.
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {(jobsQ.data ?? []).map((j: any) => (
                   <GenerationJobCard key={j.id} job={j} />
                 ))}
@@ -512,16 +514,16 @@ function GenerationJobCard({ job: j }: { job: any }) {
       }
     | undefined;
   return (
-    <div className="rounded-xl border border-border bg-card p-3 text-xs">
+    <div className="rounded-[18px] border border-border bg-card p-4 text-[13px]">
       <div className="flex items-center gap-3">
         {j.status === "running" ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
         ) : (
           <Film className="h-4 w-4 shrink-0 text-primary" />
         )}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{script?.title ?? j.prompt}</div>
-          <div className="font-mono text-[10px] text-muted-foreground">
+          <div className="truncate text-[15px] font-semibold">{script?.title ?? j.prompt}</div>
+          <div className="text-[13px] text-muted-foreground tabular-nums">
             {new Date(j.created_at).toLocaleString()} · {j.options?.duration_s ?? "?"}s ·{" "}
             {j.options?.aspect ?? ""}
           </div>
@@ -529,13 +531,13 @@ function GenerationJobCard({ job: j }: { job: any }) {
         {script && (
           <button
             onClick={() => setOpen((v) => !v)}
-            className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+            className="inline-flex h-8 shrink-0 items-center rounded-full bg-secondary px-3 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
           >
-            {open ? "Skript ▲" : "Skript ▼"}
+            {open ? "Skript ausblenden" : "Skript anzeigen"}
           </button>
         )}
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase ${jobStatusColor(j.status)}`}
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${jobStatusColor(j.status)}`}
         >
           {j.status === "waiting_provider"
             ? script
@@ -545,33 +547,33 @@ function GenerationJobCard({ job: j }: { job: any }) {
         </span>
       </div>
       {open && script && (
-        <div className="mt-2 space-y-1.5 rounded-md border border-border bg-background p-2">
+        <div className="mt-3 space-y-2 rounded-[11px] border border-border bg-background p-3">
           {script.summary && <p className="text-muted-foreground">{script.summary}</p>}
           {(script.scenes ?? []).map((s, i) => (
-            <div key={i} className="rounded border border-border/60 p-1.5">
-              <div className="font-medium">{s.shot}</div>
+            <div key={i} className="rounded-[10px] border border-border p-3">
+              <div className="font-semibold">{s.shot}</div>
               <div className="text-muted-foreground">{s.description}</div>
-              {s.dialog && <div className="mt-0.5 italic">„{s.dialog}"</div>}
-              {s.sound && <div className="text-[10px] text-accent">♪ {s.sound}</div>}
+              {s.dialog && <div className="mt-0.5 italic">„{s.dialog}“</div>}
+              {s.sound && <div className="text-[12px] text-muted-foreground">♪ {s.sound}</div>}
             </div>
           ))}
         </div>
       )}
       {j.output_url && (
-        <div className="mt-2">
-          <video src={j.output_url} controls className="w-full max-w-sm rounded-md bg-black" />
+        <div className="mt-3">
+          <video src={j.output_url} controls className="w-full max-w-sm rounded-[11px] bg-black" />
           <a
             href={j.output_url}
             target="_blank"
             rel="noreferrer"
             download
-            className="mt-1 inline-block rounded border border-border px-2 py-1 text-[10px] hover:bg-secondary"
+            className="mt-2 inline-flex h-9 items-center rounded-[11px] border border-border bg-card px-4 text-[13px] font-semibold text-foreground hover:bg-secondary"
           >
-            ⬇ Video herunterladen
+            Video herunterladen
           </a>
         </div>
       )}
-      {j.error && <p className="mt-1 text-[10px] text-destructive">{j.error}</p>}
+      {j.error && <p className="mt-2 text-[13px] text-destructive">{j.error}</p>}
     </div>
   );
 }
@@ -580,12 +582,12 @@ function jobStatusColor(s: string) {
   return (
     (
       {
-        pending: "bg-muted text-muted-foreground",
-        waiting_provider: "bg-accent/20 text-accent",
-        running: "bg-accent/20 text-accent",
-        done: "bg-primary/20 text-primary",
-        failed: "bg-destructive/20 text-destructive",
+        pending: "bg-secondary text-muted-foreground",
+        waiting_provider: "bg-warning/15 text-warning",
+        running: "bg-primary/15 text-primary",
+        done: "bg-success/15 text-success",
+        failed: "bg-destructive/15 text-destructive",
       } as Record<string, string>
-    )[s] ?? "bg-muted text-muted-foreground"
+    )[s] ?? "bg-secondary text-muted-foreground"
   );
 }

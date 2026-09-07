@@ -103,7 +103,7 @@ function JobEditor() {
   const [rendering, setRendering] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<Record<string, string>>({});
-  // KI-Autopilot: KI übernimmt den ganzen Prozess (analysieren → alle Clips rendern),
+  // KI-Autopilot: KI uebernimmt den ganzen Prozess (analysieren, dann alle Clips rendern),
   // der Mensch kann davor/danach jederzeit manuell eingreifen.
   const [autopilot, setAutopilot] = useState<"idle" | "analyzing" | "rendering" | "done">("idle");
   const [apProgress, setApProgress] = useState({ current: 0, total: 0 });
@@ -142,7 +142,7 @@ function JobEditor() {
       try {
         window.localStorage.setItem(PANEL_LS_KEY, JSON.stringify(next));
       } catch {
-        /* localStorage nicht verfügbar — Einstellung gilt nur für diese Sitzung */
+        /* localStorage nicht verfuegbar, Einstellung gilt nur fuer diese Sitzung */
       }
       return next;
     });
@@ -155,7 +155,7 @@ function JobEditor() {
   // --- Undo/Redo (Verlauf der Timeline-Zustände) ---
   const historyRef = useRef<{ past: Segment[][]; future: Segment[][] }>({ past: [], future: [] });
   const [histTick, setHistTick] = useState(0);
-  /** Zustand vor einer Änderung sichern — vor jedem Schnitt-Eingriff aufrufen */
+  /** Zustand vor einer Aenderung sichern, vor jedem Schnitt-Eingriff aufrufen */
   function pushHistory(current: Segment[]) {
     historyRef.current.past.push(current.map((s) => ({ ...s })));
     if (historyRef.current.past.length > 50) historyRef.current.past.shift();
@@ -224,7 +224,7 @@ function JobEditor() {
         await document.exitFullscreen();
       }
     } catch {
-      /* Browser verweigert Vollbild — Panels-Toggle bleibt als Fallback */
+      /* Browser verweigert Vollbild, Panels-Toggle bleibt als Fallback */
     }
   }
   useEffect(() => {
@@ -270,7 +270,7 @@ function JobEditor() {
   };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
 
-  // Brand-Wasserzeichen (Logo im Video-Eck) — pro Video ein-/ausschaltbar
+  // Profil-Wasserzeichen (Logo im Video-Eck), pro Video ein-/ausschaltbar
   const brandWmQ = useQuery({
     queryKey: ["brand_watermark", brandId],
     enabled: !!brandId,
@@ -307,7 +307,7 @@ function JobEditor() {
     return true;
   }
 
-  // Bibliothek: alle Videos & Schnitte dieses Brands — direkt im Editor
+  // Bibliothek: alle Videos & Schnitte dieses Profils, direkt im Editor
   const libraryQ = useQuery({
     queryKey: ["editor_library", brandId],
     enabled: !!brandId && panels.library,
@@ -695,7 +695,7 @@ function JobEditor() {
     try {
       const { importYouTubeVideo } = await import("@/lib/youtube.functions");
       await importYouTubeVideo({ data: { rawVideoId: job.raw_video_id } });
-      toast.success("MP4 importiert — Editor lädt jetzt die echte Datei");
+      toast.success("MP4 importiert, Editor lädt jetzt die echte Datei");
       await jobQ.refetch();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Import fehlgeschlagen";
@@ -724,7 +724,7 @@ function JobEditor() {
       return ff;
     } catch (e) {
       throw new Error(
-        "Rendering-Engine konnte nicht geladen werden — bitte Seite neu laden oder anderen Browser probieren. Detail: " +
+        "Rendering-Engine konnte nicht geladen werden. Bitte Seite neu laden oder anderen Browser probieren. Detail: " +
           (e instanceof Error ? e.message : String(e)),
       );
     }
@@ -777,7 +777,7 @@ function JobEditor() {
     try {
       const ff = await getFFmpeg();
       const { fetchFile } = await import("@ffmpeg/util");
-      // Quelle nur einmal laden — bei 20 Clips spart das 19 Downloads
+      // Quelle nur einmal laden, bei 20 Clips spart das 19 Downloads
       if (inputLoadedRef.current !== signedUrl) {
         await ff.writeFile("in.mp4", await fetchFile(signedUrl));
         inputLoadedRef.current = signedUrl;
@@ -792,7 +792,7 @@ function JobEditor() {
         .filter(Boolean)
         .join(",");
 
-      // Optional: Musik-Spur + Brand-Wasserzeichen
+      // Optional: Musik-Spur + Profil-Wasserzeichen
       const audio = audioTracks[0];
       const hasAudio = !!(audio && audioSignedUrls[audio.id]);
       const hasWm = useWm && (await ensureWatermarkFile(ff, fetchFile));
@@ -819,8 +819,8 @@ function JobEditor() {
       }
       if (hasWm) inputs.push("-i", "wm.png");
 
-      // Alles über EINEN filter_complex-Graphen — -vf und -filter_complex
-      // dürfen nicht gemischt werden.
+      // Alles ueber EINEN filter_complex-Graphen: -vf und -filter_complex
+      // duerfen nicht gemischt werden.
       const parts: string[] = [`[0:v]${vFilterChain}[v1]`];
       let vOut = "[v1]";
       if (hasWm) {
@@ -900,7 +900,7 @@ function JobEditor() {
           if (a?.segments?.length) segs = a.segments;
           if (data?.status === "failed") throw new Error("KI-Analyse fehlgeschlagen");
         }
-        if (!segs.length) throw new Error("KI-Analyse dauert zu lange — bitte gleich nochmal");
+        if (!segs.length) throw new Error("KI-Analyse dauert zu lange, bitte gleich nochmal");
         jobQ.refetch();
       }
       setAutopilot("rendering");
@@ -910,7 +910,7 @@ function JobEditor() {
         await renderSegment(segs[i], i);
       }
       setAutopilot("done");
-      toast.success(`Autopilot fertig — ${segs.length} Clips gerendert. Galerie rechts →`);
+      toast.success(`Autopilot fertig: ${segs.length} Clips gerendert. Galerie rechts →`);
     } catch (e) {
       setAutopilot("idle");
       toast.error(e instanceof Error ? e.message : "Autopilot-Fehler");
@@ -983,7 +983,7 @@ function JobEditor() {
         clipFiles.push(name);
       }
 
-      // Build concat list (simple concat — transitions are approximated with fade envelopes as V1)
+      // Concat-Liste bauen (einfaches Concat, Uebergaenge werden als V1 mit Fade-Huellkurven angenaehert)
       const list = clipFiles.map((n) => `file '${n}'`).join("\n");
       await ff.writeFile("list.txt", new TextEncoder().encode(list));
       await ff.exec(["-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "concat.mp4"]);
@@ -1053,7 +1053,7 @@ function JobEditor() {
 
   async function pushToQueue(idx: number, seg: Segment) {
     if (!brandId) {
-      toast.error("Video hat keinen Brand");
+      toast.error("Video hat kein Profil");
       return;
     }
     if (!targetPlatform) {
@@ -1106,7 +1106,7 @@ function JobEditor() {
       setQueuedIds((q) => ({ ...q, [idx]: row.id }));
       toast.success(`Clip ${idx + 1} in Warteschlange`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Queue-Fehler");
+      toast.error(e instanceof Error ? e.message : "Fehler bei der Warteschlange");
     } finally {
       setQueuing(null);
     }
@@ -1118,10 +1118,10 @@ function JobEditor() {
   if (jobQ.isLoading || !job) {
     return (
       <div className="grid min-h-screen place-items-center bg-background p-8">
-        <div className="flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-card p-8 text-center">
+        <div className="flex max-w-md flex-col items-center gap-3 rounded-[18px] border border-border bg-card p-8 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <div className="text-sm font-medium">Editor wird geladen …</div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[15px] font-semibold">Editor wird geladen …</div>
+          <div className="text-[13px] text-muted-foreground">
             Job-Daten, Video-URL und Timeline werden vorbereitet. Bei langen Videos oder frisch importierten YouTube-Links kann das einen Moment dauern.
           </div>
         </div>
@@ -1132,12 +1132,12 @@ function JobEditor() {
   if (jobQ.isError) {
     return (
       <div className="grid min-h-screen place-items-center bg-background p-8">
-        <div className="max-w-md space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm">
+        <div className="max-w-md space-y-3 rounded-[18px] border border-border bg-card p-6 text-[15px]">
           <div className="font-semibold text-destructive">Job konnte nicht geladen werden</div>
-          <div className="text-xs text-muted-foreground">{jobQ.error instanceof Error ? jobQ.error.message : "Unbekannter Fehler"}</div>
+          <div className="text-[13px] text-muted-foreground">{jobQ.error instanceof Error ? jobQ.error.message : "Unbekannter Fehler"}</div>
           <div className="flex gap-2">
-            <button onClick={() => jobQ.refetch()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90">Erneut versuchen</button>
-            <Link to="/app" className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">Zurück</Link>
+            <button onClick={() => jobQ.refetch()} className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]">Erneut versuchen</button>
+            <Link to="/app" className="inline-flex h-9 items-center rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]">Zurück</Link>
           </div>
         </div>
       </div>
@@ -1154,13 +1154,13 @@ function JobEditor() {
       <div className="flex min-h-14 flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2">
         <Link
           to="/app"
-          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary"
+          className="inline-flex h-9 items-center gap-1.5 rounded-[11px] px-3 text-[13px] font-semibold text-foreground hover:bg-secondary"
         >
-          <ArrowLeft className="h-3 w-3" /> Editor
+          <ArrowLeft className="h-3.5 w-3.5" /> Editor
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{raw?.title ?? "Projekt"}</div>
-          <div className="font-mono text-[10px] text-muted-foreground">
+          <div className="truncate text-[15px] font-semibold tracking-tight">{raw?.title ?? "Unbenanntes Video"}</div>
+          <div className="text-[13px] text-muted-foreground tabular-nums">
             {job.mode} · {aspect} · {segments.length} Clips · {totalDur.toFixed(1)}s Output
           </div>
         </div>
@@ -1173,7 +1173,7 @@ function JobEditor() {
               .eq("id", id);
             jobQ.refetch();
           }}
-          className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+          className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
         >
           <option value="9:16">9:16</option>
           <option value="16:9">16:9</option>
@@ -1182,7 +1182,7 @@ function JobEditor() {
         <select
           value={targetPlatform}
           onChange={(e) => setTargetPlatform(e.target.value)}
-          className="rounded-md border border-border bg-input px-2 py-1 text-xs outline-none focus:border-primary"
+          className="h-9 rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
         >
           <option value="">Plattform…</option>
           <option value="tiktok">TikTok</option>
@@ -1193,14 +1193,14 @@ function JobEditor() {
         </select>
         {brandWm?.watermark_path && (
           <label
-            className="hidden cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs sm:flex"
-            title="Brand-Wasserzeichen (Logo) in den Export einblenden"
+            className="hidden h-9 cursor-pointer items-center gap-2 rounded-[9px] border border-border bg-input px-2.5 text-[13px] sm:flex"
+            title="Profil-Wasserzeichen (Logo) in den Export einblenden"
           >
             <input
               type="checkbox"
               checked={useWm}
               onChange={(e) => setWmOverride(e.target.checked)}
-              className="h-3.5 w-3.5 accent-primary"
+              className="h-4 w-4 accent-primary"
             />
             Logo
           </label>
@@ -1214,43 +1214,43 @@ function JobEditor() {
             rendering !== null ||
             isYouTubeSource
           }
-          className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
-          title="KI übernimmt: analysieren + alle Clips rendern — danach kannst du manuell nacharbeiten"
+          className="inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] disabled:opacity-40 dark:hover:bg-[#3a3a3c]"
+          title="KI übernimmt: analysieren und alle Clips rendern. Danach kannst du manuell nacharbeiten."
         >
           {autopilot === "analyzing" ? (
             <>
-              <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert…
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> KI analysiert…
             </>
           ) : autopilot === "rendering" ? (
             <>
-              <Loader2 className="h-3 w-3 animate-spin" /> Clip {apProgress.current}/
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Clip {apProgress.current}/
               {apProgress.total} · {progress}%
             </>
           ) : (
             <>
-              <Wand2 className="h-3 w-3" /> KI-Autopilot
+              <Wand2 className="h-3.5 w-3.5" /> KI-Autopilot
             </>
           )}
         </button>
         <button
           onClick={renderMaster}
           disabled={rendering !== null || segments.length === 0 || isYouTubeSource}
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
         >
-          <Sparkles className="h-3 w-3" />{" "}
+          <Sparkles className="h-3.5 w-3.5" />{" "}
           {rendering === "master" ? `Master ${progress}%` : "Master exportieren"}
         </button>
       </div>
 
-      {/* Werkzeugleiste — jedes Feature einzeln ein-/ausklappbar */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card/60 px-3 py-1.5">
+      {/* Werkzeugleiste: jedes Feature einzeln ein-/ausklappbar */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card px-3 py-2">
         {/* Undo / Redo */}
-        <div className="mr-1 flex items-center gap-0.5 rounded-md border border-border p-0.5">
+        <div className="mr-1 flex items-center gap-0.5 rounded-[10px] bg-secondary p-0.5">
           <button
             onClick={undo}
             disabled={!canUndo}
             title="Rückgängig (Strg+Z)"
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+            className="rounded-[8px] p-1.5 text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
           >
             <Undo2 className="h-3.5 w-3.5" />
           </button>
@@ -1258,12 +1258,12 @@ function JobEditor() {
             onClick={redo}
             disabled={!canRedo}
             title="Wiederholen (Strg+Shift+Z)"
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+            className="rounded-[8px] p-1.5 text-muted-foreground hover:bg-card hover:text-foreground disabled:opacity-40"
           >
             <Redo2 className="h-3.5 w-3.5" />
           </button>
         </div>
-        <span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+        <span className="mr-1 text-[13px] font-semibold text-muted-foreground">
           Ansicht
         </span>
         <PanelChip
@@ -1324,35 +1324,35 @@ function JobEditor() {
                 timeline: true,
               })
             }
-            className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-secondary"
-            title="Nur Player, Clips und Timeline — maximaler Platz"
+            className="inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+            title="Nur Player, Clips und Timeline: maximaler Platz"
           >
             Fokus-Modus
           </button>
           <button
             onClick={() => setSafeZones((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] ${safeZones ? "border-amber-500 bg-amber-500/10 text-amber-600" : "border-border hover:bg-secondary"}`}
+            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold ${safeZones ? "bg-warning/15 text-warning" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"}`}
             title="Sicherheitsbereiche einblenden (Bereiche, die TikTok/Reels mit Buttons überdecken)"
           >
             <Frame className="h-3.5 w-3.5" /> Safe Zones
           </button>
           <button
             onClick={addMarker}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
             title="Marker setzen (M)"
           >
             <Flag className="h-3.5 w-3.5" /> Marker
           </button>
           <button
             onClick={() => setShowShortcuts((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
             title="Tastaturkürzel"
           >
             <Keyboard className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={toggleFullscreen}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-secondary"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
             title={fullscreen ? "Vollbild verlassen (Esc)" : "Vollbildmodus (F)"}
           >
             {fullscreen ? (
@@ -1369,31 +1369,31 @@ function JobEditor() {
       </div>
 
       {job.status === "analyzing" && (
-        <div className="flex items-center gap-2 border-b border-border bg-accent/10 px-4 py-2 text-xs text-accent">
-          <Loader2 className="h-3 w-3 animate-spin" /> KI analysiert Inhalt & schlägt Clips vor … (bei langen Videos 1–3 Min)
+        <div className="flex items-center gap-2 border-b border-border bg-secondary px-4 py-2 text-[13px] text-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> KI analysiert Inhalt & schlägt Clips vor … (bei langen Videos 1–3 Min)
         </div>
       )}
 
       {job.status === "failed" && (
-        <div className="border-b border-destructive/40 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+        <div className="border-b border-border bg-destructive/15 px-4 py-2 text-[13px] text-destructive">
           <div className="font-semibold">KI-Analyse fehlgeschlagen</div>
-          <div className="mt-0.5 text-[11px] opacity-90">{jobError ?? "Unbekannter Fehler — bitte erneut versuchen oder Video neu hochladen."}</div>
+          <div className="mt-0.5 text-[13px] opacity-90">{jobError ?? "Unbekannter Fehler. Bitte erneut versuchen oder Video neu hochladen."}</div>
         </div>
       )}
 
       {isYouTubeSource && (
-        <div className="flex flex-wrap items-center gap-3 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-600 dark:text-amber-400">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border bg-warning/15 px-4 py-2 text-[13px] text-warning">
           <div className="min-w-0 flex-1">
-            <div className="font-semibold">YouTube-Quelle — MP4 noch nicht importiert</div>
-            <div className="mt-0.5 text-[11px] opacity-90">
+            <div className="font-semibold">YouTube-Quelle: MP4 noch nicht importiert</div>
+            <div className="mt-0.5 text-[13px] opacity-90">
               {ytImportError ??
-                "Der Server kann das Video als MP4 importieren — danach laufen Preview, Schnitt & Export mit der echten Datei."}
+                "Der Server kann das Video als MP4 importieren. Danach laufen Preview, Schnitt & Export mit der echten Datei."}
             </div>
           </div>
           <button
             onClick={runYtImport}
             disabled={ytImporting}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
           >
             {ytImporting ? (
               <>
@@ -1409,19 +1409,19 @@ function JobEditor() {
       )}
 
       {rendering && !isYouTubeSource && (
-        <div className="border-b border-border bg-primary/5 px-4 py-2 text-xs text-primary">
+        <div className="border-b border-border bg-card px-4 py-2 text-[13px] text-foreground">
           <div className="flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
             <span className="font-semibold">
               {rendering === "master" ? "Master-Export läuft …" : `Clip ${Number(rendering) + 1} wird gerendert …`}
             </span>
-            <span className="ml-auto font-mono text-[10px]">{progress}%</span>
+            <span className="ml-auto font-mono text-[12px] tabular-nums text-muted-foreground">{progress}%</span>
           </div>
-          <div className="mt-1 h-1 w-full overflow-hidden rounded bg-background">
-            <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="mt-1 text-[10px] text-muted-foreground">
-            Rendering läuft im Browser (ffmpeg.wasm) — Tab bitte offen lassen. Erstes Laden der Engine dauert 5–15 Sek.
+          <div className="mt-1.5 text-[12px] text-muted-foreground">
+            Rendering läuft im Browser (ffmpeg.wasm), Tab bitte offen lassen. Erstes Laden der Engine dauert 5–15 Sek.
           </div>
         </div>
       )}
@@ -1429,26 +1429,26 @@ function JobEditor() {
       <div className="flex min-h-0 flex-1">
         {/* LEFT: Media Bin */}
         <aside
-          className={`${showLeft ? "w-52" : "hidden"} shrink-0 space-y-4 overflow-y-auto border-r border-border bg-card/40 p-2.5`}
+          className={`${showLeft ? "w-52" : "hidden"} shrink-0 space-y-5 overflow-y-auto border-r border-border bg-card/70 p-3 backdrop-blur-xl`}
         >
           {panels.media && (
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
               <Film className="h-3 w-3" /> Media Bin
             </div>
             <div className="space-y-2">
-              <div className="rounded-md border border-border bg-background p-2 text-xs">
-                <div className="truncate font-medium">{raw?.title}</div>
-                <div className="font-mono text-[10px] text-muted-foreground">
+              <div className="rounded-[11px] border border-border bg-card p-2.5 text-[13px]">
+                <div className="truncate font-semibold">{raw?.title}</div>
+                <div className="text-[12px] text-muted-foreground tabular-nums">
                   {Math.round(rawDur)}s Quelle
                 </div>
               </div>
               {audioTracks.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background p-2 text-xs"
+                  className="flex items-center gap-2 rounded-[11px] border border-border bg-card p-2.5 text-[13px]"
                 >
-                  <Music className="h-3 w-3 shrink-0 text-accent" />
+                  <Music className="h-3.5 w-3.5 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1 truncate">{a.name}</div>
                   <button
                     onClick={() => deleteAudio(a.id)}
@@ -1458,8 +1458,8 @@ function JobEditor() {
                   </button>
                 </div>
               ))}
-              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">
-                <UploadCloud className="h-3 w-3" /> Audio hinzufügen
+              <label className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-dashed border-border text-[13px] font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground">
+                <UploadCloud className="h-3.5 w-3.5" /> Audio hinzufügen
                 <input
                   type="file"
                   accept="audio/*"
@@ -1474,8 +1474,8 @@ function JobEditor() {
           {/* Viral Sound Library */}
           {panels.media && (
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Music className="h-3 w-3 text-accent" /> Viral Sounds
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <Music className="h-3.5 w-3.5 text-primary" /> Viral Sounds
             </div>
             <ViralMusicPicker
               template={templateById(options.template_id as string | undefined)}
@@ -1499,34 +1499,34 @@ function JobEditor() {
 
           {panels.effects && (
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
               <Sparkles className="h-3 w-3" /> Werkzeuge
             </div>
             <div className="grid grid-cols-2 gap-1">
               <button
                 onClick={() => addOverlay(selectedClip)}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                className="rounded-[11px] border border-border bg-card p-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary"
               >
                 <Type className="mx-auto h-4 w-4" />
                 <div className="mt-1">Text</div>
               </button>
               <button
                 onClick={splitAtPlayhead}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                className="rounded-[11px] border border-border bg-card p-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary"
               >
                 <ScissorsIcon className="mx-auto h-4 w-4" />
                 <div className="mt-1">Split</div>
               </button>
               <button
                 onClick={addSeg}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                className="rounded-[11px] border border-border bg-card p-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary"
               >
                 <Plus className="mx-auto h-4 w-4" />
                 <div className="mt-1">Neuer Clip</div>
               </button>
               <button
                 onClick={() => resetSeg(selectedClip)}
-                className="rounded-md border border-border bg-background p-2 text-[11px] hover:border-primary/50"
+                className="rounded-[11px] border border-border bg-card p-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary"
               >
                 <RotateCcw className="mx-auto h-4 w-4" />
                 <div className="mt-1">KI-Original</div>
@@ -1536,8 +1536,8 @@ function JobEditor() {
           )}
 
           {panels.effects && analysis?.transcript_summary && (
-            <div className="rounded-md border border-border bg-background p-2 text-[11px] text-muted-foreground">
-              <div className="mb-1 font-medium text-foreground">KI-Analyse</div>
+            <div className="rounded-[11px] border border-border bg-card p-2.5 text-[12px] leading-relaxed text-muted-foreground">
+              <div className="mb-1 font-semibold text-foreground">KI-Analyse</div>
               {analysis.transcript_summary}
             </div>
           )}
@@ -1572,27 +1572,27 @@ function JobEditor() {
                   className={`max-h-full max-w-full ${aspect === "9:16" ? "aspect-[9/16]" : aspect === "1:1" ? "aspect-square" : "aspect-video"}`}
                 />
               ) : isYouTubeSource ? (
-                <div className="grid h-64 w-96 max-w-full place-items-center rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-6 text-center text-xs text-amber-600 dark:text-amber-400">
+                <div className="grid h-64 w-96 max-w-full place-items-center rounded-[18px] border border-dashed border-warning/40 bg-warning/10 p-6 text-center text-[13px] text-warning">
                   <div>
                     <div className="font-semibold">Kein Preview verfügbar</div>
-                    <div className="mt-1 text-[11px] opacity-80">YouTube-Video ist verlinkt, aber nicht als Datei vorhanden. Bitte MP4 hochladen, um Preview & Export zu aktivieren.</div>
+                    <div className="mt-1 text-[12px] opacity-80">YouTube-Video ist verlinkt, aber nicht als Datei vorhanden. Bitte MP4 hochladen, um Preview & Export zu aktivieren.</div>
                   </div>
                 </div>
               ) : (
-                <div className="grid h-64 w-96 place-items-center rounded-xl bg-black/40 text-muted-foreground">
+                <div className="grid h-64 w-96 place-items-center rounded-[18px] bg-white/5 text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <div className="text-xs">Video wird geladen …</div>
+                    <div className="text-[13px]">Video wird geladen …</div>
                   </div>
                 </div>
               )}
-              {/* Safe Zones — Bereiche, die TikTok/Reels mit UI überdecken */}
+              {/* Safe Zones: Bereiche, die TikTok/Reels mit UI ueberdecken */}
               {safeZones && signedUrl && (
                 <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute inset-x-0 top-0 h-[12%] border-b border-dashed border-amber-400/60 bg-amber-400/10" />
-                  <div className="absolute inset-x-0 bottom-0 h-[18%] border-t border-dashed border-amber-400/60 bg-amber-400/10" />
-                  <div className="absolute bottom-[18%] right-0 h-[30%] w-[18%] border-l border-dashed border-amber-400/60 bg-amber-400/10" />
-                  <span className="absolute left-1 top-1 rounded bg-amber-500/80 px-1 font-mono text-[8px] text-black">
+                  <div className="absolute inset-x-0 top-0 h-[12%] border-b border-dashed border-warning/60 bg-warning/10" />
+                  <div className="absolute inset-x-0 bottom-0 h-[18%] border-t border-dashed border-warning/60 bg-warning/10" />
+                  <div className="absolute bottom-[18%] right-0 h-[30%] w-[18%] border-l border-dashed border-warning/60 bg-warning/10" />
+                  <span className="absolute left-1 top-1 rounded-full bg-warning px-2 py-0.5 text-[11px] font-semibold text-black">
                     Safe Zone
                   </span>
                 </div>
@@ -1622,7 +1622,7 @@ function JobEditor() {
                           background: o.bg ? "rgba(0,0,0,.55)" : "transparent",
                           padding: o.bg ? "6px 14px" : 0,
                         }}
-                        className="rounded-md font-semibold"
+                        className="rounded-[6px] font-semibold"
                       >
                         {o.text}
                       </div>
@@ -1632,14 +1632,14 @@ function JobEditor() {
             </div>
           </div>
 
-          {/* Clip-Übersicht — alle Clips als Streifen unter dem Player (CapCut/Adobe-Stil) */}
+          {/* Clip-Uebersicht: alle Clips als Streifen unter dem Player (CapCut/Adobe-Stil) */}
           {panels.clipStrip && segments.length > 0 && (
-            <div className="shrink-0 border-t border-border bg-card/60 px-3 py-2">
-              <div className="mb-1.5 flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="shrink-0 border-t border-border bg-card px-3 py-2">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   Clips ({segments.length})
                 </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="text-[13px] text-muted-foreground tabular-nums">
                   {Object.keys(outputs).length} gerendert
                 </span>
               </div>
@@ -1651,25 +1651,25 @@ function JobEditor() {
                     <button
                       key={i}
                       onClick={() => jumpToClip(i)}
-                      className={`group relative w-32 shrink-0 rounded-lg border p-2 text-left transition ${
+                      className={`group relative w-32 shrink-0 rounded-[11px] border p-2.5 text-left transition-colors ${
                         isSel
-                          ? "border-primary bg-primary/10 ring-1 ring-primary"
-                          : "border-border bg-background hover:border-primary/50"
+                          ? "border-primary bg-card ring-1 ring-primary"
+                          : "border-border bg-card hover:bg-secondary/60"
                       }`}
                     >
                       <div className="flex items-center gap-1">
                         <span
-                          className={`grid h-4 w-4 shrink-0 place-items-center rounded font-mono text-[9px] ${isSel ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold tabular-nums ${isSel ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
                         >
                           {i + 1}
                         </span>
-                        {done && <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />}
-                        {queuedIds[i] && <ListPlus className="h-3 w-3 shrink-0 text-accent" />}
+                        {done && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />}
+                        {queuedIds[i] && <ListPlus className="h-3.5 w-3.5 shrink-0 text-primary" />}
                       </div>
-                      <div className="mt-1 truncate text-[11px] font-medium leading-tight">
+                      <div className="mt-1 truncate text-[13px] font-semibold leading-tight">
                         {s.title}
                       </div>
-                      <div className="font-mono text-[9px] text-muted-foreground">
+                      <div className="text-[12px] text-muted-foreground tabular-nums">
                         {outputDuration(s).toFixed(1)}s · ab {fmt(s.start_s)}
                       </div>
                       {effectSummary(s).length > 0 && (
@@ -1679,7 +1679,7 @@ function JobEditor() {
                             .map((fx) => (
                               <span
                                 key={fx}
-                                className="rounded bg-accent/15 px-1 py-px font-mono text-[8px] text-accent"
+                                className="rounded-full bg-secondary px-1.5 py-px text-[10px] font-semibold text-muted-foreground"
                               >
                                 {fx}
                               </span>
@@ -1694,27 +1694,27 @@ function JobEditor() {
           )}
 
           {/* Transport */}
-          <div className="flex items-center gap-3 border-y border-border bg-card px-3 py-2 text-xs">
+          <div className="flex items-center gap-3 border-y border-border bg-card px-3 py-2 text-[13px]">
             <button
               onClick={togglePlay}
-              className="rounded-md border border-border p-1.5 hover:bg-secondary"
+              className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
             >
-              {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             </button>
-            <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            <div className="font-mono text-[13px] tabular-nums text-muted-foreground">
               {fmt(playhead)} / {fmt(totalDur)}
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <ZoomOut className="h-3 w-3 text-muted-foreground" />
+              <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="range"
                 min={PX_PER_S_MIN}
                 max={PX_PER_S_MAX}
                 value={zoom}
                 onChange={(e) => setZoom(parseInt(e.target.value))}
-                className="w-32"
+                className="w-32 accent-primary"
               />
-              <ZoomIn className="h-3 w-3 text-muted-foreground" />
+              <ZoomIn className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
           </div>
 
@@ -1735,34 +1735,34 @@ function JobEditor() {
             className={`${panels.timeline ? "shrink-0" : "hidden"} overflow-auto border-t border-border bg-background p-3`}
           >
             {segments.length === 0 ? (
-              <div className="grid h-32 place-items-center gap-2 text-center text-xs text-muted-foreground">
+              <div className="grid h-32 place-items-center gap-2 text-center text-[13px] text-muted-foreground">
                 <div>Noch keine Clips auf der Timeline.</div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     onClick={() =>
                       setSegments([{ start_s: 0, end_s: rawDur, title: "Ganzes Video" }])
                     }
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
                   >
-                    <Plus className="h-3 w-3" /> Ganzes Video einfügen
+                    <Plus className="h-3.5 w-3.5" /> Ganzes Video einfügen
                   </button>
                   <button
                     onClick={addSeg}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] hover:bg-secondary"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-secondary px-4 text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                   >
-                    <ScissorsIcon className="h-3 w-3" /> Leeren Clip anlegen
+                    <ScissorsIcon className="h-3.5 w-3.5" /> Leeren Clip anlegen
                   </button>
                 </div>
-                <div className="text-[10px]">
-                  Danach frei trimmen, splitten, Text & Musik hinzufügen — ganz ohne KI.
+                <div className="text-[12px]">
+                  Danach frei trimmen, splitten, Text & Musik hinzufügen, ganz ohne KI.
                 </div>
               </div>
             ) : (
               <div style={{ width: Math.max(600, totalDur * zoom + 60) }} className="relative">
-                {/* Ruler — adaptive Ticks, damit auch 1h-Videos flüssig bleiben */}
+                {/* Ruler: adaptive Ticks, damit auch 1h-Videos fluessig bleiben */}
                 <div className="mb-1 h-4 border-b border-border">
                   {(() => {
-                    // Tick-Abstand so wählen, dass Ticks ≥ 60px auseinander liegen
+                    // Tick-Abstand so waehlen, dass Ticks mindestens 60px auseinander liegen
                     const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
                     const step = steps.find((st) => st * zoom >= 60) ?? 600;
                     const count = Math.floor(totalDur / step) + 1;
@@ -1772,7 +1772,7 @@ function JobEditor() {
                         <div
                           key={s}
                           style={{ left: s * zoom }}
-                          className="absolute -top-0.5 h-3 border-l border-border/60 pl-1 font-mono text-[9px] text-muted-foreground"
+                          className="absolute -top-0.5 h-3 border-l border-border pl-1 font-mono text-[10px] tabular-nums text-muted-foreground"
                         >
                           {s >= 60
                             ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
@@ -1787,16 +1787,16 @@ function JobEditor() {
                       key={m.id}
                       onClick={() => removeMarker(m.id)}
                       style={{ left: m.t * zoom }}
-                      title={`${m.label} bei ${fmt(m.t)} — klicken zum Entfernen`}
+                      title={`${m.label} bei ${fmt(m.t)}, klicken zum Entfernen`}
                       className="absolute -top-1 z-20 -translate-x-1/2"
                     >
-                      <Flag className="h-3 w-3 fill-accent text-accent" />
+                      <Flag className="h-3 w-3 fill-warning text-warning" />
                     </button>
                   ))}
                   {/* Playhead */}
                   <div
                     style={{ left: playhead * zoom }}
-                    className="pointer-events-none absolute -top-0.5 bottom-0 z-10 w-px bg-primary shadow-[0_0_6px_hsl(var(--primary))]"
+                    className="pointer-events-none absolute -top-0.5 bottom-0 z-10 w-0.5 bg-primary"
                   />
                 </div>
 
@@ -1814,12 +1814,12 @@ function JobEditor() {
                       >
                         <button
                           onClick={() => jumpToClip(i)}
-                          className={`h-full w-full rounded-md border px-2 text-left text-[10px] font-mono leading-tight overflow-hidden ${selectedClip === i ? "border-primary bg-primary/30 text-primary-foreground" : "border-primary/40 bg-primary/15 hover:bg-primary/25"}`}
+                          className={`h-full w-full rounded-[8px] border px-2 text-left text-[12px] font-semibold leading-tight overflow-hidden ${selectedClip === i ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"}`}
                         >
                           <div className="truncate">
                             {i + 1}. {s.title}
                           </div>
-                          <div className="text-[9px] opacity-70">{dur.toFixed(1)}s</div>
+                          <div className="text-[11px] font-normal tabular-nums opacity-70">{dur.toFixed(1)}s</div>
                         </button>
                         {i < segments.length - 1 && (
                           <div className="absolute -right-3 top-1/2 z-20 -translate-y-1/2">
@@ -1841,7 +1841,7 @@ function JobEditor() {
                       <div
                         key={o.id}
                         style={{ left, width }}
-                        className="absolute top-1 bottom-1 rounded-md border border-accent/50 bg-accent/20 px-2 text-[10px] text-accent overflow-hidden"
+                        className="absolute top-1 bottom-1 rounded-[8px] border border-border bg-card px-2 text-[12px] text-foreground overflow-hidden"
                       >
                         <div className="truncate leading-6">{o.text}</div>
                       </div>
@@ -1855,7 +1855,7 @@ function JobEditor() {
                     <div
                       key={a.id}
                       style={{ left: 0, width: totalDur * zoom }}
-                      className={`absolute rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 text-[10px] text-emerald-600 overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}
+                      className={`absolute rounded-[8px] border border-success/40 bg-success/15 px-2 text-[12px] text-success overflow-hidden ${i === 0 ? "top-1 bottom-1" : "hidden"}`}
                     >
                       <div className="truncate leading-6">
                         {a.name} · vol {Math.round(a.volume * 100)}%{a.duck ? " · ducking" : ""}
@@ -1870,7 +1870,7 @@ function JobEditor() {
 
         {/* RIGHT: Inspector + Chat */}
         <aside
-          className={`${showRight ? "w-[330px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/40`}
+          className={`${showRight ? "w-[330px]" : "hidden"} shrink-0 overflow-y-auto border-l border-border bg-card/70 backdrop-blur-xl`}
         >
           {/* Massen-Rendering (Creatomate) */}
           <div className="border-b border-border p-3">
@@ -1880,22 +1880,22 @@ function JobEditor() {
           {/* Inspector */}
 
           <div className={`${panels.inspector ? "" : "hidden"} border-b border-border p-3`}>
-            <div className="mb-2 text-xs font-medium text-muted-foreground">
-              Inspector — Clip {selectedClip + 1}
+            <div className="mb-3 text-[13px] font-semibold text-muted-foreground">
+              Inspector: Clip {selectedClip + 1}
             </div>
             {selectedSeg ? (
-              <div className="space-y-2 text-xs">
+              <div className="space-y-3 text-[13px]">
                 <label className="block">
-                  <span className="text-muted-foreground">Titel</span>
+                  <span className="text-[12px] font-semibold text-muted-foreground">Titel</span>
                   <input
                     value={selectedSeg.title}
                     onChange={(e) => updateSeg(selectedClip, { title: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-sm outline-none focus:border-primary"
+                    className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                   />
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block">
-                    <span className="text-muted-foreground">Start (s)</span>
+                    <span className="text-[12px] font-semibold text-muted-foreground">Start (s)</span>
                     <input
                       type="number"
                       step={0.1}
@@ -1905,11 +1905,11 @@ function JobEditor() {
                       onChange={(e) =>
                         updateSeg(selectedClip, { start_s: Math.max(0, +e.target.value) })
                       }
-                      className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                      className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                     />
                   </label>
                   <label className="block">
-                    <span className="text-muted-foreground">Ende (s)</span>
+                    <span className="text-[12px] font-semibold text-muted-foreground">Ende (s)</span>
                     <input
                       type="number"
                       step={0.1}
@@ -1919,38 +1919,38 @@ function JobEditor() {
                       onChange={(e) =>
                         updateSeg(selectedClip, { end_s: Math.max(0, +e.target.value) })
                       }
-                      className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                      className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                     />
                   </label>
                 </div>
                 <label className="block">
-                  <span className="text-muted-foreground">Hook</span>
+                  <span className="text-[12px] font-semibold text-muted-foreground">Hook</span>
                   <input
                     value={selectedSeg.hook ?? ""}
                     onChange={(e) => updateSeg(selectedClip, { hook: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                    className="mt-1 h-9 w-full rounded-[9px] border border-border bg-input px-2.5 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-muted-foreground">Untertitel</span>
+                  <span className="text-[12px] font-semibold text-muted-foreground">Untertitel</span>
                   <textarea
                     rows={2}
                     value={selectedSeg.captions ?? ""}
                     onChange={(e) => updateSeg(selectedClip, { captions: e.target.value })}
-                    className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 outline-none focus:border-primary"
+                    className="mt-1 w-full rounded-[9px] border border-border bg-input px-2.5 py-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                   />
                 </label>
 
                 {/* ===== Profi-Effekte: Tempo, Ton, Farbe, Bewegung ===== */}
-                <div className="space-y-2 rounded-md border border-border bg-background p-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <Gauge className="h-3 w-3 text-primary" /> Tempo & Ton
+                <div className="space-y-2.5 rounded-[11px] border border-border bg-card p-3">
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+                    <Gauge className="h-3.5 w-3.5 text-primary" /> Tempo & Ton
                   </div>
 
                   <label className="block">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                       <span>Geschwindigkeit</span>
-                      <span className="font-mono text-primary">
+                      <span className="font-mono tabular-nums text-primary">
                         {(selectedSeg.speed ?? 1).toFixed(2)}×
                       </span>
                     </div>
@@ -1968,7 +1968,7 @@ function JobEditor() {
                         <button
                           key={s}
                           onClick={() => updateSeg(selectedClip, { speed: s })}
-                          className="flex-1 rounded border border-border px-1 py-0.5 text-[10px] hover:bg-secondary"
+                          className="flex-1 rounded-[8px] bg-secondary px-1 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                         >
                           {s}×
                         </button>
@@ -1977,9 +1977,9 @@ function JobEditor() {
                   </label>
 
                   <label className="block">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                       <span>Clip-Lautstärke</span>
-                      <span className="font-mono">
+                      <span className="font-mono tabular-nums">
                         {selectedSeg.muted
                           ? "stumm"
                           : `${Math.round((selectedSeg.volume ?? 1) * 100)}%`}
@@ -1988,7 +1988,7 @@ function JobEditor() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => updateSeg(selectedClip, { muted: !selectedSeg.muted })}
-                        className={`rounded border p-1 ${selectedSeg.muted ? "border-destructive text-destructive" : "border-border text-muted-foreground"}`}
+                        className={`rounded-[8px] p-1.5 ${selectedSeg.muted ? "bg-destructive/15 text-destructive" : "bg-secondary text-muted-foreground"}`}
                         title={selectedSeg.muted ? "Ton an" : "Ton aus"}
                       >
                         {selectedSeg.muted ? (
@@ -2011,7 +2011,7 @@ function JobEditor() {
                   </label>
 
                   <div className="grid grid-cols-2 gap-1.5">
-                    <label className="block text-[10px] text-muted-foreground">
+                    <label className="block text-[12px] text-muted-foreground">
                       Einblenden (s)
                       <input
                         type="number"
@@ -2022,10 +2022,10 @@ function JobEditor() {
                         onChange={(e) =>
                           updateSeg(selectedClip, { fade_in_s: Number(e.target.value) })
                         }
-                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                        className="mt-1 h-8 w-full rounded-[9px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                       />
                     </label>
-                    <label className="block text-[10px] text-muted-foreground">
+                    <label className="block text-[12px] text-muted-foreground">
                       Ausblenden (s)
                       <input
                         type="number"
@@ -2036,7 +2036,7 @@ function JobEditor() {
                         onChange={(e) =>
                           updateSeg(selectedClip, { fade_out_s: Number(e.target.value) })
                         }
-                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                        className="mt-1 h-8 w-full rounded-[9px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                       />
                     </label>
                   </div>
@@ -2044,7 +2044,7 @@ function JobEditor() {
                   <div className="flex flex-wrap gap-1">
                     <button
                       onClick={() => updateSeg(selectedClip, { reverse: !selectedSeg.reverse })}
-                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.reverse ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${selectedSeg.reverse ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-[#dcdce1] hover:text-foreground dark:hover:bg-[#3a3a3c]"}`}
                     >
                       ⟲ Rückwärts
                     </button>
@@ -2054,7 +2054,7 @@ function JobEditor() {
                           freeze_s: selectedSeg.freeze_s == null ? 0 : null,
                         })
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.freeze_s != null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${selectedSeg.freeze_s != null ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-[#dcdce1] hover:text-foreground dark:hover:bg-[#3a3a3c]"}`}
                       title="Clip als Standbild einfrieren"
                     >
                       ❄ Standbild
@@ -2065,7 +2065,7 @@ function JobEditor() {
                           fill_mode: selectedSeg.fill_mode === "blur_pad" ? "crop" : "blur_pad",
                         })
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${selectedSeg.fill_mode === "blur_pad" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${selectedSeg.fill_mode === "blur_pad" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-[#dcdce1] hover:text-foreground dark:hover:bg-[#3a3a3c]"}`}
                       title="Statt beschneiden: unscharfer Hintergrund füllt das Format"
                     >
                       ▣ Blur-Rand
@@ -2074,14 +2074,14 @@ function JobEditor() {
                 </div>
 
                 {/* Farbe */}
-                <div className="space-y-1.5 rounded-md border border-border bg-background p-2">
+                <div className="space-y-2 rounded-[11px] border border-border bg-card p-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                      <Palette className="h-3 w-3 text-accent" /> Farbe
+                    <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+                      <Palette className="h-3.5 w-3.5 text-primary" /> Farbe
                     </div>
                     <button
                       onClick={() => updateSeg(selectedClip, { color: undefined })}
-                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                      className="text-[12px] text-accent hover:underline"
                     >
                       zurücksetzen
                     </button>
@@ -2095,9 +2095,9 @@ function JobEditor() {
                     ] as const
                   ).map(([key, label, min, max, def, step]) => (
                     <label key={key} className="block">
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                         <span>{label}</span>
-                        <span className="font-mono">
+                        <span className="font-mono tabular-nums">
                           {((selectedSeg.color?.[key] ?? def) as number).toFixed(2)}
                         </span>
                       </div>
@@ -2112,7 +2112,7 @@ function JobEditor() {
                             color: { ...(selectedSeg.color ?? {}), [key]: Number(e.target.value) },
                           })
                         }
-                        className="w-full accent-accent"
+                        className="w-full accent-primary"
                       />
                     </label>
                   ))}
@@ -2129,7 +2129,7 @@ function JobEditor() {
                       <button
                         key={label}
                         onClick={() => updateSeg(selectedClip, { color: { ...preset } })}
-                        className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                        className="rounded-full bg-secondary px-2.5 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                       >
                         {label}
                       </button>
@@ -2138,12 +2138,12 @@ function JobEditor() {
                 </div>
 
                 {/* Bewegung / Transform */}
-                <div className="space-y-1.5 rounded-md border border-border bg-background p-2">
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <Move className="h-3 w-3 text-primary" /> Bewegung
+                <div className="space-y-2 rounded-[11px] border border-border bg-card p-3">
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+                    <Move className="h-3.5 w-3.5 text-primary" /> Bewegung
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <label className="block text-[10px] text-muted-foreground">
+                    <label className="block text-[12px] text-muted-foreground">
                       Zoom Start
                       <input
                         type="number"
@@ -2159,10 +2159,10 @@ function JobEditor() {
                             },
                           })
                         }
-                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                        className="mt-1 h-8 w-full rounded-[9px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                       />
                     </label>
-                    <label className="block text-[10px] text-muted-foreground">
+                    <label className="block text-[12px] text-muted-foreground">
                       Zoom Ende
                       <input
                         type="number"
@@ -2178,7 +2178,7 @@ function JobEditor() {
                             },
                           })
                         }
-                        className="mt-0.5 w-full rounded border border-border bg-input px-1.5 py-1 text-[11px]"
+                        className="mt-1 h-8 w-full rounded-[9px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                       />
                     </label>
                   </div>
@@ -2189,7 +2189,7 @@ function JobEditor() {
                           transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1, zoom_end: 1.25 },
                         })
                       }
-                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                      className="rounded-full bg-secondary px-2.5 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                     >
                       Ken Burns rein
                     </button>
@@ -2199,7 +2199,7 @@ function JobEditor() {
                           transform: { ...(selectedSeg.transform ?? {}), zoom_start: 1.25, zoom_end: 1 },
                         })
                       }
-                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                      className="rounded-full bg-secondary px-2.5 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                     >
                       Ken Burns raus
                     </button>
@@ -2216,7 +2216,7 @@ function JobEditor() {
                           },
                         })
                       }
-                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                      className="rounded-full bg-secondary px-2.5 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                     >
                       ⟳ 90°
                     </button>
@@ -2229,7 +2229,7 @@ function JobEditor() {
                           },
                         })
                       }
-                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary"
+                      className="rounded-full bg-secondary px-2.5 py-1 text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                     >
                       ⇄ Spiegeln
                     </button>
@@ -2237,9 +2237,9 @@ function JobEditor() {
                 </div>
 
                 {/* Overlays for this clip */}
-                <div className="rounded-md border border-border bg-background p-2">
-                  <div className="mb-1 flex items-center justify-between">
-                    <div className="text-[11px] font-medium">
+                <div className="rounded-[11px] border border-border bg-card p-3">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <div className="text-[13px] font-semibold">
                       Text-Overlays ({selectedOverlays.length})
                     </div>
                     <select
@@ -2266,7 +2266,7 @@ function JobEditor() {
                         ]);
                         toast.success(`Stil „${p.label}" hinzugefügt`);
                       }}
-                      className="rounded border border-border bg-input px-1.5 py-0.5 text-[10px] outline-none focus:border-primary"
+                      className="h-8 rounded-[9px] border border-border bg-input px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                       title="Text mit Stilvorlage hinzufügen"
                     >
                       <option value="">+ Stil …</option>
@@ -2278,21 +2278,21 @@ function JobEditor() {
                     </select>
                     <button
                       onClick={() => addOverlay(selectedClip)}
-                      className="text-primary hover:underline"
+                      className="text-[13px] font-semibold text-accent hover:underline"
                     >
-                      <Plus className="inline h-3 w-3" /> Add
+                      <Plus className="inline h-3.5 w-3.5" /> Neu
                     </button>
                   </div>
                   {selectedOverlays.map((o) => (
-                    <div key={o.id} className="mt-1 space-y-1 rounded border border-border p-2">
-                      <div className="flex gap-1">
+                    <div key={o.id} className="mt-2 space-y-1.5 rounded-[9px] border border-border bg-background p-2">
+                      <div className="flex gap-1.5">
                         <input
                           value={o.text}
                           onChange={(e) => updateOverlay(o.id, { text: e.target.value })}
-                          className="flex-1 rounded border border-border bg-input px-1.5 py-1 text-[11px] outline-none focus:border-primary"
+                          className="h-8 flex-1 rounded-[9px] border border-border bg-input px-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                         />
-                        <button onClick={() => deleteOverlay(o.id)} className="text-destructive">
-                          <Trash2 className="h-3 w-3" />
+                        <button onClick={() => deleteOverlay(o.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-destructive hover:bg-destructive/15">
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div className="grid grid-cols-3 gap-1">
@@ -2302,7 +2302,7 @@ function JobEditor() {
                           value={o.start_s}
                           onChange={(e) => updateOverlay(o.id, { start_s: +e.target.value })}
                           title="Start"
-                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                          className="h-8 rounded-[9px] border border-border bg-input px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                         />
                         <input
                           type="number"
@@ -2310,41 +2310,42 @@ function JobEditor() {
                           value={o.end_s}
                           onChange={(e) => updateOverlay(o.id, { end_s: +e.target.value })}
                           title="Ende"
-                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                          className="h-8 rounded-[9px] border border-border bg-input px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                         />
                         <select
                           value={o.position}
                           onChange={(e) => updateOverlay(o.id, { position: e.target.value as any })}
-                          className="rounded border border-border bg-input px-1 py-0.5 text-[10px]"
+                          className="h-8 rounded-[9px] border border-border bg-input px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                         >
                           <option value="top">oben</option>
                           <option value="center">mitte</option>
                           <option value="bottom">unten</option>
                         </select>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px]">
+                      <div className="flex items-center gap-2 text-[12px]">
                         <input
                           type="number"
                           min={12}
                           max={120}
                           value={o.font_size}
                           onChange={(e) => updateOverlay(o.id, { font_size: +e.target.value })}
-                          className="w-14 rounded border border-border bg-input px-1 py-0.5"
+                          className="h-8 w-14 rounded-[9px] border border-border bg-input px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/60"
                         />{" "}
                         px
                         <input
                           type="color"
                           value={o.color}
                           onChange={(e) => updateOverlay(o.id, { color: e.target.value })}
-                          className="h-5 w-6 rounded border border-border"
+                          className="h-8 w-8 rounded-[8px] border border-border"
                         />
-                        <label className="ml-auto inline-flex items-center gap-1">
+                        <label className="ml-auto inline-flex items-center gap-1.5">
                           <input
                             type="checkbox"
                             checked={o.bg}
                             onChange={(e) => updateOverlay(o.id, { bg: e.target.checked })}
+                            className="h-4 w-4 accent-primary"
                           />{" "}
-                          BG
+                          Hintergrund
                         </label>
                       </div>
                     </div>
@@ -2353,12 +2354,12 @@ function JobEditor() {
 
                 {/* Audio inspector */}
                 {audioTracks[0] && (
-                  <div className="rounded-md border border-border bg-background p-2">
-                    <div className="mb-1 flex items-center gap-2 text-[11px] font-medium">
-                      <Music className="h-3 w-3 text-emerald-600" /> Musik: {audioTracks[0].name}
+                  <div className="rounded-[11px] border border-border bg-card p-3">
+                    <div className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold">
+                      <Music className="h-3.5 w-3.5 text-success" /> Musik: {audioTracks[0].name}
                     </div>
-                    <label className="flex items-center gap-2 text-[10px]">
-                      <Volume2 className="h-3 w-3" />
+                    <label className="flex items-center gap-2 text-[12px]">
+                      <Volume2 className="h-3.5 w-3.5" />
                       <input
                         type="range"
                         min={0}
@@ -2368,73 +2369,75 @@ function JobEditor() {
                         onChange={(e) =>
                           updateAudio(audioTracks[0].id, { volume: +e.target.value })
                         }
-                        className="flex-1"
+                        className="flex-1 accent-primary"
                       />
-                      <span className="tabular-nums">
+                      <span className="font-mono tabular-nums">
                         {Math.round(audioTracks[0].volume * 100)}%
                       </span>
                     </label>
-                    <label className="mt-1 flex items-center gap-2 text-[10px]">
+                    <label className="mt-1.5 flex items-center gap-2 text-[12px]">
                       <input
                         type="checkbox"
                         checked={audioTracks[0].duck}
                         onChange={(e) => updateAudio(audioTracks[0].id, { duck: e.target.checked })}
+                        className="h-4 w-4 accent-primary"
                       />
-                      <VolumeX className="h-3 w-3" /> Ducking bei Sprache
+                      <VolumeX className="h-3.5 w-3.5" /> Ducking bei Sprache
                     </label>
                   </div>
                 )}
 
                 {/* Render + queue */}
-                <div className="flex gap-1 pt-1">
+                <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => renderSegment(selectedSeg, selectedClip)}
                     disabled={rendering !== null}
-                    className="flex-1 inline-flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                    className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
                   >
                     {rendering === String(selectedClip) ? (
                       <>
-                        <Loader2 className="h-3 w-3 animate-spin" /> {progress}%
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {progress}%
                       </>
                     ) : (
                       <>
-                        <Download className="h-3 w-3" /> Rendern
+                        <Download className="h-3.5 w-3.5" /> Rendern
                       </>
                     )}
                   </button>
                   <button
                     onClick={() => deleteSeg(selectedClip)}
-                    className="rounded-md border border-destructive/50 px-2 py-1.5 text-[11px] text-destructive hover:bg-destructive/10"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25"
+                    title="Clip löschen"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 {outputs[selectedClip] && (
-                  <div className="space-y-1 rounded-md border border-border bg-background p-2">
-                    <video src={outputs[selectedClip]} controls className="w-full rounded-md" />
-                    <div className="flex gap-1">
+                  <div className="space-y-2 rounded-[11px] border border-border bg-card p-2.5">
+                    <video src={outputs[selectedClip]} controls className="w-full rounded-[8px]" />
+                    <div className="flex gap-2">
                       <a
                         href={outputs[selectedClip]}
                         download={`clip-${selectedClip + 1}.mp4`}
-                        className="flex-1 rounded-md border border-border p-1.5 text-center text-[10px] hover:bg-secondary"
+                        className="inline-flex h-8 flex-1 items-center justify-center rounded-[9px] bg-secondary text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                       >
                         MP4 laden
                       </a>
                       {queuedIds[selectedClip] ? (
-                        <span className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-primary/10 p-1.5 text-[10px] text-primary">
-                          <CheckCircle2 className="h-3 w-3" /> In Queue
+                        <span className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full bg-success/15 text-[12px] font-semibold text-success">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> In Warteschlange
                         </span>
                       ) : (
                         <button
                           onClick={() => pushToQueue(selectedClip, selectedSeg)}
                           disabled={queuing === String(selectedClip) || !targetPlatform}
-                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-primary p-1.5 text-[10px] text-primary hover:bg-primary/10 disabled:opacity-50"
+                          className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-[12px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
                         >
                           {queuing === String(selectedClip) ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
                             <>
-                              <ListPlus className="h-3 w-3" /> Queue
+                              <ListPlus className="h-3.5 w-3.5" /> Warteschlange
                             </>
                           )}
                         </button>
@@ -2444,7 +2447,7 @@ function JobEditor() {
                 )}
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground">Kein Clip gewählt.</div>
+              <div className="text-[13px] text-muted-foreground">Kein Clip gewählt.</div>
             )}
           </div>
 
@@ -2452,14 +2455,14 @@ function JobEditor() {
           {Object.keys(outputs).length > 0 && (
             <div className="border-b border-border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium">
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   Clip-Galerie ({Object.keys(outputs).length}/{segments.length})
                 </span>
                 {Object.keys(outputs).length < segments.length && (
                   <button
                     onClick={runAutopilot}
                     disabled={autopilot === "rendering" || rendering !== null}
-                    className="text-[10px] text-primary hover:underline disabled:opacity-50"
+                    className="text-[13px] font-semibold text-accent hover:underline disabled:opacity-40"
                   >
                     Restliche rendern
                   </button>
@@ -2473,12 +2476,12 @@ function JobEditor() {
                         src={outputs[i]}
                         controls
                         preload="metadata"
-                        className="w-full rounded-md bg-black"
+                        className="w-full rounded-[8px] bg-black"
                       />
                       <a
                         href={outputs[i]}
                         download={`clip-${i + 1}.mp4`}
-                        className="block truncate rounded border border-border px-1.5 py-1 text-center text-[10px] hover:bg-secondary"
+                        className="block truncate rounded-[9px] bg-secondary px-2 py-1.5 text-center text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
                         title={s.title}
                       >
                         ⬇ {i + 1}. {s.title}
@@ -2492,12 +2495,12 @@ function JobEditor() {
 
           {masterUrl && (
             <div className="border-b border-border p-3">
-              <div className="mb-2 text-xs font-medium">Master-Export</div>
-              <video src={masterUrl} controls className="w-full rounded-md bg-black" />
+              <div className="mb-2 text-[13px] font-semibold text-muted-foreground">Master-Export</div>
+              <video src={masterUrl} controls className="w-full rounded-[8px] bg-black" />
               <a
                 href={masterUrl}
                 download="master.mp4"
-                className="mt-1 block rounded-md border border-border p-1.5 text-center text-[11px] hover:bg-secondary"
+                className="mt-2 block rounded-[11px] bg-secondary py-2 text-center text-[13px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
               >
                 Master herunterladen
               </a>
@@ -2506,8 +2509,8 @@ function JobEditor() {
 
           {/* KI-Chat */}
           <div className={`${panels.chat ? "" : "hidden"} p-3`}>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <MessageSquare className="h-3 w-3 text-accent" /> KI-Chat — sag, was geändert werden soll
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <MessageSquare className="h-3.5 w-3.5 text-primary" /> KI-Chat: sag, was geändert werden soll
             </div>
             <EditorChat
               jobId={id}
@@ -2518,22 +2521,22 @@ function JobEditor() {
             />
           </div>
 
-          {/* Bibliothek — ganz unten, nimmt dem Editor keinen Platz weg */}
+          {/* Bibliothek: ganz unten, nimmt dem Editor keinen Platz weg */}
           {panels.library && (
             <div className="border-t border-border p-3">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
                 <Library className="h-3 w-3" /> Bibliothek
               </div>
               {libraryQ.isLoading ? (
                 <div className="space-y-1">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-9 animate-pulse rounded-md bg-background" />
+                    <div key={i} className="h-9 animate-pulse rounded-[9px] bg-secondary" />
                   ))}
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-1 text-[12px] font-semibold text-muted-foreground">
                       Schnitte ({libraryQ.data?.jobs.length ?? 0})
                     </div>
                     <div className="max-h-44 space-y-1 overflow-y-auto">
@@ -2542,13 +2545,13 @@ function JobEditor() {
                           key={j.id}
                           to="/app/job/$id"
                           params={{ id: j.id }}
-                          className={`flex items-center gap-1.5 rounded-md border p-1.5 text-[11px] ${j.id === id ? "border-primary bg-primary/10" : "border-transparent hover:border-primary/40 hover:bg-background"}`}
+                          className={`flex items-center gap-1.5 rounded-[9px] px-2 py-1.5 text-[13px] ${j.id === id ? "bg-secondary font-semibold text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
                         >
-                          <Wand2 className="h-3 w-3 shrink-0 text-primary" />
+                          <Wand2 className="h-3.5 w-3.5 shrink-0 text-primary" />
                           <span className="min-w-0 flex-1 truncate">
                             {j.raw_videos?.title ?? "Video"}
                           </span>
-                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
                             {j.status}
                           </span>
                         </Link>
@@ -2556,7 +2559,7 @@ function JobEditor() {
                     </div>
                   </div>
                   <div>
-                    <div className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-1 text-[12px] font-semibold text-muted-foreground">
                       Videos ({libraryQ.data?.videos.length ?? 0})
                     </div>
                     <div className="max-h-44 space-y-1 overflow-y-auto">
@@ -2565,12 +2568,12 @@ function JobEditor() {
                           key={v.id}
                           to="/app/video/$id"
                           params={{ id: v.id }}
-                          className="flex items-center gap-1.5 rounded-md border border-transparent p-1.5 text-[11px] hover:border-primary/40 hover:bg-background"
+                          className="flex items-center gap-1.5 rounded-[9px] px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                         >
-                          <Film className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           <span className="min-w-0 flex-1 truncate">{v.title}</span>
-                          <span className="shrink-0 font-mono text-[9px] text-muted-foreground">
-                            {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "—"}
+                          <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                            {v.duration_s ? `${Math.round(Number(v.duration_s))}s` : "–"}
                           </span>
                         </Link>
                       ))}
@@ -2604,18 +2607,18 @@ function ShortcutHelp({ onClose }: { onClose: () => void }) {
     ["Strg+Shift+Z", "Wiederholen"],
   ];
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-xl"
+        className="w-full max-w-md rounded-[18px] border border-border bg-card p-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <Keyboard className="h-4 w-4 text-primary" /> Tastaturkürzel
+        <div className="mb-4 flex items-center gap-2 text-[19px] font-semibold tracking-tight">
+          <Keyboard className="h-5 w-5 text-primary" /> Tastaturkürzel
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {rows.map(([k, d]) => (
-            <div key={k} className="flex items-center justify-between gap-3 text-xs">
-              <kbd className="rounded border border-border bg-background px-2 py-0.5 font-mono text-[10px]">
+            <div key={k} className="flex items-center justify-between gap-3 text-[13px]">
+              <kbd className="rounded-[6px] border border-border bg-secondary px-2 py-0.5 font-mono text-[12px] text-foreground">
                 {k}
               </kbd>
               <span className="text-muted-foreground">{d}</span>
@@ -2624,7 +2627,7 @@ function ShortcutHelp({ onClose }: { onClose: () => void }) {
         </div>
         <button
           onClick={onClose}
-          className="mt-4 w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
         >
           Schließen
         </button>
@@ -2649,10 +2652,10 @@ function PanelChip({
     <button
       onClick={onClick}
       title={active ? `${label} ausblenden` : `${label} einblenden`}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition ${
+      className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors ${
         active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border text-muted-foreground hover:bg-secondary"
+          ? "bg-secondary text-foreground"
+          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
       }`}
     >
       {icon}
@@ -2672,13 +2675,13 @@ function TrackRow({
 }) {
   return (
     <div className="relative mb-1 flex" style={{ height: TRACK_H }}>
-      <div className="absolute left-[-32px] top-0 flex h-full w-7 items-center justify-center rounded-l-md border border-border bg-card font-mono text-[10px] text-muted-foreground">
+      <div className="absolute left-[-32px] top-0 flex h-full w-7 items-center justify-center rounded-l-[8px] border border-border bg-card text-[11px] font-semibold text-muted-foreground">
         <div className="flex flex-col items-center gap-0.5">
           {icon}
           <span>{label}</span>
         </div>
       </div>
-      <div className="relative flex-1 rounded-md border border-border bg-card">{children}</div>
+      <div className="relative flex-1 rounded-[8px] border border-border bg-card">{children}</div>
     </div>
   );
 }
@@ -2697,12 +2700,12 @@ function TransitionPicker({
       <button
         onClick={() => setOpen((v) => !v)}
         title={`Übergang: ${label}`}
-        className={`grid h-5 w-5 place-items-center rounded-sm border text-[9px] rotate-45 ${value ? "border-accent bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground"}`}
+        className={`grid h-5 w-5 place-items-center rounded-[4px] border text-[10px] font-semibold rotate-45 ${value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}
       >
         <span className="-rotate-45">{label === "cut" ? "|" : label === "fade" ? "F" : "X"}</span>
       </button>
       {open && (
-        <div className="absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-md border border-border bg-card p-1 shadow-lg">
+        <div className="absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-[14px] border border-border bg-popover p-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
           {(["cut", "fade", "crossfade"] as TransitionType[]).map((t) => (
             <button
               key={t}
@@ -2710,7 +2713,7 @@ function TransitionPicker({
                 onChange(t);
                 setOpen(false);
               }}
-              className="block w-full whitespace-nowrap rounded px-2 py-1 text-left text-[11px] hover:bg-secondary"
+              className="block w-full whitespace-nowrap rounded-[8px] px-2.5 py-1.5 text-left text-[13px] text-foreground hover:bg-secondary"
             >
               <ChevronRight className="mr-1 inline h-3 w-3" /> {t}
             </button>
@@ -2749,25 +2752,25 @@ function ViralMusicPicker({
   }
 
   const Row = ({ t }: { t: ViralTrack }) => (
-    <div className="flex items-center gap-1 rounded-md border border-border bg-background p-1.5 text-[11px]">
+    <div className="flex items-center gap-1.5 rounded-[11px] border border-border bg-card p-2 text-[13px]">
       <button
         onClick={() => toggle(t.url)}
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border text-primary hover:bg-primary/10"
-        title={preview === t.url ? "Stop" : "Preview"}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
+        title={preview === t.url ? "Stopp" : "Vorschau"}
       >
         {preview === t.url ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
       </button>
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{t.title}</div>
-        <div className="truncate text-[9px] text-muted-foreground">
+        <div className="truncate font-semibold">{t.title}</div>
+        <div className="truncate text-[11px] text-muted-foreground">
           {t.mood} · {t.bpm}BPM · {t.duration_s}s
         </div>
       </div>
       <button
         onClick={() => onPick(t)}
-        className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+        className="rounded-full bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
       >
-        Add
+        Nutzen
       </button>
     </div>
   );
@@ -2777,7 +2780,7 @@ function ViralMusicPicker({
       <audio ref={audioRef} onEnded={() => setPreview(null)} className="hidden" />
       {suggested.length > 0 && (
         <div className="space-y-1">
-          <div className="font-mono text-[9px] uppercase tracking-widest text-primary">
+          <div className="text-[12px] font-semibold text-muted-foreground">
             Passend zu „{template?.label}"
           </div>
           {suggested.map((t) => (
@@ -2785,8 +2788,8 @@ function ViralMusicPicker({
           ))}
         </div>
       )}
-      <details className="rounded-md border border-border bg-background/60">
-        <summary className="cursor-pointer px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground">
+      <details className="rounded-[11px] border border-border bg-card">
+        <summary className="cursor-pointer px-2.5 py-1.5 text-[12px] font-semibold text-muted-foreground hover:text-foreground">
           Alle {rest.length} weiteren Sounds
         </summary>
         <div className="space-y-1 border-t border-border p-1.5">
@@ -2795,7 +2798,7 @@ function ViralMusicPicker({
           ))}
         </div>
       </details>
-      <div className="text-[9px] leading-tight text-muted-foreground">
+      <div className="text-[11px] leading-tight text-muted-foreground">
         Pixabay Content License · CC0 · sofort kommerziell nutzbar.
       </div>
     </div>

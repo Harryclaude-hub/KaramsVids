@@ -70,12 +70,12 @@ const MOTION = [
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+    <label className="block space-y-1.5">
+      <span className="block text-[13px] font-semibold text-muted-foreground">
         {label}
       </span>
       {children}
-      {hint && <span className="block text-[10px] text-muted-foreground">{hint}</span>}
+      {hint && <span className="block text-[12px] text-muted-foreground">{hint}</span>}
     </label>
   );
 }
@@ -130,7 +130,7 @@ function TemplatesPage() {
         data: { id: presetId, name, baseTemplateId: baseId, config: cfg },
       });
       setPresetId(res.id);
-      toast.success("Vorlage gespeichert — sie wird beim nächsten Massen-Rendering benutzt.");
+      toast.success("Vorlage gespeichert, sie wird beim nächsten Massen-Rendering benutzt.");
       qc.invalidateQueries({ queryKey: ["template-presets"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
@@ -151,13 +151,13 @@ function TemplatesPage() {
   }
 
   const inputCls =
-    "w-full rounded border border-border bg-input px-2 py-1.5 text-xs outline-none focus:border-primary";
+    "h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
+    <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <h1 className="text-xl font-semibold">Render-Vorlagen</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-[30px] font-semibold tracking-tight">Render-Vorlagen</h1>
+        <p className="mt-1 text-[15px] text-muted-foreground">
           Untertitel-Stil, Musik-Intensität, Übergänge und Ken-Burns pro Vorlage einstellen. Die
           zuletzt gespeicherte Vorlage einer Grundvorlage wird beim Massen-Rendering automatisch
           verwendet.
@@ -165,7 +165,7 @@ function TemplatesPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <section className="space-y-4 rounded-lg border border-border bg-card p-4">
+        <section className="space-y-6 rounded-[18px] border border-border bg-card p-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <Row label="Name">
               <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
@@ -200,7 +200,7 @@ function TemplatesPage() {
                 type="color"
                 value={merged.caption.activeColor}
                 onChange={(e) => set("captionActiveColor", e.target.value)}
-                className="h-8 w-full rounded border border-border bg-input"
+                className="h-11 w-full rounded-[11px] border border-border bg-input p-1"
               />
             </Row>
             <Row label={`Schriftgröße · ${merged.caption.fontSizePct.toFixed(1)}`}>
@@ -243,7 +243,7 @@ function TemplatesPage() {
               <button
                 type="button"
                 onClick={() => set("musicDuck", !merged.music.duck)}
-                className={`w-full rounded border px-2 py-1.5 text-xs ${merged.music.duck ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+                className={`h-11 w-full rounded-[11px] border text-[15px] font-semibold transition-colors ${merged.music.duck ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
               >
                 {merged.music.duck ? "Ducking aktiv" : "Ducking aus"}
               </button>
@@ -321,14 +321,14 @@ function TemplatesPage() {
             <button
               onClick={onSave}
               disabled={busy}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-40"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {presetId ? "Vorlage aktualisieren" : "Vorlage speichern"}
             </button>
             <button
               onClick={newPreset}
-              className="rounded-md border border-border px-3 py-2 text-xs hover:border-primary/50"
+              className="inline-flex h-11 items-center rounded-[11px] bg-secondary px-5 text-[15px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
             >
               Neu
             </button>
@@ -336,12 +336,12 @@ function TemplatesPage() {
         </section>
 
         <aside className="space-y-3">
-          <div className="rounded-lg border border-border bg-card p-3">
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-medium">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <div className="rounded-[18px] border border-border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-primary" />
               Live-Vorschau
             </div>
-            <div className="relative mx-auto aspect-[9/16] w-40 overflow-hidden rounded-md bg-gradient-to-b from-zinc-700 to-zinc-900">
+            <div className="relative mx-auto aspect-[9/16] w-40 overflow-hidden rounded-[11px] bg-gradient-to-b from-zinc-700 to-zinc-900">
               <div
                 className="absolute inset-x-2 text-center text-[9px] font-bold leading-tight"
                 style={{
@@ -362,17 +362,17 @@ function TemplatesPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-3">
-            <div className="mb-2 text-xs font-medium">Gespeicherte Vorlagen</div>
+          <div className="rounded-[18px] border border-border bg-card p-5">
+            <div className="mb-3 text-[13px] font-semibold text-muted-foreground">Gespeicherte Vorlagen</div>
             <div className="space-y-1">
               {(presetsQ.data ?? []).map((p) => (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-1 rounded border px-2 py-1.5 text-[11px] ${p.id === presetId ? "border-primary/60 bg-primary/5" : "border-border"}`}
+                  className={`flex items-center gap-2 rounded-[10px] px-3 py-2 text-[15px] ${p.id === presetId ? "bg-secondary font-semibold text-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
                 >
                   <button onClick={() => loadPreset(p)} className="min-w-0 flex-1 truncate text-left">
                     {p.name}
-                    <span className="ml-1 font-mono text-[9px] text-muted-foreground">
+                    <span className="ml-1.5 font-mono text-[11px] font-normal text-muted-foreground">
                       {p.base_template_id}
                     </span>
                   </button>
@@ -381,12 +381,12 @@ function TemplatesPage() {
                     className="text-muted-foreground hover:text-destructive"
                     aria-label="Vorlage löschen"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
               {presetsQ.data?.length === 0 && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[13px] text-muted-foreground">
                   Noch keine eigene Vorlage gespeichert.
                 </p>
               )}

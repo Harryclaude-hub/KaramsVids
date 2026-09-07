@@ -117,6 +117,9 @@ const RuleInput = z.object({
   platform: z.enum(PLATFORMS).nullable(),
   socialAccountId: z.string().uuid().nullable(),
   name: z.string().min(1).max(80),
+  // Wofür die Regel gilt: Kommentare, Direktnachrichten oder beides.
+  // Fehlt der Wert (ältere Oberfläche), bleibt es eine Kommentar-Regel.
+  channel: z.enum(["comment", "dm", "both"]).default("comment"),
   mode: z.enum(["template", "ai"]),
   keywords: z.array(z.string().max(60)).max(30),
   excludeKeywords: z.array(z.string().max(60)).max(30),
@@ -146,6 +149,7 @@ export const saveReplyRule = createServerFn({ method: "POST" })
       platform: data.platform,
       social_account_id: data.socialAccountId,
       name: data.name,
+      channel: data.channel,
       mode: data.mode,
       keywords: data.keywords.filter(Boolean),
       exclude_keywords: data.excludeKeywords.filter(Boolean),
@@ -209,6 +213,7 @@ export const previewAiReply = createServerFn({ method: "POST" })
         platform: null,
         social_account_id: null,
         name: "Vorschau",
+        channel: "comment",
         mode: "ai",
         keywords: [],
         exclude_keywords: [],
@@ -221,15 +226,10 @@ export const previewAiReply = createServerFn({ method: "POST" })
         priority: 0,
         active: true,
       },
+      // generateAiReply braucht nur Absender und Text (ReplySubject).
       {
-        externalCommentId: "preview",
-        externalPostId: null,
-        postUrl: null,
-        authorHandle: data.authorName ?? null,
         authorName: data.authorName ?? "Zuschauer",
         text: data.commentText,
-        likeCount: 0,
-        postedAt: new Date().toISOString(),
       },
       data.brandName ?? null,
     );

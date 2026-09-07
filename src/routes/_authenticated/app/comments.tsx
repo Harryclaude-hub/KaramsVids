@@ -100,6 +100,14 @@ const EMPTY_RULE = {
   active: true,
 };
 
+// Apple-Rezepte als Klassen, damit die Bausteine hier einheitlich aussehen.
+const BTN_PRIMARY =
+  "inline-flex items-center gap-2 h-11 px-5 rounded-full bg-primary text-primary-foreground text-[15px] font-semibold hover:bg-[#0077ed] disabled:opacity-40";
+const BTN_SMALL_PRIMARY =
+  "inline-flex items-center gap-2 h-9 px-4 rounded-full bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-[#0077ed] disabled:opacity-40";
+const BTN_SMALL_SECONDARY =
+  "inline-flex items-center gap-2 h-9 px-4 rounded-full bg-secondary text-foreground text-[13px] font-semibold hover:bg-[#dcdce1] disabled:opacity-40";
+
 function Comments() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
@@ -234,18 +242,14 @@ function Comments() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-primary">Community</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Kommentare</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-[13px] font-semibold text-muted-foreground">Community</p>
+          <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Kommentare</h1>
+          <p className="mt-2 text-[13px] text-muted-foreground">
             Alle Kommentare deiner verbundenen Kanäle an einem Ort, von Hand oder automatisch
             beantwortet.
           </p>
         </div>
-        <button
-          onClick={syncNow}
-          disabled={syncing}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <button onClick={syncNow} disabled={syncing} className={BTN_PRIMARY}>
           {syncing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -255,7 +259,7 @@ function Comments() {
         </button>
       </div>
 
-      <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
+      <div className="flex h-9 rounded-[10px] bg-secondary p-[3px]">
         {(
           [
             ["inbox", "Posteingang", MessageSquare],
@@ -265,8 +269,8 @@ function Comments() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm ${
-              tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-[8px] px-3 text-[13px] font-semibold ${
+              tab === id ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -276,19 +280,19 @@ function Comments() {
       </div>
 
       {/* Auto-Antwort-Schalter je Kanal */}
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="rounded-[18px] border border-border bg-card p-6">
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium">
+          <div className="flex items-center gap-2 text-[15px] font-semibold">
             <Power className="h-4 w-4 text-primary" />
             Auto-Antworten
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="text-[13px] text-muted-foreground">
             {autoOn} von {accounts.length} Kanälen aktiv
           </span>
         </div>
         {accounts.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Noch kein Kanal verbunden. Das geht unter „Social“.
+          <p className="text-[13px] text-muted-foreground">
+            Noch kein Kanal verbunden. Das geht unter „Kanäle“.
           </p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -296,17 +300,17 @@ function Comments() {
               <button
                 key={a.id}
                 onClick={() => toggleAuto(a)}
-                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-xs transition ${
+                className={`flex items-center justify-between gap-3 rounded-[11px] border px-3 py-2 text-left text-[13px] transition-colors ${
                   a.auto_reply_enabled
-                    ? "border-primary/50 bg-primary/5"
+                    ? "border-primary bg-card"
                     : "border-border hover:bg-secondary"
                 }`}
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-medium">
+                  <span className="block truncate font-semibold">
                     {a.handle ?? a.display_name ?? "Kanal"}
                   </span>
-                  <span className="block font-mono text-[10px] text-muted-foreground">
+                  <span className="block text-[12px] text-muted-foreground">
                     {PLATFORM_LABEL[a.platform] ?? a.platform}
                     {a.brand_id && brandById.get(a.brand_id)
                       ? ` · ${brandById.get(a.brand_id)!.name}`
@@ -314,27 +318,27 @@ function Comments() {
                   </span>
                 </span>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                     a.auto_reply_enabled
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-success/15 text-success"
+                      : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  {a.auto_reply_enabled ? "an" : "aus"}
+                  {a.auto_reply_enabled ? "An" : "Aus"}
                 </span>
               </button>
             ))}
           </div>
         )}
         {accounts.some((a) => a.sync_error) && (
-          <div className="mt-3 space-y-1 rounded-lg border border-destructive/40 bg-destructive/5 p-2">
+          <div className="mt-3 space-y-1 rounded-[11px] border border-destructive/40 bg-destructive/5 p-3">
             {accounts
               .filter((a) => a.sync_error)
               .map((a) => (
-                <p key={a.id} className="flex items-start gap-1.5 text-[11px] text-destructive">
-                  <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                <p key={a.id} className="flex items-start gap-1.5 text-[13px] text-destructive">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    <span className="font-medium">{a.handle ?? PLATFORM_LABEL[a.platform]}:</span>{" "}
+                    <span className="font-semibold">{a.handle ?? PLATFORM_LABEL[a.platform]}:</span>{" "}
                     {a.sync_error}
                   </span>
                 </p>
@@ -345,7 +349,7 @@ function Comments() {
 
       {tab === "inbox" ? (
         <>
-          <div className="flex flex-wrap gap-2 rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-border bg-card p-3">
             <Chips
               value={statusFilter}
               onChange={(v) => setStatusFilter(v as typeof statusFilter)}
@@ -356,7 +360,7 @@ function Comments() {
                 ["all", "Alle"],
               ]}
             />
-            <span className="w-px bg-border" />
+            <span className="h-5 w-px bg-border" />
             <Chips
               value={platformFilter}
               onChange={setPlatformFilter}
@@ -364,12 +368,12 @@ function Comments() {
             />
             {brands.length > 1 && (
               <>
-                <span className="w-px bg-border" />
+                <span className="h-5 w-px bg-border" />
                 <Chips
                   value={brandFilter}
                   onChange={setBrandFilter}
                   options={[
-                    ["all", "Alle Brands"],
+                    ["all", "Alle Profile"],
                     ...brands.map((b) => [b.id, b.name] as [string, string]),
                   ]}
                 />
@@ -378,12 +382,12 @@ function Comments() {
           </div>
 
           {commentsQ.isLoading ? (
-            <div className="grid place-items-center rounded-xl border border-dashed border-border p-10 text-sm text-muted-foreground">
+            <div className="grid place-items-center rounded-[18px] border border-dashed border-border p-10 text-[15px] text-muted-foreground">
               <Loader2 className="mb-2 h-5 w-5 animate-spin" />
               Kommentare werden geladen
             </div>
           ) : comments.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+            <div className="rounded-[18px] border border-dashed border-border p-10 text-center text-[15px] text-muted-foreground">
               Keine Kommentare in dieser Ansicht. Mit „Jetzt abholen“ holst du den aktuellen Stand.
             </div>
           ) : (
@@ -391,12 +395,12 @@ function Comments() {
               {comments.map((c) => {
                 const acc = accountById.get(c.social_account_id);
                 return (
-                  <div key={c.id} className="rounded-xl border border-border bg-card p-4">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="rounded bg-secondary px-1.5 py-0.5 font-mono uppercase">
+                  <div key={c.id} className="rounded-[18px] border border-border bg-card p-5">
+                    <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                      <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-foreground">
                         {PLATFORM_LABEL[c.platform] ?? c.platform}
                       </span>
-                      <span className="font-medium text-foreground">
+                      <span className="font-semibold text-foreground">
                         {c.author_handle ?? c.author_name ?? "Unbekannt"}
                       </span>
                       {acc && <span>an {acc.handle ?? acc.display_name}</span>}
@@ -416,28 +420,28 @@ function Comments() {
                       )}
                     </div>
 
-                    <p className="mt-2 whitespace-pre-wrap text-sm">{c.text}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-[15px]">{c.text}</p>
 
                     {c.status === "replied" ? (
-                      <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                        <div className="mb-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-primary">
+                      <div className="mt-3 rounded-[14px] border border-border bg-background p-4">
+                        <div className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
                           {c.reply_mode === "ai" ? (
-                            <Sparkles className="h-3 w-3" />
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
                           ) : (
-                            <Send className="h-3 w-3" />
+                            <Send className="h-3.5 w-3.5 text-primary" />
                           )}
                           Antwort
                           {c.reply_mode === "ai" && " (KI)"}
                           {c.reply_mode === "manual" && " (von Hand)"}
                           {c.replied_at && ` · ${new Date(c.replied_at).toLocaleString("de-DE")}`}
                         </div>
-                        <p className="whitespace-pre-wrap text-sm">{c.reply_text}</p>
+                        <p className="whitespace-pre-wrap text-[15px]">{c.reply_text}</p>
                       </div>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {c.error && (
-                          <p className="flex items-start gap-1.5 text-[11px] text-destructive">
-                            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                          <p className="flex items-start gap-1.5 text-[13px] text-destructive">
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             {c.error}
                           </p>
                         )}
@@ -446,27 +450,27 @@ function Comments() {
                           onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
                           rows={2}
                           placeholder="Antwort schreiben…"
-                          className="w-full resize-y rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-primary"
+                          className="min-h-[96px] w-full resize-y rounded-[11px] border border-border bg-input px-4 py-3 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60"
                         />
                         <div className="flex gap-2">
                           <button
                             onClick={() => sendReply(c)}
                             disabled={busyId === c.id}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                            className={BTN_SMALL_PRIMARY}
                           >
                             {busyId === c.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <Send className="h-3 w-3" />
+                              <Send className="h-3.5 w-3.5" />
                             )}
                             Antworten
                           </button>
                           <button
                             onClick={() => skip(c)}
                             disabled={busyId === c.id}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary disabled:opacity-50"
+                            className={BTN_SMALL_SECONDARY}
                           >
-                            <SkipForward className="h-3 w-3" /> Abhaken
+                            <SkipForward className="h-3.5 w-3.5" /> Abhaken
                           </button>
                         </div>
                       </div>
@@ -504,10 +508,10 @@ function Chips({
         <button
           key={id}
           onClick={() => onChange(id)}
-          className={`rounded-md border px-2.5 py-1 text-xs ${
+          className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
             value === id
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border hover:bg-secondary"
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
           }`}
         >
           {label}
@@ -638,13 +642,15 @@ function RulesPanel({
   }
 
   const input =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
-  const labelCls = "font-mono text-[10px] uppercase tracking-widest text-muted-foreground";
+    "h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60";
+  const textarea =
+    "min-h-[96px] w-full rounded-[11px] border border-border bg-input px-4 py-3 text-[15px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60";
+  const labelCls = "text-[13px] font-semibold text-foreground";
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
           Regeln greifen von oben nach unten: die Regel mit der höchsten Priorität, deren Stichwort
           passt, antwortet.
         </p>
@@ -653,16 +659,16 @@ function RulesPanel({
             setForm({ ...EMPTY_RULE });
             setPreview(null);
           }}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          className={`shrink-0 ${BTN_SMALL_PRIMARY}`}
         >
-          <Plus className="h-3 w-3" /> Neue Regel
+          <Plus className="h-3.5 w-3.5" /> Neue Regel
         </button>
       </div>
 
       {form && (
-        <div className="space-y-4 rounded-xl border border-primary/40 bg-card p-4">
+        <div className="space-y-4 rounded-[18px] border border-border bg-card p-6">
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Name</span>
               <input
                 className={input}
@@ -670,7 +676,7 @@ function RulesPanel({
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Art der Antwort</span>
               <select
                 className={input}
@@ -681,14 +687,14 @@ function RulesPanel({
                 <option value="ai">KI schreibt die Antwort</option>
               </select>
             </label>
-            <label className="space-y-1">
-              <span className={labelCls}>Brand</span>
+            <label className="space-y-1.5">
+              <span className={labelCls}>Profil</span>
               <select
                 className={input}
                 value={form.brandId ?? ""}
                 onChange={(e) => setForm({ ...form, brandId: e.target.value || null })}
               >
-                <option value="">Alle Brands</option>
+                <option value="">Alle Profile</option>
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -696,7 +702,7 @@ function RulesPanel({
                 ))}
               </select>
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Plattform</span>
               <select
                 className={input}
@@ -713,7 +719,7 @@ function RulesPanel({
                 ))}
               </select>
             </label>
-            <label className="space-y-1 sm:col-span-2">
+            <label className="space-y-1.5 sm:col-span-2">
               <span className={labelCls}>Nur dieser Kanal (optional)</span>
               <select
                 className={input}
@@ -730,7 +736,7 @@ function RulesPanel({
                 ))}
               </select>
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Stichwörter (Komma, leer = alle)</span>
               <input
                 className={input}
@@ -739,7 +745,7 @@ function RulesPanel({
                 onChange={(e) => setForm({ ...form, keywords: e.target.value })}
               />
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Nie antworten bei</span>
               <input
                 className={input}
@@ -751,31 +757,31 @@ function RulesPanel({
           </div>
 
           {form.mode === "template" ? (
-            <label className="block space-y-1">
+            <label className="block space-y-1.5">
               <span className={labelCls}>
                 Antworttext · Platzhalter {"{name} {brand} {kommentar}"}
               </span>
               <textarea
                 rows={3}
-                className={input}
+                className={textarea}
                 value={form.messageTemplate}
                 onChange={(e) => setForm({ ...form, messageTemplate: e.target.value })}
               />
             </label>
           ) : (
             <div className="space-y-3">
-              <label className="block space-y-1">
+              <label className="block space-y-1.5">
                 <span className={labelCls}>Anweisung an die KI</span>
                 <textarea
                   rows={3}
-                  className={input}
+                  className={textarea}
                   placeholder="Bedanke dich, beantworte die Frage kurz und verweise bei Preisfragen auf den Link in der Bio."
                   value={form.aiInstruction}
                   onChange={(e) => setForm({ ...form, aiInstruction: e.target.value })}
                 />
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1">
+                <label className="space-y-1.5">
                   <span className={labelCls}>Tonfall</span>
                   <input
                     className={input}
@@ -783,7 +789,7 @@ function RulesPanel({
                     onChange={(e) => setForm({ ...form, aiTone: e.target.value })}
                   />
                 </label>
-                <label className="space-y-1">
+                <label className="space-y-1.5">
                   <span className={labelCls}>Testkommentar</span>
                   <input
                     className={input}
@@ -792,21 +798,19 @@ function RulesPanel({
                   />
                 </label>
               </div>
-              <button
-                onClick={testAi}
-                disabled={previewing}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary disabled:opacity-50"
-              >
+              <button onClick={testAi} disabled={previewing} className={BTN_SMALL_SECONDARY}>
                 {previewing ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-3.5 w-3.5" />
                 )}
                 Antwort testen
               </button>
               {preview && (
-                <div className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm">
-                  <div className={labelCls}>So würde die KI antworten</div>
+                <div className="rounded-[14px] border border-border bg-background p-4 text-[15px]">
+                  <div className="text-[13px] font-semibold text-muted-foreground">
+                    So würde die KI antworten
+                  </div>
                   <p className="mt-1 whitespace-pre-wrap">{preview}</p>
                 </div>
               )}
@@ -814,7 +818,7 @@ function RulesPanel({
           )}
 
           <div className="grid gap-3 sm:grid-cols-4">
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Max. Zeichen</span>
               <input
                 type="number"
@@ -823,7 +827,7 @@ function RulesPanel({
                 onChange={(e) => setForm({ ...form, maxLength: Number(e.target.value) })}
               />
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Limit pro Tag</span>
               <input
                 type="number"
@@ -832,7 +836,7 @@ function RulesPanel({
                 onChange={(e) => setForm({ ...form, dailyLimit: Number(e.target.value) })}
               />
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Wartezeit (Min.)</span>
               <input
                 type="number"
@@ -841,7 +845,7 @@ function RulesPanel({
                 onChange={(e) => setForm({ ...form, delayMinutes: Number(e.target.value) })}
               />
             </label>
-            <label className="space-y-1">
+            <label className="space-y-1.5">
               <span className={labelCls}>Priorität</span>
               <input
                 type="number"
@@ -853,27 +857,21 @@ function RulesPanel({
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <label className="flex items-center gap-2 text-xs">
+            <label className="flex items-center gap-2 text-[13px] font-semibold">
               <input
                 type="checkbox"
+                className="h-4 w-4 accent-primary"
                 checked={form.active}
                 onChange={(e) => setForm({ ...form, active: e.target.checked })}
               />
               Regel aktiv
             </label>
             <div className="flex gap-2">
-              <button
-                onClick={() => setForm(null)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary"
-              >
+              <button onClick={() => setForm(null)} className={BTN_SMALL_SECONDARY}>
                 Abbrechen
               </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+              <button onClick={save} disabled={saving} className={BTN_SMALL_PRIMARY}>
+                {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Speichern
               </button>
             </div>
@@ -882,7 +880,7 @@ function RulesPanel({
       )}
 
       {rules.length === 0 && !form ? (
-        <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-[18px] border border-dashed border-border p-10 text-center text-[15px] text-muted-foreground">
           Noch keine Regel. Ohne Regel bleibt jeder Kommentar im Posteingang liegen.
         </div>
       ) : (
@@ -890,57 +888,54 @@ function RulesPanel({
           {rules.map((r) => (
             <div
               key={r.id}
-              className="flex items-start justify-between gap-3 rounded-xl border border-border bg-card p-4"
+              className="flex items-start justify-between gap-3 rounded-[18px] border border-border bg-card p-5"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium">{r.name}</span>
+                  <span className="text-[15px] font-semibold">{r.name}</span>
                   <span
-                    className={`rounded px-1.5 py-0.5 font-mono text-[10px] uppercase ${
+                    className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                       r.mode === "ai"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-secondary text-muted-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
                     }`}
                   >
                     {r.mode === "ai" ? "KI" : "Vorlage"}
                   </span>
                   {!r.active && (
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase text-muted-foreground">
-                      pausiert
+                    <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[12px] font-semibold text-warning">
+                      Pausiert
                     </span>
                   )}
                 </div>
-                <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                <p className="mt-1 text-[13px] text-muted-foreground">
                   {r.platform ? (PLATFORM_LABEL[r.platform] ?? r.platform) : "Alle Plattformen"}
                   {" · "}
                   {r.brand_id
-                    ? (brands.find((b) => b.id === r.brand_id)?.name ?? "Brand")
-                    : "Alle Brands"}
+                    ? (brands.find((b) => b.id === r.brand_id)?.name ?? "Profil")
+                    : "Alle Profile"}
                   {" · Priorität "}
                   {r.priority}
                   {" · max. "}
                   {r.daily_limit}
                   {"/Tag"}
                 </p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">
+                <p className="mt-1 truncate text-[13px] text-muted-foreground">
                   {r.keywords.length ? `bei: ${r.keywords.join(", ")}` : "bei jedem Kommentar"}
                   {" · "}
                   {r.mode === "ai" ? r.ai_instruction : r.message_template}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  onClick={() => edit(r)}
-                  className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-secondary"
-                >
+              <div className="flex shrink-0 items-center gap-1">
+                <button onClick={() => edit(r)} className={BTN_SMALL_SECONDARY}>
                   Bearbeiten
                 </button>
                 <button
                   onClick={() => remove(r.id)}
-                  className="rounded-md border border-border px-2 py-1 text-destructive hover:bg-destructive/10"
+                  className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
                   title="Löschen"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>

@@ -1,0 +1,5 @@
+# Lokale Umgebung des Workers, gehoert nicht ins Repo
+.venv/
+.env
+__pycache__/
+*.pyc

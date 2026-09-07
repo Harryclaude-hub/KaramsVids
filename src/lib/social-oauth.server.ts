@@ -53,8 +53,14 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     secretEnv: "META_APP_SECRET",
     authUrl: "https://www.facebook.com/v21.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v21.0/oauth/access_token",
+    // instagram_manage_messages: Direktnachrichten lesen und beantworten.
+    // pages_manage_metadata: laut Meta-Doku zusaetzlich noetig, um die
+    // Konversationen einer Seite (auch die Instagram-DMs) zu lesen.
+    // ACHTUNG: Bereits verbundene Instagram-Kanaele haben diese Rechte noch
+    // nicht. Sie muessen einmal getrennt und neu verbunden werden, sonst
+    // liefert der DM-Abruf einen Berechtigungsfehler.
     scopes:
-      "instagram_basic,instagram_content_publish,instagram_manage_insights,pages_show_list,pages_read_engagement,business_management",
+      "instagram_basic,instagram_content_publish,instagram_manage_insights,instagram_manage_messages,pages_show_list,pages_read_engagement,pages_manage_metadata,business_management",
     docsUrl: "https://developers.facebook.com/apps",
   },
   facebook: {
@@ -63,7 +69,14 @@ export const OAUTH_CONFIG: Record<Platform, Cfg> = {
     secretEnv: "META_APP_SECRET",
     authUrl: "https://www.facebook.com/v21.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v21.0/oauth/access_token",
-    scopes: "pages_show_list,pages_manage_posts,pages_read_engagement,read_insights,business_management",
+    // pages_messaging: Messenger-Nachrichten der Seite lesen und beantworten.
+    // pages_manage_metadata: laut Meta-Doku zusaetzlich noetig fuer den
+    // Konversations-Endpunkt der Seite.
+    // ACHTUNG: Bereits verbundene Facebook-Seiten haben diese Rechte noch
+    // nicht. Sie muessen einmal getrennt und neu verbunden werden, sonst
+    // liefert der DM-Abruf einen Berechtigungsfehler.
+    scopes:
+      "pages_show_list,pages_manage_posts,pages_read_engagement,pages_messaging,pages_manage_metadata,read_insights,business_management",
     docsUrl: "https://developers.facebook.com/apps",
   },
   tiktok: {
@@ -185,7 +198,7 @@ export function buildAuthorizeUrl(opts: {
   const clientId = process.env[cfg.idEnv];
   if (!clientId || !process.env[cfg.secretEnv]) {
     throw new Error(
-      `${cfg.label} ist noch nicht eingerichtet — es fehlen die Secrets ${cfg.idEnv} und ${cfg.secretEnv}. Anlegen unter: ${cfg.docsUrl}`,
+      `${cfg.label} ist noch nicht eingerichtet, es fehlen die Secrets ${cfg.idEnv} und ${cfg.secretEnv}. Anlegen unter: ${cfg.docsUrl}`,
     );
   }
 
@@ -327,7 +340,7 @@ export async function exchangeCode(
 
   // Alle Seiten holen, auf die der Nutzer Rechte hat. Jede Seite (und der
   // daran haengende Instagram-Business-Account) wird spaeter zu einem eigenen
-  // Eintrag in social_accounts — so sind beliebig viele Kanaele moeglich.
+  // Eintrag in social_accounts, so sind beliebig viele Kanaele moeglich.
   const pagesRes = await fetch(
     `https://graph.facebook.com/v21.0/me/accounts?limit=100&fields=id,name,picture{url},access_token,instagram_business_account{id,username,profile_picture_url}&access_token=${userToken}`,
   );
@@ -522,7 +535,7 @@ export async function refreshIfNeeded(
     expires_at: string | null;
   },
 ): Promise<string> {
-  if (!account.access_token_encrypted) throw new Error("Kein Access-Token gespeichert — bitte Account neu verbinden");
+  if (!account.access_token_encrypted) throw new Error("Kein Access-Token gespeichert, bitte Account neu verbinden");
   const access = decryptToken(account.access_token_encrypted);
   const exp = account.expires_at ? new Date(account.expires_at).getTime() : 0;
   const stillValid = !exp || exp - Date.now() > 5 * 60_000;

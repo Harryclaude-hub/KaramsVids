@@ -16,16 +16,16 @@ import { BrandAvatar } from "@/components/brand-avatar";
 export const Route = createFileRoute("/_authenticated/app/profile")({
   head: () => ({
     meta: [
-      { title: "Profil, Affiliate & Earnings — VideoCraft AI" },
+      { title: "Projekt, Affiliate & Einnahmen · KaramsVids" },
       {
         name: "description",
         content:
-          "Verwalte Profile, Affiliate-Programme, Auszahlungsdaten und alle Einnahmen deiner Brands an einem Ort.",
+          "Verwalte Projekte, Affiliate-Programme, Auszahlungsdaten und alle Einnahmen deiner Profile an einem Ort.",
       },
-      { property: "og:title", content: "Profil, Affiliate & Earnings — VideoCraft AI" },
+      { property: "og:title", content: "Projekt, Affiliate & Einnahmen · KaramsVids" },
       {
         property: "og:description",
-        content: "Alle Brand-Einnahmen und Affiliate-Links eines Profils gebündelt.",
+        content: "Alle Profil-Einnahmen und Affiliate-Links eines Projekts gebündelt.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -61,13 +61,13 @@ function ProfilePage() {
     const byPlatform = new Map<string, number>();
     const byBrand = new Map<string, number>();
     for (const e of earnings) {
-      byPlatform.set(e.platform ?? "—", (byPlatform.get(e.platform ?? "—") ?? 0) + Number(e.amount));
+      byPlatform.set(e.platform ?? "–", (byPlatform.get(e.platform ?? "–") ?? 0) + Number(e.amount));
       if (e.brand_id) byBrand.set(e.brand_id, (byBrand.get(e.brand_id) ?? 0) + Number(e.amount));
     }
     return { total, paid, open: total - paid, byPlatform, byBrand };
   }, [earnings]);
 
-  // ---- Profil bearbeiten ----
+  // ---- Projekt bearbeiten ----
   const [name, setName] = useState("");
   const [provider, setProvider] = useState("");
   const [payoutAccount, setPayoutAccount] = useState("");
@@ -87,14 +87,14 @@ function ProfilePage() {
     const { error } = await supabase
       .from("workspaces")
       .update({
-        name: name.trim() || "Profil",
+        name: name.trim() || "Projekt",
         payout_provider: provider || null,
         payout_details: { account: payoutAccount },
       } as never)
       .eq("id", activeWorkspaceId);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["workspaces"] });
-    toast.success("Profil gespeichert");
+    toast.success("Projekt gespeichert");
   }
 
   // ---- Affiliate ----
@@ -120,7 +120,7 @@ function ProfilePage() {
     qc.invalidateQueries({ queryKey: ["affiliate_programs", activeWorkspaceId] });
   }
 
-  // ---- Earnings ----
+  // ---- Einnahmen ----
   const [ent, setEnt] = useState({
     brand_id: "",
     platform: "",
@@ -154,7 +154,7 @@ function ProfilePage() {
     qc.invalidateQueries({ queryKey: ["earnings", activeWorkspaceId] });
   }
 
-  /** Berechnet Affiliate-Einnahmen aus Views der Brand-Snapshots (CPM). */
+  /** Berechnet Affiliate-Einnahmen aus Views der Profil-Snapshots (CPM). */
   async function calcFromViews() {
     if (!activeWorkspaceId) return;
     const cpmProgram = programs.find((p) => p.payout_type === "cpm" && p.active);
@@ -189,54 +189,54 @@ function ProfilePage() {
   }
 
   const input =
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm outline-none focus:border-primary";
+    "h-11 w-full rounded-[11px] border border-border bg-input px-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/60";
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <header className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+      <header className="flex items-center gap-4">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-secondary text-primary">
           <Wallet className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold">Profil, Affiliate & Earnings</h1>
-          <p className="text-xs text-muted-foreground">
-            Alles rund um „{activeWorkspace?.name ?? "Profil"}" — {brands.length} Brands
+          <h1 className="text-[30px] font-semibold tracking-tight">Projekt, Affiliate & Einnahmen</h1>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            Alles rund um „{activeWorkspace?.name ?? "Projekt"}“ · {brands.length} Profile
           </p>
         </div>
       </header>
 
       {/* KPI */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Gesamt-Earnings", value: money(totals.total), icon: TrendingUp },
+          { label: "Gesamt-Einnahmen", value: money(totals.total), icon: TrendingUp },
           { label: "Ausgezahlt", value: money(totals.paid), icon: Check },
           { label: "Offen", value: money(totals.open), icon: Wallet },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <k.icon className="h-3.5 w-3.5" /> {k.label}
+          <div key={k.label} className="rounded-[18px] border border-border bg-card p-6">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
+              <k.icon className="h-4 w-4" /> {k.label}
             </div>
-            <div className="mt-1 text-2xl font-semibold">{k.value}</div>
+            <div className="mt-2 text-[28px] font-semibold tracking-tight tabular-nums">{k.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Profil-Einstellungen */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Profil & Auszahlung</h2>
-        <div className="grid gap-3 md:grid-cols-3">
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Profilname</span>
+      {/* Projekt-Einstellungen */}
+      <section className="rounded-[18px] border border-border bg-card p-6">
+        <h2 className="mb-4 text-[17px] font-semibold tracking-tight">Projekt & Auszahlung</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          <label className="block space-y-1.5">
+            <span className="block text-[13px] font-semibold text-foreground">Projektname</span>
             <input className={input} value={name} onChange={(e) => setName(e.target.value)} />
           </label>
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Auszahlungs-Anbieter</span>
+          <label className="block space-y-1.5">
+            <span className="block text-[13px] font-semibold text-foreground">Auszahlungs-Anbieter</span>
             <select
               className={input}
               value={provider}
               onChange={(e) => setProvider(e.target.value)}
             >
-              <option value="">— wählen —</option>
+              <option value="">Bitte wählen</option>
               {PAYOUT_PROVIDERS.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -244,38 +244,38 @@ function ProfilePage() {
               ))}
             </select>
           </label>
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Konto / E-Mail / IBAN</span>
+          <label className="block space-y-1.5">
+            <span className="block text-[13px] font-semibold text-foreground">Konto / E-Mail / IBAN</span>
             <input
               className={input}
               value={payoutAccount}
               onChange={(e) => setPayoutAccount(e.target.value)}
-              placeholder="z. B. pay@brand.de"
+              placeholder="z. B. pay@beispiel.de"
             />
           </label>
         </div>
         <button
           onClick={saveProfile}
-          className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0077ed] disabled:opacity-40 dark:hover:bg-[#3ea0ff]"
         >
           Speichern
         </button>
-        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
           Hinweis: TikTok, YouTube und Meta zahlen Creator-Einnahmen direkt auf dein eigenes Konto
-          aus — dafür gibt es keine öffentliche Auszahlungs-API. Hier werden alle Beträge gebündelt
+          aus. Dafür gibt es keine öffentliche Auszahlungs-API. Hier werden alle Beträge gebündelt
           angezeigt und verwaltet; die eigentliche Auszahlung löst du beim jeweiligen Anbieter aus.
         </p>
       </section>
 
       {/* Affiliate-Programme */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="mb-1 text-sm font-semibold">Affiliate-Programme</h2>
-        <p className="mb-4 text-xs text-muted-foreground">
+      <section className="rounded-[18px] border border-border bg-card p-6">
+        <h2 className="mb-1 text-[17px] font-semibold tracking-tight">Affiliate-Programme</h2>
+        <p className="mb-4 text-[13px] text-muted-foreground">
           Der Link wird beim Posten automatisch an die Caption gehängt (im Publishing pro Clip
           wählbar).
         </p>
 
-        <div className="grid gap-2 md:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-5">
           <input
             className={input}
             placeholder="Name (z. B. Clipper XY)"
@@ -306,7 +306,7 @@ function ProfilePage() {
             />
             <button
               onClick={addProgram}
-              className="shrink-0 rounded-md bg-primary px-3 text-primary-foreground hover:bg-primary/90"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
               title="Hinzufügen"
             >
               <Plus className="h-4 w-4" />
@@ -314,23 +314,23 @@ function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-5 space-y-2">
           {programs.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background/50 px-3 py-2 text-sm"
+              className="flex items-center gap-3 rounded-[11px] border border-border bg-background px-4 py-3 text-[15px]"
             >
               <Link2 className="h-4 w-4 shrink-0 text-primary" />
-              <span className="font-medium">{p.name}</span>
+              <span className="font-semibold">{p.name}</span>
               <a
                 href={p.link}
                 target="_blank"
                 rel="noreferrer"
-                className="truncate text-xs text-muted-foreground hover:text-primary"
+                className="truncate text-[13px] text-muted-foreground hover:text-accent hover:underline"
               >
                 {p.link}
               </a>
-              <span className="ml-auto shrink-0 rounded bg-secondary px-2 py-0.5 text-[11px]">
+              <span className="ml-auto shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-semibold text-foreground tabular-nums">
                 {p.payout_type === "cpm"
                   ? `${money(Number(p.payout_amount))} / 1k Views`
                   : p.payout_type === "sale"
@@ -339,37 +339,37 @@ function ProfilePage() {
               </span>
               <button
                 onClick={() => removeProgram(p)}
-                className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
           {programs.length === 0 && (
-            <p className="text-xs text-muted-foreground">Noch keine Programme hinterlegt.</p>
+            <p className="text-[13px] text-muted-foreground">Noch keine Programme hinterlegt.</p>
           )}
         </div>
       </section>
 
-      {/* Earnings */}
-      <section className="rounded-xl border border-border bg-card p-5">
+      {/* Einnahmen */}
+      <section className="rounded-[18px] border border-border bg-card p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <h2 className="text-sm font-semibold">Einnahmen</h2>
+          <h2 className="text-[17px] font-semibold tracking-tight">Einnahmen</h2>
           <button
             onClick={calcFromViews}
-            className="ml-auto rounded-md border border-border px-3 py-1.5 text-xs hover:border-primary"
+            className="ml-auto inline-flex h-9 items-center rounded-full bg-secondary px-4 text-[13px] font-semibold text-foreground transition-colors hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
           >
             Aus Views berechnen (CPM)
           </button>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-6">
           <select
             className={input}
             value={ent.brand_id}
             onChange={(e) => setEnt({ ...ent, brand_id: e.target.value })}
           >
-            <option value="">Brand …</option>
+            <option value="">Profil …</option>
             {brands.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -395,7 +395,7 @@ function ProfilePage() {
           >
             <option value="platform">Plattform-Auszahlung</option>
             <option value="affiliate">Affiliate</option>
-            <option value="brandDeal">Brand-Deal</option>
+            <option value="brandDeal">Sponsoring-Deal</option>
           </select>
           <select
             className={input}
@@ -424,41 +424,41 @@ function ProfilePage() {
             />
             <button
               onClick={addEarning}
-              className="shrink-0 rounded-md bg-primary px-3 text-primary-foreground hover:bg-primary/90"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-[#0077ed] dark:hover:bg-[#3ea0ff]"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border text-left text-xs text-muted-foreground">
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-[15px]">
+            <thead className="border-b border-border text-left text-[13px] font-semibold text-muted-foreground">
               <tr>
-                <th className="py-2">Brand</th>
-                <th>Plattform</th>
-                <th>Quelle</th>
-                <th className="text-right">Views</th>
-                <th className="text-right">Betrag</th>
-                <th className="text-right">Status</th>
+                <th className="h-11 px-3 font-semibold">Profil</th>
+                <th className="h-11 px-3 font-semibold">Plattform</th>
+                <th className="h-11 px-3 font-semibold">Quelle</th>
+                <th className="h-11 px-3 text-right font-semibold">Views</th>
+                <th className="h-11 px-3 text-right font-semibold">Betrag</th>
+                <th className="h-11 px-3 text-right font-semibold">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
+            <tbody className="divide-y divide-border">
               {earnings.map((e) => {
                 const b = brands.find((x) => x.id === e.brand_id);
                 return (
-                  <tr key={e.id}>
-                    <td className="py-2">{b?.name ?? "—"}</td>
-                    <td className="text-muted-foreground">{e.platform ?? "—"}</td>
-                    <td className="text-muted-foreground">{e.source}</td>
-                    <td className="text-right tabular-nums">{e.views.toLocaleString("de-DE")}</td>
-                    <td className="text-right tabular-nums">
+                  <tr key={e.id} className="transition-colors hover:bg-secondary/40">
+                    <td className="px-3 py-3">{b?.name ?? "–"}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{e.platform ?? "–"}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{e.source}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{e.views.toLocaleString("de-DE")}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">
                       {money(Number(e.amount), e.currency)}
                     </td>
-                    <td className="text-right">
+                    <td className="px-3 py-3 text-right">
                       <button
                         onClick={() => togglePaid(e.id, e.status)}
-                        className={`rounded px-2 py-0.5 text-[11px] ${e.status === "paid" ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}
+                        className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${e.status === "paid" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
                       >
                         {e.status === "paid" ? "ausgezahlt" : "offen"}
                       </button>
@@ -468,7 +468,7 @@ function ProfilePage() {
               })}
               {earnings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-4 text-xs text-muted-foreground">
+                  <td colSpan={6} className="px-3 py-4 text-[13px] text-muted-foreground">
                     Noch keine Einnahmen erfasst.
                   </td>
                 </tr>
@@ -478,30 +478,30 @@ function ProfilePage() {
         </div>
       </section>
 
-      {/* Brands des Profils */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Brands in diesem Profil</h2>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Profile des Projekts */}
+      <section className="rounded-[18px] border border-border bg-card p-6">
+        <h2 className="mb-4 text-[17px] font-semibold tracking-tight">Profile in diesem Projekt</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {brands.map((b) => (
             <Link
               key={b.id}
               to="/app/brand/$id"
               params={{ id: b.id }}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background/50 p-3 hover:border-primary"
+              className="flex items-center gap-3 rounded-[11px] border border-border bg-background p-3 transition-colors hover:bg-secondary/60"
             >
-              <BrandAvatar brand={b} className="h-8 w-8 rounded-lg text-xs" />
+              <BrandAvatar brand={b} className="h-9 w-9 rounded-[10px] text-[12px]" />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{b.name}</div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="truncate text-[15px] font-semibold">{b.name}</div>
+                <div className="text-[13px] text-muted-foreground tabular-nums">
                   {money(totals.byBrand.get(b.id) ?? 0)}
                 </div>
               </div>
-              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
             </Link>
           ))}
           {brands.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Noch keine Brands in diesem Profil — links in der Seitenleiste anlegen.
+            <p className="text-[13px] text-muted-foreground">
+              Noch keine Profile in diesem Projekt. Links in der Seitenleiste anlegen.
             </p>
           )}
         </div>

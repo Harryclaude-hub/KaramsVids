@@ -1,0 +1,18 @@
+# KaramsVids Worker: Abhaengigkeiten (alles CPU-faehig, keine Grafikkarte noetig)
+#
+# Installation (im Ordner worker/):
+#   python -m venv .venv
+#   .venv\Scripts\pip install -r requirements.txt
+
+supabase>=2.10,<3          # Supabase-Client (Datenbank + Storage) mit Service-Role
+yt-dlp>=2025.1.1           # Download von YouTube und Co., wenn keine Datei im Storage liegt
+faster-whisper>=1.1,<2     # Lokale Transkription mit Wort-Zeitmarken (CTranslate2, int8 auf CPU)
+httpx>=0.27,<1             # HTTP-Aufrufe (Lovable-AI-Gateway, Groq, Storage-Downloads)
+pydantic>=2.7,<3           # Datenmodelle fuer Transkript, Auswahl und Antworten der Sprachmodelle
+rich>=13.7                 # Lesbares Logging und Fortschritt in der Konsole
+python-dotenv>=1.0         # .env-Datei einlesen
+
+# Optional: Transkription ueber Groq (whisper-large-v3-turbo) statt lokal.
+# Wird nur benutzt, wenn GROQ_API_KEY gesetzt ist. Der Aufruf laeuft ueber httpx,
+# das Paket "groq" ist deshalb nicht zwingend; wer es mag, kann es nachziehen:
+# groq>=0.11

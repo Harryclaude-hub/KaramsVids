@@ -13,7 +13,7 @@ export type BrandLike = {
 
 export function BrandAvatar({
   brand,
-  className = "h-6 w-6 rounded-md",
+  className = "h-6 w-6 rounded-[7px]",
 }: {
   brand: BrandLike;
   className?: string;

@@ -169,7 +169,7 @@ function Tracking() {
     return map;
   }, [posts]);
 
-  // Gruppierung nach Brand, damit jeder Bereich für sich lesbar bleibt.
+  // Gruppierung nach Profil (Tabelle brands), damit jeder Bereich für sich lesbar bleibt.
   const grouped = useMemo(() => {
     const groups = new Map<string, AccountRow[]>();
     for (const a of accounts) {
@@ -210,22 +210,22 @@ function Tracking() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-primary">Auswertung</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Tracking</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Alle Kanäle, Reichweiten und Einnahmen deines aktiven Profils auf einen Blick.
+          <p className="text-[13px] font-semibold text-muted-foreground">Auswertung</p>
+          <h1 className="mt-1 text-[30px] font-semibold tracking-tight">Tracking</h1>
+          <p className="mt-2 text-[13px] text-muted-foreground">
+            Alle Kanäle, Reichweiten und Einnahmen deines aktiven Projekts auf einen Blick.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-border bg-card p-1">
+          <div className="inline-flex h-9 rounded-[10px] bg-secondary p-[3px]">
             {RANGES.map(([d, label]) => (
               <button
                 key={d}
                 onClick={() => setDays(d)}
-                className={`rounded-md px-2.5 py-1 text-xs ${
+                className={`rounded-[8px] px-3 text-[13px] font-semibold ${
                   days === d
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary"
+                    ? "bg-card text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {label}
@@ -235,7 +235,7 @@ function Tracking() {
           <button
             onClick={refresh}
             disabled={syncing}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground hover:bg-[#0077ed] disabled:opacity-40"
           >
             {syncing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -273,19 +273,19 @@ function Tracking() {
           icon={BarChart3}
           label="Kanäle"
           value={String(accounts.length)}
-          hint={`${brands.length} Brands`}
+          hint={`${brands.length} Profile`}
         />
       </div>
 
       {accounts.some((a) => a.sync_error) && (
-        <div className="space-y-1 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+        <div className="space-y-1 rounded-[14px] border border-destructive/40 bg-destructive/5 p-4">
           {accounts
             .filter((a) => a.sync_error)
             .map((a) => (
-              <p key={a.id} className="flex items-start gap-1.5 text-[11px] text-destructive">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <p key={a.id} className="flex items-start gap-1.5 text-[13px] text-destructive">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
-                  <span className="font-medium">{a.handle ?? PLATFORM_LABEL[a.platform]}:</span>{" "}
+                  <span className="font-semibold">{a.handle ?? PLATFORM_LABEL[a.platform]}:</span>{" "}
                   {a.sync_error}
                 </span>
               </p>
@@ -294,14 +294,14 @@ function Tracking() {
       )}
 
       {loading ? (
-        <div className="grid place-items-center rounded-xl border border-dashed border-border p-12 text-sm text-muted-foreground">
+        <div className="grid place-items-center rounded-[18px] border border-dashed border-border p-12 text-[15px] text-muted-foreground">
           <Loader2 className="mb-2 h-5 w-5 animate-spin" />
           Daten werden geladen
         </div>
       ) : accounts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-[18px] border border-dashed border-border p-12 text-center text-[15px] text-muted-foreground">
           Noch kein Kanal verbunden.{" "}
-          <Link to="/app/connections" className="text-primary hover:underline">
+          <Link to="/app/connections" className="text-accent hover:underline">
             Jetzt verbinden
           </Link>
         </div>
@@ -309,16 +309,16 @@ function Tracking() {
         <>
           <div className="space-y-4">
             {grouped.map(([brandId, list]) => (
-              <div key={brandId} className="rounded-xl border border-border bg-card">
-                <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+              <div key={brandId} className="rounded-[18px] border border-border bg-card">
+                <div className="flex items-center gap-2 border-b border-border px-5 py-3">
                   <span
                     className="h-2.5 w-2.5 rounded-full"
                     style={{ background: brandById.get(brandId)?.color ?? "#888" }}
                   />
-                  <span className="text-sm font-medium">
-                    {brandId === "ohne" ? "Ohne Brand" : (brandById.get(brandId)?.name ?? "Brand")}
+                  <span className="text-[15px] font-semibold">
+                    {brandId === "ohne" ? "Ohne Profil" : (brandById.get(brandId)?.name ?? "Profil")}
                   </span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span className="text-[13px] text-muted-foreground">
                     {list.length} {list.length === 1 ? "Kanal" : "Kanäle"}
                   </span>
                 </div>
@@ -328,11 +328,11 @@ function Tracking() {
                     return (
                       <div
                         key={a.id}
-                        className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-sm"
+                        className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 text-[15px] hover:bg-secondary/40"
                       >
                         <div className="min-w-[180px] flex-1">
-                          <div className="font-medium">{a.handle ?? a.display_name ?? "Kanal"}</div>
-                          <div className="font-mono text-[10px] text-muted-foreground">
+                          <div className="font-semibold">{a.handle ?? a.display_name ?? "Kanal"}</div>
+                          <div className="text-[13px] text-muted-foreground">
                             {PLATFORM_LABEL[a.platform] ?? a.platform}
                             {a.last_sync_at &&
                               ` · Stand ${new Date(a.last_sync_at).toLocaleString("de-DE")}`}
@@ -351,12 +351,12 @@ function Tracking() {
             ))}
           </div>
 
-          <div className="rounded-xl border border-border bg-card">
-            <div className="border-b border-border px-4 py-3 text-sm font-medium">
+          <div className="rounded-[18px] border border-border bg-card">
+            <div className="border-b border-border px-5 py-3 text-[15px] font-semibold">
               Stärkste Beiträge {days > 0 ? `der letzten ${days} Tage` : "insgesamt"}
             </div>
             {posts.length === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">
+              <p className="p-6 text-center text-[15px] text-muted-foreground">
                 Noch keine Beitragsdaten. Mit „Zahlen holen“ werden sie von den Plattformen
                 abgerufen.
               </p>
@@ -367,11 +367,11 @@ function Tracking() {
                   return (
                     <div
                       key={p.id}
-                      className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-sm"
+                      className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 text-[15px] hover:bg-secondary/40"
                     >
                       <div className="min-w-[200px] flex-1">
-                        <div className="line-clamp-1 font-medium">{p.title ?? "Ohne Titel"}</div>
-                        <div className="font-mono text-[10px] text-muted-foreground">
+                        <div className="line-clamp-1 font-semibold">{p.title ?? "Ohne Titel"}</div>
+                        <div className="text-[13px] text-muted-foreground">
                           {PLATFORM_LABEL[p.platform] ?? p.platform}
                           {acc && ` · ${acc.handle ?? acc.display_name}`}
                           {p.published_at &&
@@ -386,10 +386,10 @@ function Tracking() {
                           href={p.post_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-accent hover:underline"
+                          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
                           title="Beitrag öffnen"
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
+                          <ExternalLink className="h-4 w-4" />
                         </a>
                       )}
                     </div>
@@ -418,19 +418,19 @@ function Stat({
   hintTo?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        <Icon className="h-3 w-3" />
+    <div className="rounded-[18px] border border-border bg-card p-5">
+      <div className="flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
-      <div className="mt-1.5 text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-1.5 text-[26px] font-semibold tracking-tight tabular-nums">{value}</div>
       {hint &&
         (hintTo ? (
-          <Link to={hintTo} className="text-[11px] text-primary hover:underline">
+          <Link to={hintTo} className="text-[13px] text-accent hover:underline">
             {hint}
           </Link>
         ) : (
-          <div className="text-[11px] text-muted-foreground">{hint}</div>
+          <div className="text-[13px] text-muted-foreground">{hint}</div>
         ))}
     </div>
   );
@@ -439,9 +439,7 @@ function Stat({
 function Cell({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-[70px]">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-[12px] font-semibold text-muted-foreground">{label}</div>
       <div className="tabular-nums">{value}</div>
     </div>
   );
