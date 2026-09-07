@@ -83,6 +83,22 @@ function uid() {
   return crypto.randomUUID();
 }
 
+/** Wartezeit menschenlesbar: "unter 1 Min", "7 Min", "1 Std 12 Min" */
+function fmtAgo(ms: number) {
+  const min = Math.floor(Math.max(0, ms) / 60000);
+  if (min < 1) return "unter 1 Min";
+  if (min < 60) return `${min} Min`;
+  const h = Math.floor(min / 60);
+  const rest = min % 60;
+  return rest ? `${h} Std ${rest} Min` : `${h} Std`;
+}
+
+/** Nummer n aus storage_path {user_id}/{job_id}/{n}.mp4, sonst ans Ende sortieren */
+function clipNumber(path: string) {
+  const m = /(\d+)\.mp4$/i.exec(path);
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+}
+
 function JobEditor() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
@@ -267,8 +283,80 @@ function JobEditor() {
     aspect?: string;
     captions?: boolean;
     template_id?: string;
+    // vom lokalen Worker geschrieben (siehe docs/WORKER.md)
+    engine?: string;
+    queued_at?: string;
+    worker_phase?: string;
+    worker_heartbeat?: string;
   };
   const aspect = (options.aspect ?? "9:16") as "9:16" | "16:9" | "1:1";
+
+  // Worker-Fortschritt: solange der Auftrag bei "analyzing" steht, tickt eine Uhr,
+  // damit "eingereiht vor X Min" auch dann weiterlaeuft, wenn der Worker nichts schreibt.
+  const [now, setNow] = useState(() => Date.now());
+  const isAnalyzing = job?.status === "analyzing";
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [isAnalyzing]);
+  const workerProgress = Math.max(0, Math.min(100, Number(job?.progress ?? 0)));
+  const queuedAtMs = options.queued_at ? Date.parse(options.queued_at) : NaN;
+  const heartbeatMs = options.worker_heartbeat ? Date.parse(options.worker_heartbeat) : NaN;
+  const TEN_MIN = 10 * 60 * 1000;
+  const heartbeatStale = Number.isNaN(heartbeatMs) || now - heartbeatMs > TEN_MIN;
+  const queuedLongAgo = !Number.isNaN(queuedAtMs) && now - queuedAtMs > TEN_MIN;
+  const workerLooksDown = workerProgress === 0 && heartbeatStale && queuedLongAgo;
+  const queuedAgo = Number.isNaN(queuedAtMs) ? null : fmtAgo(now - queuedAtMs);
+
+  // Fertige Worker-Clips: generated_clips mit meta.engine = worker, Datei im Bucket rendered-clips.
+  // Erst nach status "done" laden, vorher gibt es nichts zu zeigen.
+  type WorkerClip = {
+    id: string;
+    title: string | null;
+    duration_s: number | null;
+    storage_path: string;
+    hook: string | null;
+    url: string | null;
+  };
+  const workerClipsQ = useQuery({
+    queryKey: ["worker_clips", id],
+    enabled: job?.status === "done",
+    queryFn: async (): Promise<WorkerClip[]> => {
+      const { data, error } = await supabase
+        .from("generated_clips")
+        .select("id,title,duration_s,storage_path,meta,created_at")
+        .eq("job_id", id)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const rows = (data ?? []).filter((r) => {
+        const meta = (r.meta ?? {}) as { engine?: string };
+        return meta.engine === "worker";
+      });
+      // Reihenfolge nach Dateinummer {n}.mp4, sonst nach Anlagezeit
+      rows.sort((a, b) => clipNumber(a.storage_path) - clipNumber(b.storage_path));
+      const signed = await Promise.all(
+        rows.map((r) =>
+          supabase.storage.from("rendered-clips").createSignedUrl(r.storage_path, 3600),
+        ),
+      );
+      return rows.map((r, i) => {
+        const meta = (r.meta ?? {}) as { hook?: string | null };
+        return {
+          id: r.id,
+          title: r.title,
+          duration_s: r.duration_s,
+          storage_path: r.storage_path,
+          hook: meta.hook ?? null,
+          url: signed[i]?.data?.signedUrl ?? null,
+        };
+      });
+    },
+  });
+  const workerClips = workerClipsQ.data ?? [];
+  // Platzhalter-Format in der Galerie passend zum Seitenverhaeltnis des Auftrags
+  const workerClipAspect =
+    aspect === "16:9" ? "aspect-video" : aspect === "1:1" ? "aspect-square" : "aspect-[9/16]";
 
   // Profil-Wasserzeichen (Logo im Video-Eck), pro Video ein-/ausschaltbar
   const brandWmQ = useQuery({
@@ -1369,8 +1457,35 @@ function JobEditor() {
       </div>
 
       {job.status === "analyzing" && (
-        <div className="flex items-center gap-2 border-b border-border bg-secondary px-4 py-2 text-[13px] text-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> KI analysiert Inhalt & schlägt Clips vor … (bei langen Videos 1–3 Min)
+        <div className="border-b border-border bg-card px-4 py-2 text-[13px] text-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            <span className="font-semibold">{options.worker_phase || "Wartet auf den Worker"}</span>
+            {queuedAgo && (
+              <span className="text-muted-foreground">eingereiht vor {queuedAgo}</span>
+            )}
+            <span className="ml-auto font-mono text-[12px] tabular-nums text-muted-foreground">
+              {workerProgress}%
+            </span>
+          </div>
+          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${workerProgress}%` }}
+            />
+          </div>
+          <div className="mt-1.5 text-[12px] text-muted-foreground">
+            Der Worker auf deinem Rechner transkribiert, wählt die Stellen aus und rendert. Diese Seite aktualisiert sich von selbst.
+          </div>
+          {workerLooksDown && (
+            <div className="mt-2 rounded-[11px] bg-warning/15 px-4 py-3 text-[13px] text-warning">
+              <div className="font-semibold">Der Worker läuft nicht.</div>
+              <div className="mt-0.5 opacity-90">
+                Auf deinem Rechner <code className="font-semibold">{"worker\\start-worker.cmd"}</code> starten,
+                dann geht es hier automatisch weiter.
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2492,6 +2607,77 @@ function JobEditor() {
               </div>
             </div>
           )}
+
+          {/* Worker-Clips: vom lokalen Worker geschnitten und in rendered-clips hochgeladen */}
+          {job.status === "done" &&
+            (workerClipsQ.isLoading || workerClipsQ.isError || workerClips.length > 0) && (
+              <div className="border-b border-border p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-muted-foreground">
+                    Worker-Clips ({workerClips.length})
+                  </span>
+                  <button
+                    onClick={() => workerClipsQ.refetch()}
+                    disabled={workerClipsQ.isFetching}
+                    className="text-[13px] font-semibold text-primary hover:underline disabled:opacity-40"
+                  >
+                    Neu laden
+                  </button>
+                </div>
+                {workerClipsQ.isLoading ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {[0, 1].map((i) => (
+                      <div key={i} className={`${workerClipAspect} animate-pulse rounded-[8px] bg-secondary`} />
+                    ))}
+                  </div>
+                ) : workerClipsQ.isError ? (
+                  <div className="rounded-[11px] bg-destructive/15 px-3 py-2 text-[13px] text-destructive">
+                    Worker-Clips konnten nicht geladen werden.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {workerClips.map((c, i) => (
+                      <div key={c.id} className="space-y-1">
+                        {c.url ? (
+                          <video
+                            src={c.url}
+                            controls
+                            preload="metadata"
+                            className="w-full rounded-[8px] bg-black"
+                          />
+                        ) : (
+                          <div className={`grid ${workerClipAspect} place-items-center rounded-[8px] bg-secondary text-[12px] text-muted-foreground`}>
+                            Keine Vorschau
+                          </div>
+                        )}
+                        <div className="truncate text-[12px] font-semibold text-foreground" title={c.title ?? ""}>
+                          {i + 1}. {c.title || `Clip ${i + 1}`}
+                        </div>
+                        <div className="text-[12px] text-muted-foreground">
+                          {c.duration_s != null ? fmt(Number(c.duration_s)) : "Dauer unbekannt"}
+                        </div>
+                        {c.hook && (
+                          <div className="line-clamp-2 text-[12px] text-muted-foreground" title={c.hook}>
+                            Hook: {c.hook}
+                          </div>
+                        )}
+                        {c.url && (
+                          <a
+                            href={c.url}
+                            download={`clip-${i + 1}.mp4`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate rounded-[9px] bg-secondary px-2 py-1.5 text-center text-[12px] font-semibold text-foreground hover:bg-[#dcdce1] dark:hover:bg-[#3a3a3c]"
+                          >
+                            ⬇ Herunterladen
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
           {masterUrl && (
             <div className="border-b border-border p-3">

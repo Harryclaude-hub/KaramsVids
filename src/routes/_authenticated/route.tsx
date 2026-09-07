@@ -123,7 +123,7 @@ function AppShell() {
     { to: "/app/avatars", label: "Avatare", icon: Users },
     { to: "/app/publishing", label: "Publishing", icon: CalendarClock },
     { to: "/app/connections", label: "Kanäle", icon: Share2 },
-    { to: "/app/comments", label: "Kommentare", icon: MessageSquare },
+    { to: "/app/comments", label: "Kommentare & Nachrichten", icon: MessageSquare },
     { to: "/app/tracking", label: "Tracking", icon: BarChart3 },
     { to: "/app/profile", label: "Projekt & Einnahmen", icon: Wallet },
   ];

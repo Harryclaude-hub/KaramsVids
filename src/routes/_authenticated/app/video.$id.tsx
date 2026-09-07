@@ -64,7 +64,7 @@ function VideoDetail() {
     },
     onSuccess: (job) => {
       qc.invalidateQueries({ queryKey: ["edit_jobs"] });
-      toast.success("KI-Analyse fertig");
+      toast.success("An den Worker übergeben, Fortschritt im Editor");
       navigate({ to: "/app/job/$id", params: { id: job.id } });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Analyse fehlgeschlagen"),

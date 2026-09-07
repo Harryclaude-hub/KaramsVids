@@ -56,6 +56,10 @@ const MAX_MESSAGES_PER_THREAD = 20;
 /** Nur Nachrichten der letzten Tage werden eingesammelt. */
 export const DM_LOOKBACK_DAYS = 3;
 /** Meta erlaubt Antworten nur so lange nach der letzten Nachricht der Person. */
+// ACHTUNG Spiegelung: DM_REPLY_WINDOW_MS und DM_PLATFORMS sind in
+// src/routes/_authenticated/app/comments.tsx noch einmal als Konstanten
+// hinterlegt, weil diese Server-Datei nicht ins Browser-Bundle darf.
+// Wer hier etwas aendert, muss dort dasselbe aendern.
 export const DM_REPLY_WINDOW_MS = 24 * 60 * 60 * 1000;
 /**
  * Laengenlimits je Nachricht laut Meta-Doku (Messenger 2000, Instagram 1000).

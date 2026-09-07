@@ -186,7 +186,7 @@ der mittlere Posten auf unter eine Minute.
 * **Ein Rechner, ein Auftrag nach dem anderen.** Der Worker verarbeitet
   Aufträge seriell. Läuft der Rechner nicht, bleiben Aufträge bei `analyzing`
   und `progress 0` stehen, bis der Worker wieder startet. Die Web-App zeigt
-  dafür noch keinen eigenen Hinweis (siehe "Offen" unten).
+  dafür zeigt der Editor einen eigenen Hinweis, sobald der Herzschlag ausbleibt.
 * **`blur_pad` kostet etwas mehr.** Der unscharfe Hintergrund wird in einem
   Viertel der Auflösung berechnet und hochskaliert (3,4x statt 1,2x Echtzeit in
   voller Auflösung). `crop` bleibt die schnellste Variante.
@@ -240,16 +240,14 @@ rät, ohne das Video je gesehen zu haben, ist hinter der Umgebungsvariablen
 treffen, und erfundene Untertitel. Sinnvoll nur, wenn der Worker-Rechner länger
 ausfällt und der Editor trotzdem irgendetwas anzeigen soll.
 
-## Offen (Web-App, nicht Teil des Workers)
+## Umgesetzt in der Web-App
 
-* Hinweis im Editor, wenn ein Auftrag länger als 10 Minuten bei `analyzing` und
-  `progress 0` hängt oder `options.worker_heartbeat` älter als 10 Minuten ist:
-  "Worker läuft nicht. Auf dem Rechner `worker\start-worker.cmd` starten."
-* Der Editor pollt nur bei `analyzing`; nach `done` könnten die vom Worker
-  hochgeladenen Clips (`generated_clips` mit `meta.engine = worker`) direkt in
-  der Clip-Galerie erscheinen, statt nur die im Browser gerenderten.
-* Auf der Video-Seite (`video.$id.tsx`) wird nach `analyzeVideo` sofort
-  "KI-Analyse fertig" gemeldet; passender wäre "An den Worker übergeben".
+Die drei Punkte, die hier zuerst als offen standen, sind seit dem 7. September 2026
+im Editor umgesetzt: Der Auftrag zeigt Phase, Fortschritt und Wartezeit aus
+`options.worker_phase`, `progress` und `options.queued_at`; bleibt ein Auftrag
+laenger als zehn Minuten ohne Herzschlag bei 0 %, erscheint der Hinweis "Der Worker
+laeuft nicht"; und die vom Worker gerenderten Clips erscheinen nach `done` als
+eigener Abschnitt "Worker-Clips" mit Vorschau, Hook und Download.
 
 ## Dateien
 
